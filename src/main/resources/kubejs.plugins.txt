@@ -1,0 +1,2 @@
+com.kubejs.goety.plugin.GoetyKubeJSPlugin
+

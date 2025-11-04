@@ -1,0 +1,55 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+
+[[mods]]
+modId="kubejs_goety"
+version="${file.jarVersion}"
+displayName="KubeJS Goety"
+displayURL="https://github.com/kubejs-goety/kubejs-goety"
+logoFile="kubejs_goety.png"
+credits="Integration mod for KubeJS and Goety"
+authors="KubeJS Goety Contributors"
+description='''
+KubeJS integration for Goety mod. Allows customizing Goety ritual requirements via JavaScript scripts.
+
+This mod provides a bridge between KubeJS and Goety, enabling users to modify ritual building conditions through server scripts instead of hardcoded values.
+
+使用方法：
+1. 安装 KubeJS 和 Goety 模组
+2. 在 kubejs/server_scripts/ 目录中创建 JavaScript 脚本
+3. 使用提供的 API 函数来自定义仪式条件
+
+Usage:
+1. Install KubeJS and Goety mods
+2. Create JavaScript scripts in kubejs/server_scripts/ directory
+3. Use provided API functions to customize ritual requirements
+'''
+
+[[dependencies.kubejs_goety]]
+modId="forge"
+mandatory=true
+versionRange="${neo_version_range}"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.kubejs_goety]]
+modId="kubejs"
+mandatory=true
+versionRange="[2001.7.2,)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.kubejs_goety]]
+modId="goety"
+mandatory=true
+versionRange="[2.5.38.2,)"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.kubejs_goety]]
+modId="minecraft"
+mandatory=true
+versionRange="${minecraft_version_range}"
+ordering="NONE"
+side="BOTH"
+
