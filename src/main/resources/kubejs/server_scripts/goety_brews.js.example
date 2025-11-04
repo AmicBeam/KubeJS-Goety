@@ -1,0 +1,142 @@
+/**
+ * Goety 药酿配置示例脚本
+ * 
+ * 本脚本展示了如何使用 GoetyEvents.registerBrew() 来配置药酿系统：
+ * - 容量剂（Capacity Modifiers）
+ * - 催化剂（Catalysts）- 物品类型和实体类型
+ * - 增强剂（Augmentation Modifiers）
+ * 
+ * 使用方法：
+ * 1. 将此文件放在世界存档的 kubejs/server_scripts/ 目录中
+ * 2. 根据需要修改配置
+ * 3. 重新加载世界或重启服务器
+ */
+
+GoetyEvents.registerBrew(event => {
+    
+    // ==========================================
+    // 1. 容量剂配置（Capacity Modifiers）
+    // ==========================================
+    // event.addCapacity(item, level)
+    // - item: 物品ID（字符串）或物品对象
+    // - level: 等级（0-7）
+    
+    // 添加自定义容量剂
+    event.addCapacity('mymod:magic_crystal', 6);
+    event.addCapacity('mymod:soul_crystal', 7);
+    
+    // 覆盖原版容量剂（可选）
+    // event.addCapacity('minecraft:nether_wart', 0);  // 会覆盖原版配置
+    
+    
+    // ==========================================
+    // 2. 催化剂配置 - 物品类型
+    // ==========================================
+    // event.addCatalyst(item, effect, soulCost, duration, capacityExtra)
+    // - item: 物品ID（字符串）或物品对象
+    // - effect: 效果ID（字符串，如 'minecraft:strength'）
+    // - soulCost: 灵魂消耗（整数）
+    // - duration: 持续时间 tick（整数，可选，默认600）
+    // - capacityExtra: 额外容量（整数，可选，默认0）
+    
+    // 添加自定义物品催化剂
+    event.addCatalyst('mymod:dark_essence', 'minecraft:strength', 50, 1800, 2);
+    event.addCatalyst('mymod:light_crystal', 'minecraft:night_vision', 30, 2400, 1);
+    
+    // 简化版本（只使用必填参数）
+    event.addCatalyst('mymod:essence', 'minecraft:haste', 40);
+    
+    // 带持续时间的版本
+    event.addCatalyst('mymod:power_crystal', 'minecraft:regeneration', 60, 3600);
+    
+    // 修改原版催化剂（直接覆盖）
+    event.addCatalyst('minecraft:glowstone_dust', 'minecraft:night_vision', 20, 1000, 0);
+    
+    
+    // ==========================================
+    // 3. 催化剂配置 - 实体类型
+    // ==========================================
+    // event.addEntityCatalyst(entity, effect, soulCost, duration, capacityExtra)
+    // - entity: 实体类型ID（字符串）或实体标签（字符串，以 # 开头）
+    // - effect: 效果ID（字符串）
+    // - soulCost: 灵魂消耗（整数）
+    // - duration: 持续时间 tick（整数，可选，默认600）
+    // - capacityExtra: 额外容量（整数，可选，默认0）
+    
+    // 添加单个实体催化剂
+    event.addEntityCatalyst('minecraft:creeper', 'minecraft:haste', 100, 1800, 1);
+    event.addEntityCatalyst('minecraft:zombie', 'minecraft:poison', 75, 1800, 1);
+    
+    // 添加实体标签催化剂（影响所有匹配的实体）
+    event.addEntityCatalyst('#minecraft:is_animal', 'minecraft:regeneration', 100, 2400, 2);
+    
+    // 简化版本
+    event.addEntityCatalyst('minecraft:skeleton', 'minecraft:weakness', 50);
+    
+    // 带持续时间的版本
+    event.addEntityCatalyst('minecraft:spider', 'minecraft:poison', 80, 1200);
+    
+    
+    // ==========================================
+    // 4. 增强剂配置（Augmentation Modifiers）
+    // ==========================================
+    // event.addAugmentation(item, modifier, level)
+    // - item: 物品ID（字符串）或物品对象
+    // - modifier: 增强类型（字符串）
+    //   - 'capacity' - 容量
+    //   - 'duration' - 持续时间
+    //   - 'amplifier' - 效果放大
+    //   - 'aoe' - 范围效果
+    //   - 'linger' - 持续效果
+    //   - 'quaff' - 饮用效果
+    //   - 'velocity' - 速度
+    //   - 'aquatic' - 水生
+    //   - 'fire_proof' - 防火
+    // - level: 等级（整数）
+    
+    // 添加自定义增强剂
+    event.addAugmentation('mymod:time_crystal', 'duration', 3);
+    event.addAugmentation('mymod:power_crystal', 'amplifier', 2);
+    event.addAugmentation('mymod:range_crystal', 'aoe', 1);
+    
+    // 修改原版增强剂（直接覆盖）
+    event.addAugmentation('minecraft:redstone', 'duration', 1);  // 提升等级
+    
+    
+    // ==========================================
+    // 5. 移除配置（可选）
+    // ==========================================
+    // 注意：移除功能目前仅提供警告提示
+    // 实际移除需要通过覆盖注册来实现
+    
+    // event.removeCapacity('minecraft:nether_wart');
+    // event.removeCatalyst('minecraft:glowstone_dust');
+    // event.removeEntityCatalyst('minecraft:zombie');
+    // event.removeAugmentation('minecraft:redstone');
+    
+    
+    // ==========================================
+    // 完整示例：自定义药酿套装
+    // ==========================================
+    
+    // 自定义容量剂套装
+    event.addCapacity('mymod:magic_crystal_tier1', 1);
+    event.addCapacity('mymod:magic_crystal_tier2', 2);
+    event.addCapacity('mymod:magic_crystal_tier3', 3);
+    
+    // 自定义催化剂套装
+    event.addCatalyst('mymod:fire_essence', 'minecraft:fire_resistance', 50, 3600, 0);
+    event.addCatalyst('mymod:water_essence', 'minecraft:water_breathing', 50, 3600, 0);
+    event.addCatalyst('mymod:earth_essence', 'minecraft:resistance', 50, 3600, 0);
+    event.addCatalyst('mymod:air_essence', 'minecraft:slow_falling', 50, 3600, 0);
+    
+    // 自定义实体催化剂
+    event.addEntityCatalyst('minecraft:ender_dragon', 'minecraft:levitation', 200, 600, 5);
+    event.addEntityCatalyst('minecraft:wither', 'minecraft:wither', 200, 600, 5);
+    
+    // 自定义增强剂套装
+    event.addAugmentation('mymod:duration_crystal', 'duration', 2);
+    event.addAugmentation('mymod:amplifier_crystal', 'amplifier', 2);
+    event.addAugmentation('mymod:range_crystal', 'aoe', 2);
+});
+

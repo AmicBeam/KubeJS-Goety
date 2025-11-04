@@ -1,15 +1,13 @@
 # KubeJS Goety
 
-KubeJS 与 Goety 模组的集成，允许通过 JavaScript 脚本自定义 Goety 仪式的构建条件。
+KubeJS 与 Goety 模组的集成，允许通过 JavaScript 脚本自定义 Goety 的仪式构建条件、药酿系统和配方系统。
 
 ## 功能特性
 
-- ✅ 使用 GoetyEvents 事件系统（类似 KubeJS-TFC 的设计）
-- ✅ 支持创建新仪式类型
-- ✅ 支持修改现有仪式条件
-- ✅ 支持删除自定义仪式类型
-- ✅ 完全自定义的仪式条件检查逻辑
-- ✅ 支持所有 Goety 仪式类型
+- ✅ 使用 GoetyEvents 事件系统
+- ✅ 支持创建和修改仪式类型，完全自定义仪式条件检查逻辑
+- ✅ 支持配置药酿系统（容量剂、催化剂、增强剂）
+- ✅ 支持配置配方系统（仪式配方、酿造配方、粉碎配方等）
 - ✅ 服务器端脚本支持（server_scripts）
 - ✅ 无需修改 Goety 模组本身
 
@@ -26,9 +24,13 @@ KubeJS 与 Goety 模组的集成，允许通过 JavaScript 脚本自定义 Goety
 2. 确保已安装 KubeJS 和 Goety 模组
 3. 启动游戏
 
-## 使用方法
+## 仪式系统配置
 
-### 1. 创建脚本文件
+### GoetyEvents.modifyRitual 和 GoetyEvents.registerRitual
+
+使用 GoetyEvents 事件系统来自定义 Goety 仪式的构建条件。
+
+#### 创建脚本文件
 
 在世界存档目录下创建脚本文件：
 ```
@@ -38,22 +40,29 @@ KubeJS 与 Goety 模组的集成，允许通过 JavaScript 脚本自定义 Goety
         └── goety_rituals.js
 ```
 
-### 2. 使用 GoetyEvents API
-
-脚本使用 `GoetyEvents` 事件系统，提供三个主要事件：
-
 #### 修改现有仪式条件
 
 ```javascript
 GoetyEvents.modifyRitual(event => {
-    // 修改风暴仪式
+    // event.modify(ritualId, modifier)
+    // - ritualId: 要修改的仪式ID（字符串）
+    // - modifier: 修改器函数，接收一个 ritual 对象
+    
+    // 使用配置化方式修改
     event.modify('storm', ritual => {
-        ritual.name = 'storm';
-        ritual.requirement = (tileEntity, pos, level) => {
+        ritual.blocks = ['8x #minecraft:copper_ores', '3x minecraft:lightning_rod'];
+        ritual.setWeather('thunder');         // 需要雷雨天气
+        ritual.setMinY(128);                  // 高度 >= 128
+        ritual.setRequireSkyVisible(true);    // 需要能看到天空
+    });
+    
+    // 使用自定义函数修改
+    event.modify('magic', ritual => {
+        ritual.setRequirement((tileEntity, pos, level) => {
             // 自定义检查逻辑
             // 返回 true 表示条件满足，false 表示不满足
             return true;
-        };
+        });
     });
 });
 ```
@@ -62,114 +71,10 @@ GoetyEvents.modifyRitual(event => {
 
 ```javascript
 GoetyEvents.registerRitual(event => {
-    event.create('my_custom_ritual', ritual => {
-        ritual.name = 'my_custom_ritual';
-        ritual.requirement = (tileEntity, pos, level) => {
-            // 自定义检查逻辑
-            return true;
-        };
-    });
-});
-```
-
-#### 删除仪式类型
-
-```javascript
-GoetyEvents.removeRitual(event => {
-    // 只能删除自定义创建的仪式，不能删除内置仪式
-    event.remove('my_custom_ritual');
-});
-```
-
-### 3. 完整示例
-
-参考 `src/main/resources/kubejs/server_scripts/goety_rituals.js.example` 文件获取完整示例。
-
-## API 参考
-
-### GoetyEvents.modifyRitual
-
-修改现有仪式类型的条件。
-
-**参数：**
-- `event.modify(ritualId, modifier)` - 修改指定 ID 的仪式
-  - `ritualId` (string): 要修改的仪式 ID
-  - `modifier` (function): 修改器函数，接收一个 `ritual` 对象
-    - `ritual.range` (integer): 扫描范围（默认16）
-    - `ritual.blocks` (object/array/string): 方块需求配置
-    - `ritual.setDimension(dimensionId, containsMatch)` (string, boolean): 维度限制
-      - `dimensionId`: 维度ID，如 'minecraft:the_nether' 或 'aether'
-      - `containsMatch`: false（精确匹配，默认）或 true（模糊匹配）
-      - 不写第二个参数时默认精确匹配：`ritual.setDimension(dimensionId)` 等同于 `setDimension(dimensionId, false)`
-    - `ritual.setWeather(weather)` (string): 天气要求（'thunder'/'rain'/'clear'）
-    - `ritual.setTimeOfDay(timeOfDay)` (string): 时间要求（'day'/'night'）
-    - `ritual.setBiome(biomeValue, type)` (object, string): 生物群系要求
-      - `biomeValue`: 生物群系值（可以是字符串或数组）
-      - `type`: 'id'（生物群系ID，默认）、'tags'（标签）、'coldEnoughToSnow'（寒冷检查）
-      - 不写第二个参数时默认为'id'：`ritual.setBiome(biomeValue)` 等同于 `setBiome(biomeValue, 'id')`
-    - `ritual.setMinY(y)` (integer): 最小高度要求
-    - `ritual.setMaxY(y)` (integer): 最大高度要求
-    - `ritual.setRequireSkyVisible(boolean)` (boolean): 是否需要看到天空
-    - `ritual.setRequirement(function)` (function): 自定义检查函数（覆盖所有配置）
-
-**示例：**
-```javascript
-GoetyEvents.modifyRitual(event => {
-    // 修改风暴仪式（使用配置化方式）
-    event.modify('storm', ritual => {
-        ritual.blocks = ['8x #minecraft:copper_ores', '3x minecraft:lightning_rod'];
-        ritual.setWeather('thunder');         // 需要雷雨天气
-        ritual.setMinY(128);                  // 高度 >= 128
-        ritual.setRequireSkyVisible(true);    // 需要能看到天空
-    });
+    // event.create(ritualId, builder)
+    // - ritualId: 仪式的唯一标识符（字符串）
+    // - builder: 构建器函数，接收一个 ritual 对象
     
-    // 修改霜冻仪式（使用 coldEnoughToSnow 检查）
-    event.modify('frost', ritual => {
-        ritual.blocks = ['minecraft:ice', 'minecraft:packed_ice'];
-        ritual.setBiome(null, 'coldEnoughToSnow');  // 检查生物群系是否寒冷到可以下雪
-    });
-    
-    // 修改下界仪式（使用生物群系标签）
-    event.modify('adept_nether', ritual => {
-        ritual.setBiome('#minecraft:is_nether', 'tags');  // 使用标签检查
-    });
-    
-    // 修改 Aether 维度仪式（使用模糊匹配）
-    event.modify('sky', ritual => {
-        ritual.setDimension('aether', true);  // 维度ID包含 'aether'（模糊匹配）
-    });
-});
-```
-
-### GoetyEvents.registerRitual
-
-创建新的仪式类型。
-
-**参数：**
-- `event.create(ritualId, builder)` - 创建新仪式
-  - `ritualId` (string): 仪式的唯一标识符
-  - `builder` (function): 构建器函数，接收一个 `ritual` 对象
-    - `ritual.name` (string): 仪式名称（可选，默认为 ritualId）
-    - `ritual.range` (integer): 扫描范围（默认16）
-    - `ritual.blocks` (object/array/string): 方块需求配置
-    - `ritual.setDimension(dimensionId, containsMatch)` (string, boolean): 维度限制
-      - `dimensionId`: 维度ID，如 'minecraft:the_nether' 或 'aether'
-      - `containsMatch`: false（精确匹配，默认）或 true（模糊匹配）
-      - 不写第二个参数时默认精确匹配：`ritual.setDimension(dimensionId)` 等同于 `setDimension(dimensionId, false)`
-    - `ritual.setWeather(weather)` (string): 天气要求（'thunder'/'rain'/'clear'）
-    - `ritual.setTimeOfDay(timeOfDay)` (string): 时间要求（'day'/'night'）
-    - `ritual.setBiome(biomeValue, type)` (object, string): 生物群系要求
-      - `biomeValue`: 生物群系值（可以是字符串或数组）
-      - `type`: 'id'（生物群系ID，默认）、'tags'（标签）、'coldEnoughToSnow'（寒冷检查）
-      - 不写第二个参数时默认为'id'：`ritual.setBiome(biomeValue)` 等同于 `setBiome(biomeValue, 'id')`
-    - `ritual.setMinY(y)` (integer): 最小高度要求
-    - `ritual.setMaxY(y)` (integer): 最大高度要求
-    - `ritual.setRequireSkyVisible(boolean)` (boolean): 是否需要看到天空
-    - `ritual.setRequirement(function)` (function): 自定义检查函数（覆盖所有配置）
-
-**示例：**
-```javascript
-GoetyEvents.registerRitual(event => {
     // 创建简单仪式（只需要方块）
     event.create('diamond_ritual', ritual => {
         ritual.blocks = ['5x minecraft:diamond_block', '3x minecraft:emerald_block'];
@@ -184,26 +89,38 @@ GoetyEvents.registerRitual(event => {
 });
 ```
 
-### GoetyEvents.removeRitual
+#### 禁用内置仪式
 
-删除仪式类型（只能删除自定义创建的仪式）。
+如果需要禁用某个内置仪式，可以使用 `modifyRitual` 让条件检查始终返回 `false`：
 
-**参数：**
-- `event.remove(ritualId)` - 删除指定 ID 的仪式
-  - `ritualId` (string): 要删除的仪式 ID
-- `event.removeAll(...ritualIds)` - 删除多个仪式
-  - `ritualIds` (string[]): 要删除的仪式 ID 数组
-
-**注意：** 无法删除内置仪式（如 'storm', 'magic' 等）。如果需要禁用内置仪式，请使用 `modifyRitual` 让 `requirement` 始终返回 `false`。
-
-**示例：**
 ```javascript
-GoetyEvents.removeRitual(event => {
-    event.remove('my_custom_ritual');
-    // 或删除多个
-    event.removeAll('ritual1', 'ritual2', 'ritual3');
+GoetyEvents.modifyRitual(event => {
+    event.modify('storm', ritual => {
+        ritual.requirement = () => false; // 始终返回 false，禁用仪式
+    });
 });
 ```
+
+#### 配置选项
+
+`ritual` 对象支持以下配置选项：
+
+- `ritual.range` (integer): 扫描范围（默认16）
+- `ritual.blocks` (object/array/string): 方块需求配置
+- `ritual.setDimension(dimensionId, containsMatch)` (string, boolean): 维度限制
+  - `dimensionId`: 维度ID，如 'minecraft:the_nether' 或 'aether'
+  - `containsMatch`: false（精确匹配，默认）或 true（模糊匹配）
+- `ritual.setWeather(weather)` (string): 天气要求（'thunder'/'rain'/'clear'）
+- `ritual.setTimeOfDay(timeOfDay)` (string): 时间要求（'day'/'night'）
+- `ritual.setBiome(biomeValue, type)` (object, string): 生物群系要求
+  - `biomeValue`: 生物群系值（可以是字符串或数组）
+  - `type`: 'id'（生物群系ID，默认）、'tags'（标签）、'coldEnoughToSnow'（寒冷检查）
+- `ritual.setMinY(y)` (integer): 最小高度要求
+- `ritual.setMaxY(y)` (integer): 最大高度要求
+- `ritual.setRequireSkyVisible(boolean)` (boolean): 是否需要看到天空
+- `ritual.setRequirement(function)` (function): 自定义检查函数（覆盖所有配置）
+
+**参考示例**：`src/main/resources/kubejs/server_scripts/goety_rituals.js.example`
 
 ## 为什么使用 server_scripts？
 
@@ -268,7 +185,7 @@ GoetyEvents.removeRitual(event => {
 
 ### 自定义仪式类型
 
-通过 `GoetyEvents.registerRitual` 创建的任何仪式类型都可以被修改或删除。
+通过 `GoetyEvents.registerRitual` 创建的任何仪式类型都可以被修改。
 
 #### 本地化（可选）
 
@@ -312,17 +229,240 @@ GoetyEvents.removeRitual(event => {
 - 本地化是可选的，不影响仪式的功能
 - 可以只添加你需要的语言文件
 
-## 禁用内置仪式
+## 药酿系统配置
 
-如果需要禁用某个内置仪式，可以使用 `modifyRitual` 让条件检查始终返回 `false`：
+### GoetyEvents.registerBrew
+
+配置 Goety 药酿系统，包括容量剂、催化剂和增强剂。
+
+#### 创建脚本文件
+
+在世界存档目录下创建脚本文件：
+```
+你的世界存档/
+└── kubejs/
+    └── server_scripts/
+        └── goety_brews.js
+```
+
+#### 注册容量剂
 
 ```javascript
-GoetyEvents.modifyRitual(event => {
-    event.modify('storm', ritual => {
-        ritual.requirement = () => false; // 始终返回 false，禁用仪式
-    });
+GoetyEvents.registerBrew(event => {
+    // event.addCapacity(item, level)
+    // - item: 物品ID（字符串）或物品对象
+    // - level: 等级（0-7）
+    
+    event.addCapacity('minecraft:nether_wart', 0);
+    event.addCapacity('mymod:magic_crystal', 6);
 });
 ```
+
+#### 注册物品催化剂
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    // event.addCatalyst(item, effect, soulCost, duration, capacityExtra)
+    // - item: 物品ID（字符串）或物品对象
+    // - effect: 效果ID（字符串，如 'minecraft:strength'）
+    // - soulCost: 灵魂消耗（整数）
+    // - duration: 持续时间 tick（整数，可选，默认600）
+    // - capacityExtra: 额外容量（整数，可选，默认0）
+    
+    // 完整版本
+    event.addCatalyst('minecraft:glowstone_dust', 'minecraft:night_vision', 25, 1200, 0);
+    
+    // 简化版本（只使用必填参数）
+    event.addCatalyst('mymod:essence', 'minecraft:strength', 50);
+    
+    // 带持续时间的版本
+    event.addCatalyst('mymod:power_crystal', 'minecraft:regeneration', 60, 3600);
+});
+```
+
+#### 注册实体催化剂
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    // event.addEntityCatalyst(entity, effect, soulCost, duration, capacityExtra)
+    // - entity: 实体类型ID（字符串）或实体标签（字符串，以 # 开头）
+    // - effect: 效果ID（字符串）
+    // - soulCost: 灵魂消耗（整数）
+    // - duration: 持续时间 tick（整数，可选，默认600）
+    // - capacityExtra: 额外容量（整数，可选，默认0）
+    
+    // 单个实体类型
+    event.addEntityCatalyst('minecraft:zombie', 'minecraft:poison', 75, 1800, 1);
+    
+    // 实体标签（影响所有匹配的实体）
+    event.addEntityCatalyst('#minecraft:is_animal', 'minecraft:regeneration', 100);
+});
+```
+
+#### 注册增强剂
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    // event.addAugmentation(item, modifier, level)
+    // - item: 物品ID（字符串）或物品对象
+    // - modifier: 增强类型（字符串）
+    //   - 'capacity' - 容量
+    //   - 'duration' - 持续时间
+    //   - 'amplifier' - 效果放大
+    //   - 'aoe' - 范围效果
+    //   - 'linger' - 持续效果
+    //   - 'quaff' - 饮用效果
+    //   - 'velocity' - 速度
+    //   - 'aquatic' - 水生
+    //   - 'fire_proof' - 防火
+    // - level: 等级（整数）
+    
+    event.addAugmentation('minecraft:redstone', 'duration', 0);
+    event.addAugmentation('mymod:time_crystal', 'duration', 3);
+    event.addAugmentation('mymod:power_crystal', 'amplifier', 2);
+});
+```
+
+#### 完整示例
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    // 容量剂配置
+    event.addCapacity('mymod:magic_crystal', 6);
+    
+    // 物品催化剂配置
+    event.addCatalyst('mymod:dark_essence', 'minecraft:strength', 50, 1800, 2);
+    event.addCatalyst('mymod:light_crystal', 'minecraft:night_vision', 30, 2400, 1);
+    
+    // 实体催化剂配置
+    event.addEntityCatalyst('minecraft:creeper', 'minecraft:haste', 100, 1800, 1);
+    event.addEntityCatalyst('#minecraft:is_animal', 'minecraft:regeneration', 100);
+    
+    // 增强剂配置
+    event.addAugmentation('mymod:time_crystal', 'duration', 3);
+    event.addAugmentation('mymod:power_crystal', 'amplifier', 2);
+});
+```
+
+**参考示例**：`src/main/resources/kubejs/server_scripts/goety_brews.js.example`
+
+## 配方系统配置
+
+### ServerEvents.recipes
+
+使用 KubeJS 标准配方事件来配置 Goety 的配方系统。
+
+#### 创建脚本文件
+
+在世界存档目录下创建脚本文件：
+```
+你的世界存档/
+└── kubejs/
+    └── server_scripts/
+        └── goety_recipes.js
+```
+
+#### 仪式配方（ritual）
+
+```javascript
+ServerEvents.recipes(event => {
+    // event.recipes.goety.ritual(result, ritualType, ingredients)
+    // - result: 产物物品（OutputItem）
+    // - ritualType: 仪式类型ID（通常是 'goety:craft'）
+    // - ingredients: 材料数组（InputItem[]）
+    
+    event.recipes.goety.ritual('minecraft:emerald', 'goety:craft', [
+        'minecraft:gold_ingot',
+        'minecraft:gold_ingot',
+        'minecraft:diamond'
+    ])
+        .activationItem('minecraft:ender_pearl')
+        .craftType('forge')  // 锻造仪式
+        .soulCost(5)
+        .duration(20);
+});
+```
+
+#### 酿造配方（brewing）
+
+```javascript
+ServerEvents.recipes(event => {
+    // event.recipes.goety.brewing(ingredient, effect)
+    // - ingredient: 材料物品（InputItem）
+    // - effect: 效果ID（String，如 'minecraft:regeneration'）
+    
+    event.recipes.goety.brewing('minecraft:golden_apple', 'minecraft:regeneration')
+        .soulCost(15)
+        .capacityExtra(0)
+        .duration(1800);  // 30秒
+    
+    // 需要特定生物的酿造配方
+    event.recipes.goety.brewing('minecraft:nether_star', 'minecraft:resistance')
+        .soulCost(50)
+        .entityType('minecraft:ender_dragon');  // 需要末影龙
+});
+```
+
+#### 粉碎配方（pulverize）
+
+```javascript
+ServerEvents.recipes(event => {
+    // event.recipes.goety.pulverize(ingredient)
+    // - ingredient: 材料物品（InputItem）
+    
+    // 产生方块的粉碎配方
+    event.recipes.goety.pulverize('minecraft:cobblestone')
+        .blockResult('minecraft:gravel');
+    
+    // 产生物品的粉碎配方
+    event.recipes.goety.pulverize('minecraft:gravel')
+        .itemResult('minecraft:flint');
+});
+```
+
+#### 诅咒注入器配方（cursed_infuser_recipes）
+
+```javascript
+ServerEvents.recipes(event => {
+    // event.recipes.goety.cursed_infuser_recipes(result, ingredient)
+    // - result: 产物物品ID（String）
+    // - ingredient: 材料物品（InputItem）
+    
+    event.recipes.goety.cursed_infuser_recipes('minecraft:emerald', 'minecraft:iron_sword')
+        .cookingTime(100);  // 5秒（100 tick）
+});
+```
+
+#### 火盆配方（brazier）
+
+```javascript
+ServerEvents.recipes(event => {
+    // event.recipes.goety.brazier(result, ingredients)
+    // - result: 产物物品（OutputItem）
+    // - ingredients: 材料数组（InputItem[]）
+    
+    event.recipes.goety.brazier('minecraft:emerald', [
+        'minecraft:soul_sand',
+        'minecraft:soul_sand',
+        'minecraft:soul_sand',
+        'minecraft:lapis_lazuli'
+    ])
+        .soulCost(10);
+});
+```
+
+#### 移除配方
+
+```javascript
+ServerEvents.recipes(event => {
+    // 移除现有配方
+    event.remove({ type: 'goety:ritual', craftType: 'magic' });
+    event.remove({ type: 'goety:brewing', effect: 'minecraft:poison' });
+    event.remove({ type: 'goety:pulverize', ingredient: 'minecraft:cobblestone' });
+});
+```
+
+**参考示例**：`src/main/resources/kubejs/server_scripts/goety_recipes.js.example`
 
 ## 开发
 
@@ -343,8 +483,7 @@ kubejs-goety/
 │   │   │   └── EventHandlers.java    # 事件处理器
 │   │   ├── event/
 │   │   │   ├── RegisterRitualEventJS.java    # 注册仪式事件
-│   │   │   ├── ModifyRitualEventJS.java      # 修改仪式事件
-│   │   │   └── RemoveRitualEventJS.java     # 删除仪式事件
+│   │   │   └── ModifyRitualEventJS.java      # 修改仪式事件
 │   │   └── plugin/
 │   │       └── GoetyKubeJSPlugin.java # KubeJS 插件
 │   └── resources/
@@ -353,7 +492,9 @@ kubejs-goety/
 │       ├── kubejs.plugins.txt         # 插件注册文件
 │       └── kubejs/
 │           └── server_scripts/
-│               └── goety_rituals.js.example # 示例脚本
+│               ├── goety_rituals.js.example  # 仪式配置示例脚本
+│               ├── goety_recipes.js.example   # 配方配置示例脚本
+│               └── goety_brews.js.example    # 药酿配置示例脚本
 ```
 
 ## 许可证

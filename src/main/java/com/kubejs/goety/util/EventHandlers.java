@@ -3,6 +3,7 @@ package com.kubejs.goety.util;
 import com.kubejs.goety.event.RegisterRitualEventJS;
 import com.kubejs.goety.event.ModifyRitualEventJS;
 import com.kubejs.goety.event.RemoveRitualEventJS;
+import com.kubejs.goety.event.RegisterBrewEventJS;
 import dev.latvian.mods.kubejs.event.EventGroup;
 import dev.latvian.mods.kubejs.event.EventHandler;
 
@@ -15,7 +16,7 @@ public class EventHandlers {
     
     /**
      * GoetyEvents 事件组
-     * 在脚本中使用：GoetyEvents.registerRitual(), GoetyEvents.modifyRitual(), GoetyEvents.removeRitual()
+     * 在脚本中使用：GoetyEvents.registerRitual(), GoetyEvents.modifyRitual(), GoetyEvents.removeRitual(), GoetyEvents.registerBrew()
      */
     public static final EventGroup GoetyEvents = EventGroup.of("GoetyEvents");
     
@@ -36,6 +37,12 @@ public class EventHandlers {
      * 在 server_scripts 中使用：GoetyEvents.removeRitual(event => { ... })
      */
     public static final EventHandler removeRitual = GoetyEvents.server("removeRitual", () -> RemoveRitualEventJS.class);
+    
+    /**
+     * 注册药酿配置的事件
+     * 在 server_scripts 中使用：GoetyEvents.registerBrew(event => { ... })
+     */
+    public static final EventHandler registerBrew = GoetyEvents.server("registerBrew", () -> RegisterBrewEventJS.class);
     
     /**
      * 初始化事件处理器

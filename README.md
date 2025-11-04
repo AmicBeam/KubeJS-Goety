@@ -1,15 +1,13 @@
 # KubeJS Goety
 
-KubeJS integration for Goety mod. Allows customizing Goety ritual requirements via JavaScript scripts.
+KubeJS integration for Goety mod. Allows customizing Goety ritual requirements, brew system, and recipe system via JavaScript scripts.
 
 ## Features
 
-- ✅ Uses GoetyEvents event system (similar to KubeJS-TFC design)
-- ✅ Create new ritual types
-- ✅ Modify existing ritual conditions
-- ✅ Remove custom ritual types
-- ✅ Fully customizable ritual condition checking logic
-- ✅ Supports all Goety ritual types
+- ✅ Uses GoetyEvents event system
+- ✅ Create and modify ritual types with fully customizable ritual condition checking logic
+- ✅ Brew system configuration (capacity modifiers, catalysts, augmentations)
+- ✅ Recipe system configuration (ritual recipes, brewing recipes, pulverize recipes, etc.)
 - ✅ Server-side script support (server_scripts)
 - ✅ No need to modify the Goety mod itself
 
@@ -26,9 +24,13 @@ KubeJS integration for Goety mod. Allows customizing Goety ritual requirements v
 2. Make sure KubeJS and Goety mods are installed
 3. Start the game
 
-## Usage
+## Ritual System Configuration
 
-### 1. Create Script File
+### GoetyEvents.modifyRitual and GoetyEvents.registerRitual
+
+Use GoetyEvents event system to customize Goety ritual requirements.
+
+#### Create Script File
 
 Create a script file in your world save directory:
 ```
@@ -38,22 +40,29 @@ your_world_save/
         └── goety_rituals.js
 ```
 
-### 2. Use GoetyEvents API
-
-Scripts use the `GoetyEvents` event system, providing three main events:
-
 #### Modify Existing Ritual Conditions
 
 ```javascript
 GoetyEvents.modifyRitual(event => {
-    // Modify storm ritual
+    // event.modify(ritualId, modifier)
+    // - ritualId: Ritual ID to modify (string)
+    // - modifier: Modifier function that receives a ritual object
+    
+    // Modify using configuration style
     event.modify('storm', ritual => {
-        ritual.name = 'storm';
-        ritual.requirement = (tileEntity, pos, level) => {
+        ritual.blocks = ['8x #minecraft:copper_ores', '3x minecraft:lightning_rod'];
+        ritual.setWeather('thunder');         // Requires thunder weather
+        ritual.setMinY(128);                  // Height >= 128
+        ritual.setRequireSkyVisible(true);    // Requires sky visibility
+    });
+    
+    // Modify using custom function
+    event.modify('magic', ritual => {
+        ritual.setRequirement((tileEntity, pos, level) => {
             // Custom check logic
             // Return true if conditions are met, false otherwise
             return true;
-        };
+        });
     });
 });
 ```
@@ -62,98 +71,56 @@ GoetyEvents.modifyRitual(event => {
 
 ```javascript
 GoetyEvents.registerRitual(event => {
-    event.create('my_custom_ritual', ritual => {
-        ritual.name = 'my_custom_ritual';
-        ritual.requirement = (tileEntity, pos, level) => {
-            // Custom check logic
-            return true;
-        };
+    // event.create(ritualId, builder)
+    // - ritualId: Unique identifier for the ritual (string)
+    // - builder: Builder function that receives a ritual object
+    
+    // Create simple ritual (only needs blocks)
+    event.create('diamond_ritual', ritual => {
+        ritual.blocks = ['5x minecraft:diamond_block', '3x minecraft:emerald_block'];
+    });
+    
+    // Create complex ritual (needs special conditions)
+    event.create('thunder_ritual', ritual => {
+        ritual.blocks = ['minecraft:lightning_rod'];
+        ritual.setWeather('thunder');         // Requires thunder weather
+        ritual.setRequireSkyVisible(true);    // Requires sky visibility
     });
 });
 ```
 
-#### Remove Ritual Type
+#### Disabling Built-in Rituals
 
-```javascript
-GoetyEvents.removeRitual(event => {
-    // Can only remove custom-created rituals, not built-in ones
-    event.remove('my_custom_ritual');
-});
-```
+To disable a built-in ritual, use `modifyRitual` to make the condition check always return `false`:
 
-### 3. Full Example
-
-See `src/main/resources/kubejs/server_scripts/goety_rituals.js.example` for a complete example.
-
-## API Reference
-
-### GoetyEvents.modifyRitual
-
-Modify conditions for existing ritual types.
-
-**Parameters:**
-- `event.modify(ritualId, modifier)` - Modify ritual with specified ID
-  - `ritualId` (string): Ritual ID to modify
-  - `modifier` (function): Modifier function that receives a `ritual` object
-    - `ritual.name` (string): Ritual name
-    - `ritual.requirement` (function): Condition check function `(tileEntity, pos, level) => boolean`
-
-**Example:**
 ```javascript
 GoetyEvents.modifyRitual(event => {
     event.modify('storm', ritual => {
-        ritual.requirement = (tileEntity, pos, level) => {
-            // Custom check logic
-            return true;
-        };
+        ritual.requirement = () => false; // Always return false to disable ritual
     });
 });
 ```
 
-### GoetyEvents.registerRitual
+#### Configuration Options
 
-Create new ritual types.
+The `ritual` object supports the following configuration options:
 
-**Parameters:**
-- `event.create(ritualId, builder)` - Create new ritual
-  - `ritualId` (string): Unique identifier for the ritual
-  - `builder` (function): Builder function that receives a `ritual` object
-    - `ritual.name` (string): Ritual name (optional, defaults to ritualId)
-    - `ritual.requirement` (function): Condition check function `(tileEntity, pos, level) => boolean`
+- `ritual.range` (integer): Scan range (default 16)
+- `ritual.blocks` (object/array/string): Block requirement configuration
+- `ritual.setDimension(dimensionId, containsMatch)` (string, boolean): Dimension restriction
+  - `dimensionId`: Dimension ID, e.g., 'minecraft:the_nether' or 'aether'
+  - `containsMatch`: false (exact match, default) or true (fuzzy match)
+- `ritual.setWeather(weather)` (string): Weather requirement ('thunder'/'rain'/'clear')
+- `ritual.setTimeOfDay(timeOfDay)` (string): Time requirement ('day'/'night')
+- `ritual.setBiome(biomeValue, type)` (object, string): Biome requirement
+  - `biomeValue`: Biome value (can be string or array)
+  - `type`: 'id' (biome ID, default), 'tags' (tags), 'coldEnoughToSnow' (cold check)
+- `ritual.setMinY(y)` (integer): Minimum height requirement
+- `ritual.setMaxY(y)` (integer): Maximum height requirement
+- `ritual.setRequireSkyVisible(boolean)` (boolean): Whether sky visibility is required
+- `ritual.setRequirement(function)` (function): Custom check function (overrides all configurations)
 
-**Example:**
-```javascript
-GoetyEvents.registerRitual(event => {
-    event.create('diamond_ritual', ritual => {
-        ritual.name = 'diamond_ritual';
-        ritual.requirement = (tileEntity, pos, level) => {
-            // Check if there are enough diamond blocks
-            return true;
-        };
-    });
-});
-```
-
-### GoetyEvents.removeRitual
-
-Remove ritual types (can only remove custom-created rituals).
-
-**Parameters:**
-- `event.remove(ritualId)` - Remove ritual with specified ID
-  - `ritualId` (string): Ritual ID to remove
-- `event.removeAll(...ritualIds)` - Remove multiple rituals
-  - `ritualIds` (string[]): Array of ritual IDs to remove
-
-**Note:** Cannot remove built-in rituals (such as 'storm', 'magic', etc.). To disable a built-in ritual, use `modifyRitual` and make `requirement` always return `false`.
-
-**Example:**
-```javascript
-GoetyEvents.removeRitual(event => {
-    event.remove('my_custom_ritual');
-    // Or remove multiple
-    event.removeAll('ritual1', 'ritual2', 'ritual3');
-});
-```
+**See example**: `src/main/resources/kubejs/server_scripts/goety_rituals.js.example`
 
 ## Why Use server_scripts?
 
@@ -182,19 +149,242 @@ Ritual condition checking happens on the server side, so `server_scripts` must b
 
 ### Custom Ritual Types
 
-Any ritual type created via `GoetyEvents.registerRitual` can be modified or removed.
+Any ritual type created via `GoetyEvents.registerRitual` can be modified.
 
-## Disabling Built-in Rituals
+## Brew System Configuration
 
-To disable a built-in ritual, use `modifyRitual` to make the condition check always return `false`:
+### GoetyEvents.registerBrew
+
+Configure Goety's brew system, including capacity modifiers, catalysts, and augmentations.
+
+#### Create Script File
+
+Create a script file in your world save directory:
+```
+your_world_save/
+└── kubejs/
+    └── server_scripts/
+        └── goety_brews.js
+```
+
+#### Register Capacity Modifiers
 
 ```javascript
-GoetyEvents.modifyRitual(event => {
-    event.modify('storm', ritual => {
-        ritual.requirement = () => false; // Always return false to disable ritual
-    });
+GoetyEvents.registerBrew(event => {
+    // event.addCapacity(item, level)
+    // - item: Item ID (string) or item object
+    // - level: Level (0-7)
+    
+    event.addCapacity('minecraft:nether_wart', 0);
+    event.addCapacity('mymod:magic_crystal', 6);
 });
 ```
+
+#### Register Item Catalysts
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    // event.addCatalyst(item, effect, soulCost, duration, capacityExtra)
+    // - item: Item ID (string) or item object
+    // - effect: Effect ID (string, e.g., 'minecraft:strength')
+    // - soulCost: Soul cost (integer)
+    // - duration: Duration in ticks (integer, optional, default 600)
+    // - capacityExtra: Extra capacity (integer, optional, default 0)
+    
+    // Full version
+    event.addCatalyst('minecraft:glowstone_dust', 'minecraft:night_vision', 25, 1200, 0);
+    
+    // Simplified version (only required parameters)
+    event.addCatalyst('mymod:essence', 'minecraft:strength', 50);
+    
+    // With duration
+    event.addCatalyst('mymod:power_crystal', 'minecraft:regeneration', 60, 3600);
+});
+```
+
+#### Register Entity Catalysts
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    // event.addEntityCatalyst(entity, effect, soulCost, duration, capacityExtra)
+    // - entity: Entity type ID (string) or entity tag (string starting with #)
+    // - effect: Effect ID (string)
+    // - soulCost: Soul cost (integer)
+    // - duration: Duration in ticks (integer, optional, default 600)
+    // - capacityExtra: Extra capacity (integer, optional, default 0)
+    
+    // Single entity type
+    event.addEntityCatalyst('minecraft:zombie', 'minecraft:poison', 75, 1800, 1);
+    
+    // Entity tag (affects all matching entities)
+    event.addEntityCatalyst('#minecraft:is_animal', 'minecraft:regeneration', 100);
+});
+```
+
+#### Register Augmentations
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    // event.addAugmentation(item, modifier, level)
+    // - item: Item ID (string) or item object
+    // - modifier: Augmentation type (string)
+    //   - 'capacity' - Capacity
+    //   - 'duration' - Duration
+    //   - 'amplifier' - Effect amplifier
+    //   - 'aoe' - Area of effect
+    //   - 'linger' - Linger effect
+    //   - 'quaff' - Quaff effect
+    //   - 'velocity' - Velocity
+    //   - 'aquatic' - Aquatic
+    //   - 'fire_proof' - Fire proof
+    // - level: Level (integer)
+    
+    event.addAugmentation('minecraft:redstone', 'duration', 0);
+    event.addAugmentation('mymod:time_crystal', 'duration', 3);
+    event.addAugmentation('mymod:power_crystal', 'amplifier', 2);
+});
+```
+
+#### Complete Example
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    // Capacity modifiers
+    event.addCapacity('mymod:magic_crystal', 6);
+    
+    // Item catalysts
+    event.addCatalyst('mymod:dark_essence', 'minecraft:strength', 50, 1800, 2);
+    event.addCatalyst('mymod:light_crystal', 'minecraft:night_vision', 30, 2400, 1);
+    
+    // Entity catalysts
+    event.addEntityCatalyst('minecraft:creeper', 'minecraft:haste', 100, 1800, 1);
+    event.addEntityCatalyst('#minecraft:is_animal', 'minecraft:regeneration', 100);
+    
+    // Augmentations
+    event.addAugmentation('mymod:time_crystal', 'duration', 3);
+    event.addAugmentation('mymod:power_crystal', 'amplifier', 2);
+});
+```
+
+**See example**: `src/main/resources/kubejs/server_scripts/goety_brews.js.example`
+
+## Recipe System Configuration
+
+### ServerEvents.recipes
+
+Use KubeJS standard recipe events to configure Goety's recipe system.
+
+#### Create Script File
+
+Create a script file in your world save directory:
+```
+your_world_save/
+└── kubejs/
+    └── server_scripts/
+        └── goety_recipes.js
+```
+
+#### Ritual Recipes
+
+```javascript
+ServerEvents.recipes(event => {
+    // event.recipes.goety.ritual(result, ritualType, ingredients)
+    // - result: Output item (OutputItem)
+    // - ritualType: Ritual type ID (usually 'goety:craft')
+    // - ingredients: Material array (InputItem[])
+    
+    event.recipes.goety.ritual('minecraft:emerald', 'goety:craft', [
+        'minecraft:gold_ingot',
+        'minecraft:gold_ingot',
+        'minecraft:diamond'
+    ])
+        .activationItem('minecraft:ender_pearl')
+        .craftType('forge')  // Forge ritual
+        .soulCost(5)
+        .duration(20);
+});
+```
+
+#### Brewing Recipes
+
+```javascript
+ServerEvents.recipes(event => {
+    // event.recipes.goety.brewing(ingredient, effect)
+    // - ingredient: Material item (InputItem)
+    // - effect: Effect ID (String, e.g., 'minecraft:regeneration')
+    
+    event.recipes.goety.brewing('minecraft:golden_apple', 'minecraft:regeneration')
+        .soulCost(15)
+        .capacityExtra(0)
+        .duration(1800);  // 30 seconds
+    
+    // Brewing recipe requiring specific entity
+    event.recipes.goety.brewing('minecraft:nether_star', 'minecraft:resistance')
+        .soulCost(50)
+        .entityType('minecraft:ender_dragon');  // Requires ender dragon
+});
+```
+
+#### Pulverize Recipes
+
+```javascript
+ServerEvents.recipes(event => {
+    // event.recipes.goety.pulverize(ingredient)
+    // - ingredient: Material item (InputItem)
+    
+    // Pulverize recipe producing block
+    event.recipes.goety.pulverize('minecraft:cobblestone')
+        .blockResult('minecraft:gravel');
+    
+    // Pulverize recipe producing item
+    event.recipes.goety.pulverize('minecraft:gravel')
+        .itemResult('minecraft:flint');
+});
+```
+
+#### Cursed Infuser Recipes
+
+```javascript
+ServerEvents.recipes(event => {
+    // event.recipes.goety.cursed_infuser_recipes(result, ingredient)
+    // - result: Output item ID (String)
+    // - ingredient: Material item (InputItem)
+    
+    event.recipes.goety.cursed_infuser_recipes('minecraft:emerald', 'minecraft:iron_sword')
+        .cookingTime(100);  // 5 seconds (100 ticks)
+});
+```
+
+#### Brazier Recipes
+
+```javascript
+ServerEvents.recipes(event => {
+    // event.recipes.goety.brazier(result, ingredients)
+    // - result: Output item (OutputItem)
+    // - ingredients: Material array (InputItem[])
+    
+    event.recipes.goety.brazier('minecraft:emerald', [
+        'minecraft:soul_sand',
+        'minecraft:soul_sand',
+        'minecraft:soul_sand',
+        'minecraft:lapis_lazuli'
+    ])
+        .soulCost(10);
+});
+```
+
+#### Remove Recipes
+
+```javascript
+ServerEvents.recipes(event => {
+    // Remove existing recipes
+    event.remove({ type: 'goety:ritual', craftType: 'magic' });
+    event.remove({ type: 'goety:brewing', effect: 'minecraft:poison' });
+    event.remove({ type: 'goety:pulverize', ingredient: 'minecraft:cobblestone' });
+});
+```
+
+**See example**: `src/main/resources/kubejs/server_scripts/goety_recipes.js.example`
 
 ## Development
 
@@ -215,8 +405,7 @@ kubejs-goety/
 │   │   │   └── EventHandlers.java    # Event handlers
 │   │   ├── event/
 │   │   │   ├── RegisterRitualEventJS.java    # Register ritual event
-│   │   │   ├── ModifyRitualEventJS.java      # Modify ritual event
-│   │   │   └── RemoveRitualEventJS.java      # Remove ritual event
+│   │   │   └── ModifyRitualEventJS.java      # Modify ritual event
 │   │   └── plugin/
 │   │       └── GoetyKubeJSPlugin.java # KubeJS plugin
 │   └── resources/
@@ -225,7 +414,9 @@ kubejs-goety/
 │       ├── kubejs.plugins.txt         # Plugin registration file
 │       └── kubejs/
 │           └── server_scripts/
-│               └── goety_rituals.js.example # Example script
+│               ├── goety_rituals.js.example  # Ritual configuration example script
+│               ├── goety_recipes.js.example   # Recipe configuration example script
+│               └── goety_brews.js.example    # Brew configuration example script
 ```
 
 ## License

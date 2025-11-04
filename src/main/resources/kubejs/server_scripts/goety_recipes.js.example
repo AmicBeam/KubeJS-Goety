@@ -1,0 +1,284 @@
+/**
+ * Goety 配方示例脚本
+ * 
+ * 本脚本展示了如何使用 ServerEvents.recipes 来创建和修改 Goety 的各种配方类型：
+ * - ritual（仪式配方）
+ * - brewing（酿造配方）- 产物是效果（effect），不是物品
+ * - pulverize（粉碎配方）
+ * - cursed_infuser_recipes（诅咒注入器配方）
+ * - brazier（火盆配方）
+ * - soul_absorber_recipes（灵魂吸收器配方）
+ */
+
+ServerEvents.recipes(event => {
+    
+    // ==========================================
+    // 1. ritual（仪式配方）
+    // ==========================================
+    // 
+    // event.recipes.goety.ritual(result, ritualType, ingredients)
+    // - result: 产物物品（OutputItem）
+    // - ritualType: 仪式类型ID（通常是 'goety:craft'）
+    // - ingredients: 材料数组（InputItem[]）
+    //
+    // 可选方法：
+    // - .ritualType(ritualType) - 设置仪式类型（通常与第一个参数相同，可省略）
+    // - .activationItem(item) - 设置激活物品（可选，默认空）
+    // - .craftType(type) - 设置craftType（forge、animation、magic、necroturgy、frost、geoturgy、sky、storm、sabbath、adept_nether、expert_nether、end、deep等）
+    // - .soulCost(cost) - 设置灵魂消耗（可选，默认0）
+    // - .duration(ticks) - 设置持续时间（可选，默认30 tick）
+    // - .entityToSummon(entityId) - 设置要召唤的生物类型ID（可选）
+    // - .summonLife(ticks) - 设置召唤物存在时间（可选，默认-1表示永久）
+    // - .entityToSacrificeTag(tag) - 设置需要献祭的生物标签（可选）
+    // - .entityToSacrificeDisplayName(name) - 设置献祭生物的显示名称（可选）
+    // - .entityToConvertTag(tag) - 设置需要转换的生物标签（可选）
+    // - .entityToConvertDisplayName(name) - 设置转换生物的显示名称（可选）
+    // - .entityToConvertInto(entityId) - 设置转换后的生物类型ID（可选）
+    // - .enchantment(enchantmentId) - 设置附魔ID（可选）
+    // - .xpLevelCost(levels) - 设置经验等级消耗（可选，默认0）
+    // - .research(researchId) - 设置研究ID（可选，如 'forbidden'、'haunting' 等）
+    //
+    // 创建一个简单的仪式配方
+    event.recipes.goety.ritual('minecraft:emerald', 'goety:craft', [
+        'minecraft:gold_ingot',
+        'minecraft:gold_ingot',
+        'minecraft:diamond'
+    ])
+        .activationItem('minecraft:ender_pearl')
+        .craftType('forge')  // 锻造仪式
+        .soulCost(5)
+        .duration(20);
+    
+    // 创建一个召唤生物的仪式配方
+    event.recipes.goety.ritual('minecraft:emerald', 'goety:craft', [
+        'minecraft:rotten_flesh',
+        'minecraft:rotten_flesh',
+        'minecraft:bone'
+    ])
+        .activationItem('minecraft:ender_pearl')
+        .craftType('necroturgy')  // 死灵仪式
+        .soulCost(10)
+        .duration(30)
+        .entityToSummon('minecraft:zombie')
+        .summonLife(6000);  // 召唤物存在时间（tick）
+    
+    // 创建一个需要献祭的仪式配方
+    event.recipes.goety.ritual('minecraft:emerald', 'goety:craft', [
+        'minecraft:gold_ingot'
+    ])
+        .activationItem('minecraft:ender_pearl')
+        .craftType('magic')  // 魔法仪式
+        .soulCost(20)
+        .duration(40)
+        .entityToSacrificeTag('minecraft:is_animal')
+        .entityToSacrificeDisplayName('动物');
+    
+    // 创建一个魔法仪式的附魔仪式配方（经验修补）
+    // 注意：附魔仪式会对激活物品进行附魔，如果激活物品是书，则会产生附魔书
+    // result 字段通常是附魔书，作为占位符
+    event.recipes.goety.ritual('minecraft:enchanted_book', 'goety:enchant', [
+        'goety:dark_metal_block',
+        '#forge:obsidian',
+        '#forge:storage_blocks/lapis'
+    ])
+        .activationItem('minecraft:book')  // 激活物品：书（会产生附魔书）或可附魔的物品（会对物品附魔）
+        .craftType('magic')  // 魔法仪式
+        .soulCost(250)
+        .duration(10)
+        .enchantment('minecraft:mending')  // 附魔：经验修补
+        .xpLevelCost(10);  // 需要消耗10级经验
+    
+    // 创建一个需要研究的仪式配方（如lich仪式）
+    event.recipes.goety.ritual('minecraft:emerald', 'goety:craft', [
+        'minecraft:rotten_flesh',
+        'minecraft:wither_rose',
+        'minecraft:honey_bottle',
+        'minecraft:echo_shard',
+        'minecraft:totem_of_undying',
+        'minecraft:end_crystal',
+        'minecraft:nether_wart',
+        'minecraft:gold_ingot',
+        'minecraft:enchanted_golden_apple',
+        'minecraft:suspicious_stew',
+        'minecraft:fermented_spider_eye',
+        'minecraft:glowstone'
+    ])
+        .activationItem('minecraft:glass_bottle')
+        .craftType('necroturgy')
+        .research('forbidden')  // 需要forbidden研究
+        .entityToSacrificeTag('minecraft:is_animal')
+        .entityToSacrificeDisplayName('动物')
+        .soulCost(1000)
+        .duration(60);
+    
+    // ==========================================
+    // 2. brewing（酿造配方）
+    // ==========================================
+    // 
+    // event.recipes.goety.brewing(ingredient, effect)
+    // - ingredient: 材料物品（InputItem）
+    // - effect: 效果ID（String，如 'minecraft:regeneration'）
+    //
+    // 可选方法：
+    // - .soulCost(cost) - 设置灵魂消耗（可选，默认0）
+    // - .capacityExtra(extra) - 设置额外容量（可选，默认0）
+    // - .duration(ticks) - 设置持续时间（可选，默认3600 tick）
+    // - .entityType(entityId) - 设置需要特定生物类型（可选）
+    // - .entityTag(tag) - 设置需要特定生物标签（可选）
+    //
+    // 注意：brewing 配方的产物是效果（effect），不是物品
+    // 第一个参数是 ingredient（材料），第二个参数是 effect（效果ID）
+    
+    // 创建一个简单的酿造配方
+    event.recipes.goety.brewing('minecraft:golden_apple', 'minecraft:regeneration')
+        .soulCost(15)
+        .capacityExtra(0)
+        .duration(1800);  // 30秒
+    
+    // 创建一个需要特定生物的酿造配方
+    event.recipes.goety.brewing('minecraft:nether_star', 'minecraft:resistance')
+        .soulCost(50)
+        .capacityExtra(10)
+        .duration(3600)
+        .entityType('minecraft:ender_dragon');  // 需要末影龙
+    
+    // 创建一个需要生物标签的酿造配方
+    event.recipes.goety.brewing('minecraft:emerald', 'minecraft:luck')
+        .soulCost(25)
+        .capacityExtra(5)
+        .duration(2400)
+        .entityTag('minecraft:is_animal');  // 需要动物
+    
+    // ==========================================
+    // 3. pulverize（粉碎配方）
+    // ==========================================
+    // 
+    // event.recipes.goety.pulverize(ingredient)
+    // - ingredient: 材料物品（InputItem）
+    //
+    // 可选方法：
+    // - .blockResult(blockId) - 设置方块产物（可选）
+    // - .itemResult(item) - 设置物品产物（可选）
+    // 
+    // 注意：blockResult 和 itemResult 至少需要设置一个
+    // 如果同时设置，优先使用 blockResult
+    
+    // 创建一个产生方块的粉碎配方
+    event.recipes.goety.pulverize('minecraft:cobblestone')
+        .blockResult('minecraft:gravel');
+    
+    // 创建一个产生物品的粉碎配方
+    event.recipes.goety.pulverize('minecraft:gravel')
+        .itemResult('minecraft:flint');
+    
+    // 创建一个同时产生方块和物品的粉碎配方（优先使用 blockResult）
+    event.recipes.goety.pulverize('minecraft:sandstone')
+        .blockResult('minecraft:sand')
+        .itemResult('minecraft:sand');  // 这个会被忽略，因为 blockResult 优先
+    
+    // ==========================================
+    // 4. cursed_infuser_recipes（诅咒注入器配方）
+    // ==========================================
+    // 
+    // event.recipes.goety.cursed_infuser_recipes(result, ingredient)
+    // - result: 产物物品ID（String）
+    // - ingredient: 材料物品（InputItem）
+    //
+    // 可选方法：
+    // - .cookingTime(ticks) - 设置烹饪时间（可选，默认60 tick）
+    // - .grim(true/false) - 设置是否为grim配方（可选，默认false）
+    
+    // 创建一个简单的诅咒注入器配方
+    event.recipes.goety.cursed_infuser_recipes('minecraft:emerald', 'minecraft:iron_sword')
+        .cookingTime(100);  // 5秒（100 tick）
+    
+    // 创建一个需要更长时间的配方
+    event.recipes.goety.cursed_infuser_recipes('minecraft:emerald', 'minecraft:diamond')
+        .cookingTime(200);  // 10秒
+    
+    // 创建一个grim配方
+    event.recipes.goety.cursed_infuser_recipes('minecraft:emerald', '#forge:obsidian')
+        .grim(true)
+        .cookingTime(20);
+    
+    // ==========================================
+    // 5. brazier（火盆配方）
+    // ==========================================
+    // 
+    // event.recipes.goety.brazier(result, ingredients)
+    // - result: 产物物品（OutputItem）
+    // - ingredients: 材料数组（InputItem[]）
+    //
+    // 可选方法：
+    // - .soulCost(cost) - 设置灵魂消耗（可选，默认0）
+    
+    // 创建一个简单的火盆配方
+    event.recipes.goety.brazier('minecraft:emerald', [
+        'minecraft:soul_sand',
+        'minecraft:soul_sand',
+        'minecraft:soul_sand',
+        'minecraft:lapis_lazuli'
+    ])
+        .soulCost(10);
+    
+    // 创建一个需要多个材料的火盆配方
+    event.recipes.goety.brazier('minecraft:emerald', [
+        'minecraft:gold_ingot',
+        'minecraft:gold_ingot',
+        'minecraft:gold_ingot',
+        'minecraft:ender_pearl',
+        'minecraft:ender_pearl',
+        'minecraft:diamond'
+    ])
+        .soulCost(25);
+    
+    // ==========================================
+    // 6. soul_absorber_recipes（灵魂吸收器配方）
+    // ==========================================
+    // 
+    // event.recipes.goety.soul_absorber_recipes(ingredient)
+    // - ingredient: 材料物品（InputItem）
+    //
+    // 可选方法：
+    // - .soulIncrease(amount) - 设置灵魂增加量（可选，默认25）
+    // - .cookingTime(ticks) - 设置烹饪时间（可选，默认200 tick）
+    //
+    // 注意：soul_absorber_recipes 配方没有产物物品，它用于在灵魂吸收器中消耗物品来增加灵魂值
+    
+    // 创建一个简单的灵魂吸收器配方
+    event.recipes.goety.soul_absorber_recipes('minecraft:soul_sand')
+        .soulIncrease(25)
+        .cookingTime(100);
+    
+    // 创建一个使用标签的灵魂吸收器配方
+    event.recipes.goety.soul_absorber_recipes('#minecraft:soul_fire_base_blocks')
+        .soulIncrease(25)
+        .cookingTime(100);
+    
+    // 创建一个提供更多灵魂的配方
+    event.recipes.goety.soul_absorber_recipes('minecraft:sculk')
+        .soulIncrease(5)
+        .cookingTime(50);
+    
+    // ==========================================
+    // 配方修改示例
+    // ==========================================
+    // 移除现有配方
+    event.remove({ type: 'goety:ritual', craftType: 'magic' });
+    event.remove({ type: 'goety:brewing', effect: 'minecraft:poison' });
+    event.remove({ type: 'goety:pulverize', ingredient: 'minecraft:cobblestone' });
+    
+    // 修改现有配方（通过移除并重新创建）
+    event.remove({ id: 'goety:void_robe' });
+    event.recipes.goety.ritual('minecraft:emerald', 'goety:craft', [
+        'minecraft:gold_ingot',
+        'minecraft:gold_ingot',
+        'minecraft:gold_ingot',
+        'minecraft:dragon_breath'
+    ])
+        .activationItem('minecraft:ender_pearl')
+        .craftType('end')  // 末地仪式
+        .soulCost(5)
+        .duration(15);
+});
+
