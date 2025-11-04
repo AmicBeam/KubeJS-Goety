@@ -261,24 +261,79 @@ ServerEvents.recipes(event => {
         .cookingTime(50);
     
     // ==========================================
-    // 配方修改示例
+    // 配方修改方式1：replaceInput / replaceOutput（推荐）
     // ==========================================
-    // 移除现有配方
-    event.remove({ type: 'goety:ritual', craftType: 'magic' });
-    event.remove({ type: 'goety:brewing', effect: 'minecraft:poison' });
-    event.remove({ type: 'goety:pulverize', ingredient: 'minecraft:cobblestone' });
+    // 
+    // ✅ 推荐：使用 replaceInput 和 replaceOutput 进行批量替换
+    // 基于 KubeJS RecipeSchema 系统，完全支持 Goety 配方
     
-    // 修改现有配方（通过移除并重新创建）
-    event.remove({ id: 'goety:void_robe' });
-    event.recipes.goety.ritual('minecraft:emerald', 'goety:craft', [
-        'minecraft:gold_ingot',
-        'minecraft:gold_ingot',
-        'minecraft:gold_ingot',
-        'minecraft:dragon_breath'
-    ])
-        .activationItem('minecraft:ender_pearl')
-        .craftType('end')  // 末地仪式
-        .soulCost(5)
-        .duration(15);
+    // 示例1：替换所有仪式配方中的材料
+    // event.replaceInput(
+    //     { type: 'goety:ritual' },
+    //     'minecraft:diamond',      // 要替换的物品
+    //     'minecraft:emerald'       // 替换为
+    // );
+    
+    // 示例2：替换激活物品
+    // event.replaceInput(
+    //     { type: 'goety:ritual' },
+    //     'minecraft:ender_pearl',
+    //     'minecraft:ender_eye'
+    // );
+    
+    // 示例3：替换产物
+    // event.replaceOutput(
+    //     { type: 'goety:ritual' },
+    //     'goety:dark_robe',
+    //     'goety:frost_robe'
+    // );
+    
+    // 示例4：替换特定配方
+    // event.replaceInput(
+    //     { id: 'goety:grim_infuser' },
+    //     '#goety:crypt_stone',
+    //     'minecraft:obsidian'
+    // );
+    
+    // 示例5：全局替换（所有Goety配方）
+    // event.replaceInput(
+    //     { mod: 'goety' },
+    //     'minecraft:gold_ingot',
+    //     'minecraft:iron_ingot'
+    // );
+    
+    // ==========================================
+    // 配方修改方式2：删除并重新创建（用于修改特殊字段）
+    // ==========================================
+    // 
+    // 当需要修改 soulCost、duration、craftType 等字段时使用此方式
+    // 注意：replaceInput/Output 只能替换物品，不能修改数值配置
+    
+    // ⚠️ 警告：不要使用 craftType 作为过滤条件！
+    // 原因：KubeJS 在 recipes 事件中无法正确访问 craftType 字段
+    // 
+    // ❌ 危险（可能删除所有或不可预测的配方）：
+    // event.remove({ type: 'goety:ritual', craftType: 'magic' });
+    // 
+    // ✅ 正确方式 - 使用精确的配方ID：
+    // event.remove({ id: 'goety:void_robe' });
+    // 
+    // ✅ 正确方式 - 使用配方ID模式：
+    // event.remove({ id: /^goety:enchant\// });  // 删除所有以 goety:enchant/ 开头的
+    // 
+    // ✅ 正确方式 - 使用产物过滤：
+    // event.remove({ type: 'goety:ritual', output: 'goety:dark_robe' });
+    
+    // 示例：完整修改配方
+    // event.remove({ id: 'goety:void_robe' });
+    // event.recipes.goety.ritual('goety:void_robe', 'goety:craft', [
+    //     'minecraft:gold_ingot',
+    //     'minecraft:gold_ingot',
+    //     'minecraft:dragon_breath'
+    // ])
+    //     .activationItem('minecraft:ender_pearl')
+    //     .craftType('end')
+    //     .soulCost(50)
+    //     .duration(60);
 });
 

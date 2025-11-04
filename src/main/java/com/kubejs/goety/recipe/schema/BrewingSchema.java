@@ -16,8 +16,8 @@ public interface BrewingSchema {
     RecipeKey<Integer> DURATION = NumberComponent.INT.key("duration").optional(3600).preferred("duration");
     
     // 可选字段：entity (entity_type 或 tag)
-    RecipeKey<String> ENTITY_TYPE = StringComponent.ID.key("entity.entity_type").optional().preferred("entityType");
-    RecipeKey<String> ENTITY_TAG = StringComponent.ID.key("entity.tag").optional().preferred("entityTag");
+    RecipeKey<String> ENTITY_TYPE = StringComponent.ID.key("entity.entity_type").preferred("entityType").optional("");
+    RecipeKey<String> ENTITY_TAG = StringComponent.ID.key("entity.tag").preferred("entityTag").optional("");
 
     RecipeSchema SCHEMA = new RecipeSchema(BrewingRecipeJS.class, BrewingRecipeJS::new,
             INGREDIENT, EFFECT, SOUL_COST, CAPACITY_EXTRA, DURATION, ENTITY_TYPE, ENTITY_TAG)

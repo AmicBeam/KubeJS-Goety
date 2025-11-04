@@ -10,8 +10,8 @@ import dev.latvian.mods.kubejs.recipe.schema.RecipeSchema;
 
 public interface PulverizeSchema {
     RecipeKey<InputItem> INGREDIENT = ItemComponents.INPUT.key("ingredient");
-    RecipeKey<String> BLOCK_RESULT = StringComponent.ID.key("block_result").optional().preferred("blockResult");
-    RecipeKey<OutputItem> ITEM_RESULT = ItemComponents.OUTPUT.key("item_result").optional(null).preferred("itemResult");
+    RecipeKey<String> BLOCK_RESULT = StringComponent.ID.key("block_result").preferred("blockResult").optional("");
+    RecipeKey<OutputItem> ITEM_RESULT = ItemComponents.OUTPUT.key("item_result").preferred("itemResult").optional(OutputItem.EMPTY);
 
     RecipeSchema SCHEMA = new RecipeSchema(PulverizeRecipeJS.class, PulverizeRecipeJS::new,
             INGREDIENT, BLOCK_RESULT, ITEM_RESULT)

@@ -42,3 +42,7 @@ debug/
 mcmodsrepo/
 runtime-mods/
 
+# Build scripts
+*.bat
+!gradlew.bat
+

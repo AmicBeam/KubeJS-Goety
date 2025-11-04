@@ -3,11 +3,13 @@ package com.kubejs.goety.event;
 import com.Polarice3.Goety.api.ritual.IRitualType;
 import com.Polarice3.Goety.api.ritual.RitualType;
 import dev.latvian.mods.kubejs.event.EventJS;
-import dev.latvian.mods.kubejs.plugin.builtin.wrapper.SizedIngredientWrapper;
+import dev.latvian.mods.kubejs.item.InputItem;
 import dev.latvian.mods.kubejs.typings.Info;
 import dev.latvian.mods.kubejs.typings.Param;
 import dev.latvian.mods.kubejs.util.ListJS;
 import dev.latvian.mods.kubejs.util.UtilsJS;
+import dev.latvian.mods.kubejs.util.MapJS;
+import dev.latvian.mods.kubejs.script.ScriptManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -15,7 +17,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.common.crafting.SizedIngredient;
+import net.minecraft.world.item.crafting.Ingredient;
+import com.kubejs.goety.util.SizedIngredient;
+import dev.latvian.mods.kubejs.script.ScriptType;
 
 import java.util.*;
 
@@ -47,27 +51,31 @@ public class RegisterRitualEventJS extends EventJS {
     })
     public void create(String ritualId, Object builder) {
         if (ritualId == null || ritualId.isEmpty()) {
-            console.error("仪式 ID 不能为空");
+            ScriptType.SERVER.console.error("Ritual ID cannot be empty");
             return;
         }
         
         if (RitualType.getRitualTypeList().containsKey(ritualId)) {
-            console.warn("仪式类型 '" + ritualId + "' 已存在，将被覆盖");
+            ScriptType.SERVER.console.warn("Ritual type '" + ritualId + "' already exists, will be overwritten");
         }
         
         try {
-            RitualBuilderImpl ritualBuilder = new RitualBuilderImpl(ritualId, console);
+            RitualBuilderImpl ritualBuilder = new RitualBuilderImpl(ritualId, this);
             
             // 如果 builder 是函数，调用它
             if (builder instanceof dev.latvian.mods.rhino.BaseFunction) {
-                ((dev.latvian.mods.rhino.BaseFunction) builder).call(
-                    dev.latvian.mods.kubejs.util.UtilsJS.getContext(),
-                    dev.latvian.mods.kubejs.util.UtilsJS.getScope(),
-                    dev.latvian.mods.kubejs.util.UtilsJS.getScope(),
-                    new Object[]{ritualBuilder}
-                );
+                var cx = ScriptManager.getCurrentContext();
+                if (cx != null) {
+                    var scope = ScriptType.SERVER.manager.get().topLevelScope;
+                    ((dev.latvian.mods.rhino.BaseFunction) builder).call(
+                        cx,
+                        scope,
+                        scope,
+                        new Object[]{ritualBuilder}
+                    );
+                }
             } else {
-                console.error("构建器必须是函数");
+                ScriptType.SERVER.console.error("Builder must be a function");
                 return;
             }
             
@@ -76,9 +84,9 @@ public class RegisterRitualEventJS extends EventJS {
             }
             
             RitualType.addRitualType(ritualId, ritualBuilder.buildRitualType());
-            console.info("✓ 已注册新仪式类型: " + ritualId);
+            ScriptType.SERVER.console.info("✓ Registered new ritual type: " + ritualId);
         } catch (Exception e) {
-            console.error("注册仪式类型 '" + ritualId + "' 时出错: " + e.getMessage());
+            ScriptType.SERVER.console.error("Error registering ritual type '" + ritualId + "': " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -104,11 +112,11 @@ public class RegisterRitualEventJS extends EventJS {
         public Boolean requireSkyVisible;  // 是否需要看到天空（true/false/null）
         
         private final String ritualId;
-        private final dev.latvian.mods.kubejs.util.ConsoleJS console;
+        private final RegisterRitualEventJS event;
         
-        public RitualBuilderImpl(String ritualId, dev.latvian.mods.kubejs.util.ConsoleJS console) {
+        public RitualBuilderImpl(String ritualId, RegisterRitualEventJS event) {
             this.ritualId = ritualId;
-            this.console = console;
+            this.event = event;
             this.name = ritualId;
             this.range = 16;  // 默认范围
             this.blocks = null;
@@ -279,18 +287,20 @@ public class RegisterRitualEventJS extends EventJS {
                 return requirements;
             }
             
-            var cx = dev.latvian.mods.kubejs.util.UtilsJS.getContext();
+            var cx = ScriptManager.getCurrentContext();
             
             // 如果是字符串，解析为单个需求
             if (blocksConfig instanceof CharSequence) {
                 try {
-                    SizedIngredient ingredient = SizedIngredientWrapper.wrap(cx, blocksConfig.toString());
-                    if (ingredient != null && !ingredient.isEmpty()) {
-                        // SizedIngredient 本身已经包含 count，直接使用
-                        requirements.put(ingredient, ingredient.count());
+                    InputItem inputItem = InputItem.of(blocksConfig.toString());
+                    if (inputItem != null && !inputItem.isEmpty()) {
+                        Ingredient ingredient = inputItem.ingredient;
+                        int count = inputItem.count;
+                        SizedIngredient sizedIngredient = SizedIngredient.of(ingredient, count);
+                        requirements.put(sizedIngredient, count);
                     }
                 } catch (Exception e) {
-                    console.error("解析方块需求失败: " + blocksConfig + " - " + e.getMessage());
+                            ScriptType.SERVER.console.error("Failed to parse block requirement: " + blocksConfig + " - " + e.getMessage());
                 }
             }
             // 如果是数组
@@ -300,33 +310,37 @@ public class RegisterRitualEventJS extends EventJS {
                     for (Object item : list) {
                         try {
                             // 支持字符串和 ItemStack 对象（包括带 NBT 的）
-                            SizedIngredient ingredient = SizedIngredientWrapper.wrap(cx, item);
-                            if (ingredient != null && !ingredient.isEmpty()) {
-                                requirements.put(ingredient, ingredient.count());
+                            InputItem inputItem = InputItem.of(item);
+                            if (inputItem != null && !inputItem.isEmpty()) {
+                                Ingredient ingredient = inputItem.ingredient;
+                                int count = inputItem.count;
+                                SizedIngredient sizedIngredient = SizedIngredient.of(ingredient, count);
+                                requirements.put(sizedIngredient, count);
                             }
                         } catch (Exception e) {
-                            console.error("解析方块需求失败: " + item + " - " + e.getMessage());
+                            ScriptType.SERVER.console.error("Failed to parse block requirement: " + item + " - " + e.getMessage());
                         }
                     }
                 }
             }
             // 如果是对象/Map
             else {
-                var map = cx.optionalMapOf(blocksConfig);
+                var map = MapJS.of(blocksConfig);
                 if (map != null) {
                     for (var entry : map.entrySet()) {
                         try {
                             Object key = entry.getKey();
-                            int count = UtilsJS.cast(entry.getValue(), Number.class).intValue();
+                            int count = ((Number) UtilsJS.cast(entry.getValue())).intValue();
                             
                             // 支持 key 为字符串或 ItemStack 对象
-                            var ingredient = dev.latvian.mods.kubejs.plugin.builtin.wrapper.IngredientWrapper.wrap(cx, key);
-                            if (ingredient != null && !ingredient.isEmpty()) {
+                            InputItem inputItem = InputItem.of(key);
+                            if (inputItem != null && !inputItem.isEmpty()) {
+                                Ingredient ingredient = inputItem.ingredient;
                                 SizedIngredient sizedIngredient = SizedIngredient.of(ingredient, count);
                                 requirements.put(sizedIngredient, count);
                             }
                         } catch (Exception e) {
-                            console.error("解析方块需求失败: " + entry + " - " + e.getMessage());
+                            ScriptType.SERVER.console.error("Failed to parse block requirement: " + entry + " - " + e.getMessage());
                         }
                     }
                 }
@@ -367,13 +381,17 @@ public class RegisterRitualEventJS extends EventJS {
                         // 如果有自定义检查函数，优先使用
                         if (finalCustomRequirement instanceof dev.latvian.mods.rhino.BaseFunction) {
                             dev.latvian.mods.rhino.BaseFunction func = (dev.latvian.mods.rhino.BaseFunction) finalCustomRequirement;
-                            Object result = func.call(
-                                dev.latvian.mods.kubejs.util.UtilsJS.getContext(),
-                                dev.latvian.mods.kubejs.util.UtilsJS.getScope(),
-                                dev.latvian.mods.kubejs.util.UtilsJS.getScope(),
-                                new Object[]{pTileEntity, pPos, pLevel}
-                            );
-                            return UtilsJS.cast(result, Boolean.class);
+                            var cx = ScriptManager.getCurrentContext();
+                            if (cx != null) {
+                                var scope = ScriptType.SERVER.manager.get().topLevelScope;
+                                Object result = func.call(
+                                    cx,
+                                    scope,
+                                    scope,
+                                    new Object[]{pTileEntity, pPos, pLevel}
+                                );
+                                return UtilsJS.cast(result);
+                            }
                         }
                         
                         // 检查维度限制
@@ -484,7 +502,7 @@ public class RegisterRitualEventJS extends EventJS {
                                         // 单个ID
                                         var biomeKey = ResourceLocation.tryParse(finalBiome.toString());
                                         if (biomeKey != null) {
-                                            var biomeHolder = biomeRegistry.getHolder(ResourceKey.create(Registries.BIOME, biomeKey));
+                                            var biomeHolder = biomeRegistry.get().getHolder(ResourceKey.create(Registries.BIOME, biomeKey));
                                             if (biomeHolder.isPresent() && pLevel.getBiome(pPos).equals(biomeHolder.get())) {
                                                 biomeIdMatch = true;
                                             }
@@ -497,7 +515,7 @@ public class RegisterRitualEventJS extends EventJS {
                                                 if (biomeId instanceof CharSequence) {
                                                     var biomeKey = ResourceLocation.tryParse(biomeId.toString());
                                                     if (biomeKey != null) {
-                                                        var biomeHolder = biomeRegistry.getHolder(ResourceKey.create(Registries.BIOME, biomeKey));
+                                                        var biomeHolder = biomeRegistry.get().getHolder(ResourceKey.create(Registries.BIOME, biomeKey));
                                                         if (biomeHolder.isPresent() && pLevel.getBiome(pPos).equals(biomeHolder.get())) {
                                                             biomeIdMatch = true;
                                                             break;
@@ -553,7 +571,7 @@ public class RegisterRitualEventJS extends EventJS {
                                         SizedIngredient sizedIngredient = entry.getKey();
                                         // 获取方块对应的物品栈
                                         var item = blockState.getBlock().asItem();
-                                        if (item != null && !item.isEmpty()) {
+                                        if (item != null && item != net.minecraft.world.item.Items.AIR) {
                                             // 使用 SizedIngredient 的 ingredient 来测试
                                             if (sizedIngredient.ingredient().test(item.getDefaultInstance())) {
                                                 found.put(sizedIngredient, found.getOrDefault(sizedIngredient, 0) + 1);
@@ -575,7 +593,7 @@ public class RegisterRitualEventJS extends EventJS {
                         
                         return true;
                     } catch (Exception e) {
-                        System.err.println("[Goety仪式] 执行仪式检查时出错: " + e.getMessage());
+                        System.err.println("[Goety Ritual] Error executing ritual check: " + e.getMessage());
                         e.printStackTrace();
                         return false;
                     }

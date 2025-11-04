@@ -10,7 +10,15 @@
  * 
  * 注意：此脚本运行在服务器端（server_scripts），因为仪式检查是在服务器端进行的
  * 
- * 本文件包含了所有12个内置仪式的完整配置示例，与 Goety 原始实现保持一致
+ * ⚠️ 重要提示：
+ * 本文件包含了所有14个内置仪式的完整配置示例，与 Goety 原始实现保持一致。
+ * 
+ * 如果你直接加载此文件，所有仪式的条件都会被覆盖为这些示例中的配置！
+ * 
+ * 建议用法：
+ * 1. 如果只想修改某个仪式，只复制那个仪式的代码到你自己的脚本
+ * 2. 如果想保留原版仪式条件，不要加载整个文件
+ * 3. 此文件仅供参考学习，了解每个仪式的原版要求
  */
 
 // ==========================================
@@ -441,6 +449,105 @@ GoetyEvents.modifyRitual(event => {
             ritual.setBiome('#minecraft:is_nether', 'tags');  // 下界生物群系标签
         }
     );
+    
+    // ==========================================
+    // 13. end (末地仪式)
+    // ==========================================
+    // 原始需求：16个虚空块，64个末地石/末地石砖，32个紫珀相关方块，末地维度或末地生物群系
+    // 使用多函数参数实现 OR 逻辑（结构 OR 维度）
+    // 注意：条件组内部是 AND 逻辑，多个条件组之间是 OR 逻辑
+    event.modify('end',
+        // 第一个条件组：结构检查 AND 维度检查
+        ritual => {
+            ritual.range = 16;
+            ritual.blocks = [
+                '16x goety:void_block',              // 16个虚空块
+                '64x #goety:end_stone',              // 64个末地石（使用 Goety 标签，包括末地石砖）
+                '32x #minecraft:purpur'              // 32个紫珀相关方块（使用标签）
+            ];
+            ritual.setDimension('minecraft:the_end');  // 末地维度
+        },
+        // 第二个条件组：结构检查 AND 生物群系检查
+        ritual => {
+            ritual.range = 16;
+            ritual.blocks = [
+                '16x goety:void_block',              // 16个虚空块
+                '64x #goety:end_stone',              // 64个末地石（使用 Goety 标签，包括末地石砖）
+                '32x #minecraft:purpur'              // 32个紫珀相关方块（使用标签）
+            ];
+            ritual.setBiome('#minecraft:is_end', 'tags');  // 末地生物群系标签
+        }
+    );
+    
+    // ==========================================
+    // 14. deep (深渊仪式)
+    // ==========================================
+    // 原始需求：4个海晶灯，16个海晶相关方块，16个花岗岩相关方块，深海环境或结构检查
+    // 特殊要求：祭坛必须被水淹没（waterlogged=true）
+    // 使用多函数参数实现 OR 逻辑
+    // 注意：深海环境指的是高度<=海平面 AND 深海生物群系
+    event.modify('deep',
+        // 第一个条件组：深海环境检查（高度<=海平面 AND 深海生物群系）
+        ritual => {
+            ritual.setRequirement((tileEntity, pos, level) => {
+                const RANGE = ritual.range || 16;
+                
+                // 检查祭坛是否被水淹没
+                const blockState = tileEntity.getBlockState();
+                const BlockStateProperties = Java.loadClass('net.minecraft.world.level.block.state.properties.BlockStateProperties');
+                if (!blockState.hasProperty(BlockStateProperties.WATERLOGGED) || !blockState.getValue(BlockStateProperties.WATERLOGGED)) {
+                    return false;
+                }
+                
+                // 检查深海环境：高度<=海平面 AND 深海生物群系
+                const BiomeTags = Java.loadClass('net.minecraft.tags.BiomeTags');
+                return pos.getY() <= level.getSeaLevel() && level.getBiome(pos).is(BiomeTags.IS_DEEP_OCEAN);
+            });
+        },
+        // 第二个条件组：结构检查
+        ritual => {
+            ritual.range = 16;
+            ritual.setRequirement((tileEntity, pos, level) => {
+                const RANGE = ritual.range || 16;
+                
+                // 1. 检查祭坛是否被水淹没
+                const blockState = tileEntity.getBlockState();
+                const BlockStateProperties = Java.loadClass('net.minecraft.world.level.block.state.properties.BlockStateProperties');
+                if (!blockState.hasProperty(BlockStateProperties.WATERLOGGED) || !blockState.getValue(BlockStateProperties.WATERLOGGED)) {
+                    return false;
+                }
+                
+                // 2. 检查结构：4个海晶灯，16个海晶相关方块，16个花岗岩相关方块
+                let seaLanternCount = 0;
+                let prismarineCount = 0;
+                let graniteCount = 0;
+                
+                const Blocks = Java.loadClass('net.minecraft.world.level.block.Blocks');
+                
+                for (let i = -RANGE; i <= RANGE; i++) {
+                    for (let j = -RANGE; j <= RANGE; j++) {
+                        for (let k = -RANGE; k <= RANGE; k++) {
+                            const blockPos = pos.offset(i, j, k);
+                            const state = level.getBlockState(blockPos);
+                            const block = state.getBlock();
+                            
+                            if (block === Blocks.SEA_LANTERN) {
+                                seaLanternCount++;
+                            }
+                            if (block.getDescriptionId().contains('prismarine')) {
+                                prismarineCount++;
+                            }
+                            if (block.getDescriptionId().contains('granite')) {
+                                graniteCount++;
+                            }
+                        }
+                    }
+                }
+                
+                return seaLanternCount >= 4 && prismarineCount >= 16 && graniteCount >= 16;
+            });
+        }
+    );
 });
 
 // ==========================================
@@ -466,19 +573,10 @@ GoetyEvents.registerRitual(event => {
     });
 });
 
-// ==========================================
-// 删除仪式类型（只能删除自定义的，不能删除内置的）
-// ==========================================
-GoetyEvents.removeRitual(event => {
-    // 删除自定义仪式
-    // event.remove('my_custom_ritual');
-    
-    // 注意：无法删除内置仪式（如 'storm', 'magic' 等）
-    // 如果需要禁用内置仪式，请使用 modifyRitual 让 requirement 始终返回 false
-});
-
 /**
- * 使用说明：
+ * ==========================================
+ * 使用说明
+ * ==========================================
  * 
  * 配置化方式：
  * 1. ritual.range - 扫描范围（整数，默认16）
@@ -512,14 +610,27 @@ GoetyEvents.removeRitual(event => {
  * 
  * 注意：条件组内部不再使用 ritual.name，名称由 event.modify 的第一个参数（ritualId）决定
  * 
- * 多函数参数（OR 逻辑）：
- * event.modify('ritual_id', 
- *     ritual => { /* 第一个条件组 */ },
- *     ritual => { /* 第二个条件组 */ },
- *     ... // 可以传入多个函数，任意一个满足即可
- * );
+ * ==========================================
+ * 多函数参数（OR 逻辑）
+ * ==========================================
  * 
- * 重要说明：
+ * 语法示例：
+ * 
+ * GoetyEvents.modifyRitual(event => {
+ *     event.modify('ritual_id', 
+ *         ritual => {
+ *             // 第一个条件组
+ *         },
+ *         ritual => {
+ *             // 第二个条件组
+ *         }
+ *         // 可以传入多个函数，任意一个满足即可
+ *     );
+ * });
+ * 
+ * ==========================================
+ * 重要说明
+ * ==========================================
  * - ritual.blocks 和 ritual.setRequirement() 不需要同时设置
  * - 如果设置了 ritual.setRequirement()，它会完全覆盖所有配置检查（blocks、weather、timeOfDay 等）
  * - 如果只使用配置化方式，会按顺序检查：维度 -> 天气 -> 时间 -> 生物群系 -> 高度 -> 天空可见性 -> 方块需求
@@ -541,18 +652,23 @@ GoetyEvents.removeRitual(event => {
  * - Item.of('minecraft:stone') - 使用 ItemStack 对象，支持 NBT
  * - Item.of('minecraft:stone', {nbt: 'data'}) - 带 NBT 的物品栈
  * 
- * 支持的仪式类型：
- * - forge (锻造仪式)
- * - animation (活力仪式)
- * - magic (魔法仪式)
- * - frost (霜冻仪式)
- * - necroturgy (死灵仪式)
- * - geoturgy (大地仪式)
- * - sky (天空仪式)
- * - storm (风暴仪式)
- * - sabbath (安息仪式)
- * - adept_nether (进阶下界仪式)
- * - expert_nether (专家下界仪式)
+ * ==========================================
+ * 支持的仪式类型（共14个）
+ * ==========================================
+ * 
+ * 1. forge (锻造仪式)
+ * 2. animation (活力仪式)
+ * 3. magic (魔法仪式)
+ * 4. frost (霜冻仪式)
+ * 5. necroturgy (死灵仪式)
+ * 6. geoturgy (大地仪式)
+ * 7. sky (天空仪式)
+ * 8. storm (风暴仪式)
+ * 9. sabbath (安息仪式)
+ * 10. adept_nether (进阶下界仪式)
+ * 11. expert_nether (专家下界仪式)
+ * 12. end (末地仪式)
+ * 13. deep (深渊仪式)
  * 
  * 注意：lich (大师死灵仪式) 不是一个独立的仪式类型
  * - lich 相关的仪式使用 craftType: "necroturgy"
@@ -580,6 +696,8 @@ GoetyEvents.removeRitual(event => {
  * - sky (天空仪式) - 结构检查 OR 高度检查（>=128）
  * - adept_nether (进阶下界仪式) - 结构检查 OR 维度检查
  * - expert_nether (专家下界仪式) - 结构检查 OR 维度检查
+ * - end (末地仪式) - 结构检查 OR 维度检查
+ * - deep (深渊仪式) - 深海环境检查 OR 结构检查（同时需要水淹没检查）
  * - storm (风暴仪式) - 多个条件组（结构 AND 高度 AND 天气 AND 天空可见性）OR ...
  * 
  * 需要自定义函数 ritual.setRequirement() 的仪式（因为需要特殊检查）：
@@ -587,6 +705,8 @@ GoetyEvents.removeRitual(event => {
  *   TODO: 未来通过 ritual.setMinEnchantPower() 和 ritual.setRequireLecternWithBook() 实现
  * - necroturgy (死灵仪式) - 需要检查花盆内容（花盆必须有花）
  *   TODO: 未来通过 ritual.setRequireFlowerPotWithContent() 实现
+ * - deep (深渊仪式) - 需要检查祭坛是否被水淹没（waterlogged属性）
+ *   注意：这是一个特殊的仪式，祭坛本身必须被水淹没才能使用
  * 
  * 注意：大部分仪式现在都可以通过配置化方式实现，只有极少数需要自定义函数。
  * 

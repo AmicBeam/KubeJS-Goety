@@ -7,18 +7,19 @@ import com.kubejs.goety.recipe.schema.PulverizeSchema;
 import com.kubejs.goety.recipe.schema.RitualSchema;
 import com.kubejs.goety.recipe.schema.SoulAbsorberSchema;
 import com.kubejs.goety.util.EventHandlers;
-import dev.latvian.mods.kubejs.event.EventGroupRegistry;
-import dev.latvian.mods.kubejs.plugin.ClassFilter;
-import dev.latvian.mods.kubejs.plugin.KubeJSPlugin;
+import dev.latvian.mods.kubejs.KubeJSPlugin;
+import dev.latvian.mods.kubejs.recipe.schema.RegisterRecipeSchemasEvent;
+import dev.latvian.mods.kubejs.script.ScriptType;
+import dev.latvian.mods.kubejs.util.ClassFilter;
 
 /**
  * KubeJS Goety 插件
  * 允许 KubeJS 脚本访问 Goety 的仪式 API 和配方系统
  */
-public class GoetyKubeJSPlugin implements KubeJSPlugin {
+public class GoetyKubeJSPlugin extends KubeJSPlugin {
     
     @Override
-    public void registerClasses(ClassFilter filter) {
+    public void registerClasses(ScriptType type, ClassFilter filter) {
         // 允许访问 Goety 的仪式 API
         filter.allow("com.Polarice3.Goety.api.ritual");
         
@@ -34,15 +35,41 @@ public class GoetyKubeJSPlugin implements KubeJSPlugin {
     }
     
     @Override
-    public void registerEvents(EventGroupRegistry registry) {
+    public void registerEvents() {
         // 注册 GoetyEvents 事件组
-        registry.register(EventHandlers.GoetyEvents);
+        EventHandlers.GoetyEvents.register();
     }
     
     @Override
-    public void registerRecipeSchemas(dev.latvian.mods.kubejs.recipe.schema.RecipeSchemaRegistry registry) {
+    public void registerBindings(dev.latvian.mods.kubejs.script.BindingsEvent event) {
+        // 在 SERVER 脚本类型的 registerBindings 阶段注册事件监听器
+        // 此时 ScriptManager 已经初始化，可以安全调用
+        if (event.getType() == ScriptType.SERVER) {
+            dev.latvian.mods.kubejs.bindings.event.ServerEvents.LOADED.listenJava(ScriptType.SERVER, null, e -> {
+                // 触发注册仪式事件
+                if (EventHandlers.registerRitual.hasListeners()) {
+                    EventHandlers.registerRitual.post(new com.kubejs.goety.event.RegisterRitualEventJS());
+                }
+                
+                // 触发修改仪式事件
+                if (EventHandlers.modifyRitual.hasListeners()) {
+                    EventHandlers.modifyRitual.post(new com.kubejs.goety.event.ModifyRitualEventJS());
+                }
+                
+                // 触发删除仪式事件
+                if (EventHandlers.removeRitual.hasListeners()) {
+                    EventHandlers.removeRitual.post(new com.kubejs.goety.event.RemoveRitualEventJS());
+                }
+                
+                return null;
+            });
+        }
+    }
+    
+    @Override
+    public void registerRecipeSchemas(RegisterRecipeSchemasEvent event) {
         // 注册 Goety 的配方类型
-        registry.namespace("goety")
+        event.namespace("goety")
                 .register("ritual", RitualSchema.SCHEMA)
                 .register("brewing", BrewingSchema.SCHEMA)
                 .register("pulverize", PulverizeSchema.SCHEMA)

@@ -2,6 +2,7 @@ package com.kubejs.goety.event;
 
 import com.Polarice3.Goety.api.ritual.RitualType;
 import dev.latvian.mods.kubejs.event.EventJS;
+import dev.latvian.mods.kubejs.script.ScriptType;
 import dev.latvian.mods.kubejs.typings.Info;
 import dev.latvian.mods.kubejs.typings.Param;
 
@@ -26,7 +27,7 @@ public class RemoveRitualEventJS extends EventJS {
     })
     public void remove(String ritualId) {
         if (ritualId == null || ritualId.isEmpty()) {
-            console.error("仪式 ID 不能为空");
+            ScriptType.SERVER.console.error("Ritual ID cannot be empty");
             return;
         }
         
@@ -47,16 +48,16 @@ public class RemoveRitualEventJS extends EventJS {
         builtinRituals.put("deep", RitualType.DEEP);
         
         if (builtinRituals.containsKey(ritualId)) {
-            console.warn("无法删除内置仪式类型 '" + ritualId + "'。如果需要禁用，请使用 modifyRitual 返回 false");
+            ScriptType.SERVER.console.warn("Cannot remove built-in ritual type '" + ritualId + "'. If you need to disable it, use modifyRitual to return false");
             return;
         }
         
         // 从自定义列表中移除
         if (RitualType.RITUAL_TYPE_LIST.containsKey(ritualId)) {
             RitualType.RITUAL_TYPE_LIST.remove(ritualId);
-            console.info("✓ 已删除仪式类型: " + ritualId);
+            ScriptType.SERVER.console.info("✓ Removed ritual type: " + ritualId);
         } else {
-            console.warn("仪式类型 '" + ritualId + "' 不存在或未被注册");
+            ScriptType.SERVER.console.warn("Ritual type '" + ritualId + "' does not exist or is not registered");
         }
     }
     
