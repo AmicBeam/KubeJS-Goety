@@ -263,47 +263,6 @@ GoetyEvents.registerBrew(event => {
 });
 ```
 
-#### 注册物品催化剂
-
-```javascript
-GoetyEvents.registerBrew(event => {
-    // event.addCatalyst(item, effect, soulCost, duration, capacityExtra)
-    // - item: 物品ID（字符串）或物品对象
-    // - effect: 效果ID（字符串，如 'minecraft:strength'）
-    // - soulCost: 灵魂消耗（整数）
-    // - duration: 持续时间 tick（整数，可选，默认600）
-    // - capacityExtra: 额外容量（整数，可选，默认0）
-    
-    // 完整版本
-    event.addCatalyst('minecraft:glowstone_dust', 'minecraft:night_vision', 25, 1200, 0);
-    
-    // 简化版本（只使用必填参数）
-    event.addCatalyst('mymod:essence', 'minecraft:strength', 50);
-    
-    // 带持续时间的版本
-    event.addCatalyst('mymod:power_crystal', 'minecraft:regeneration', 60, 3600);
-});
-```
-
-#### 注册实体催化剂
-
-```javascript
-GoetyEvents.registerBrew(event => {
-    // event.addEntityCatalyst(entity, effect, soulCost, duration, capacityExtra)
-    // - entity: 实体类型ID（字符串）或实体标签（字符串，以 # 开头）
-    // - effect: 效果ID（字符串）
-    // - soulCost: 灵魂消耗（整数）
-    // - duration: 持续时间 tick（整数，可选，默认600）
-    // - capacityExtra: 额外容量（整数，可选，默认0）
-    
-    // 单个实体类型
-    event.addEntityCatalyst('minecraft:zombie', 'minecraft:poison', 75, 1800, 1);
-    
-    // 实体标签（影响所有匹配的实体）
-    event.addEntityCatalyst('#minecraft:is_animal', 'minecraft:regeneration', 100);
-});
-```
-
 #### 注册增强剂
 
 ```javascript
@@ -334,22 +293,21 @@ GoetyEvents.registerBrew(event => {
 GoetyEvents.registerBrew(event => {
     // 容量剂配置
     event.addCapacity('mymod:magic_crystal', 6);
-    
-    // 物品催化剂配置
-    event.addCatalyst('mymod:dark_essence', 'minecraft:strength', 50, 1800, 2);
-    event.addCatalyst('mymod:light_crystal', 'minecraft:night_vision', 30, 2400, 1);
-    
-    // 实体催化剂配置
-    event.addEntityCatalyst('minecraft:creeper', 'minecraft:haste', 100, 1800, 1);
-    event.addEntityCatalyst('#minecraft:is_animal', 'minecraft:regeneration', 100);
+    event.addCapacity('mymod:magic_dust', 5);
     
     // 增强剂配置
     event.addAugmentation('mymod:time_crystal', 'duration', 3);
     event.addAugmentation('mymod:power_crystal', 'amplifier', 2);
+    event.addAugmentation('mymod:range_crystal', 'aoe', 1);
 });
 ```
 
 **参考示例**：`src/main/resources/kubejs/server_scripts/goety_brews.js.example`
+
+**注意**：
+- **调整现有效果的灵魂消耗** → 使用 `config/goety-brews.toml` 配置文件
+- **添加催化剂（酿造配方）** → 使用 `event.recipes.goety.brewing`（见下方配方系统）
+- **添加容量剂和增强剂** → 使用 `GoetyEvents.registerBrew`
 
 ## 配方系统配置
 

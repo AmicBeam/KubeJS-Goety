@@ -90,13 +90,17 @@ public class RegisterBrewEventJS extends EventJS {
     /**
      * 注册物品催化剂
      * 
+     * @deprecated 此方法已弃用，请使用 event.recipes.goety.brewing() 代替
+     * 推荐用法：event.recipes.goety.brewing('item', 'effect').soulCost(cost).duration(duration)
+     * 
      * @param item 物品ID（字符串）或物品对象
      * @param effect 效果ID（字符串）
      * @param soulCost 灵魂消耗
      * @param duration 持续时间 tick（可选，默认600）
      * @param capacityExtra 额外容量（可选，默认0）
      */
-    @Info(value = "注册物品催化剂", params = {
+    @Deprecated
+    @Info(value = "注册物品催化剂（已弃用，请使用 event.recipes.goety.brewing）", params = {
         @Param(name = "item", value = "物品ID（字符串）或物品对象"),
         @Param(name = "effect", value = "效果ID（字符串，如 'minecraft:strength'）"),
         @Param(name = "soulCost", value = "灵魂消耗（整数）"),
@@ -104,6 +108,9 @@ public class RegisterBrewEventJS extends EventJS {
         @Param(name = "capacityExtra", value = "额外容量（整数，可选，默认0）")
     })
     public void addCatalyst(Object item, String effect, int soulCost, Object duration, Object capacityExtra) {
+        ScriptType.SERVER.console.warn("⚠ addCatalyst() 已弃用，请使用 event.recipes.goety.brewing() 代替");
+        ScriptType.SERVER.console.warn("   推荐用法: event.recipes.goety.brewing('" + item + "', '" + effect + "').soulCost(" + soulCost + ")");
+        /*
         Item itemObj = getItem(item);
         if (itemObj == null) {
             return;
@@ -140,18 +147,23 @@ public class RegisterBrewEventJS extends EventJS {
             ScriptType.SERVER.console.error("注册物品催化剂失败: " + e.getMessage());
             e.printStackTrace();
         }
+        */
     }
     
     /**
      * 注册物品催化剂（简化版本，只使用必填参数）
+     * @deprecated 此方法已弃用，请使用 event.recipes.goety.brewing() 代替
      */
+    @Deprecated
     public void addCatalyst(Object item, String effect, int soulCost) {
         addCatalyst(item, effect, soulCost, null, null);
     }
     
     /**
      * 注册物品催化剂（带持续时间）
+     * @deprecated 此方法已弃用，请使用 event.recipes.goety.brewing() 代替
      */
+    @Deprecated
     public void addCatalyst(Object item, String effect, int soulCost, int duration) {
         addCatalyst(item, effect, soulCost, duration, null);
     }
@@ -159,13 +171,17 @@ public class RegisterBrewEventJS extends EventJS {
     /**
      * 注册实体催化剂
      * 
+     * @deprecated 此方法已弃用，请使用 event.recipes.goety.brewing().entityType() 或 .entityTag() 代替
+     * 推荐用法：event.recipes.goety.brewing('item', 'effect').entityType('entity')
+     * 
      * @param entity 实体类型ID（字符串）或实体标签（字符串，以 # 开头）
      * @param effect 效果ID（字符串）
      * @param soulCost 灵魂消耗
      * @param duration 持续时间 tick（可选，默认600）
      * @param capacityExtra 额外容量（可选，默认0）
      */
-    @Info(value = "注册实体催化剂", params = {
+    @Deprecated
+    @Info(value = "注册实体催化剂（已弃用，请使用 event.recipes.goety.brewing）", params = {
         @Param(name = "entity", value = "实体类型ID（字符串）或实体标签（字符串，以 # 开头）"),
         @Param(name = "effect", value = "效果ID（字符串）"),
         @Param(name = "soulCost", value = "灵魂消耗（整数）"),
@@ -173,6 +189,14 @@ public class RegisterBrewEventJS extends EventJS {
         @Param(name = "capacityExtra", value = "额外容量（整数，可选，默认0）")
     })
     public void addEntityCatalyst(Object entity, String effect, int soulCost, Object duration, Object capacityExtra) {
+        ScriptType.SERVER.console.warn("⚠ addEntityCatalyst() 已弃用，请使用 event.recipes.goety.brewing().entityType() 代替");
+        String entityStr = entity.toString();
+        if (entityStr.startsWith("#")) {
+            ScriptType.SERVER.console.warn("   推荐用法: event.recipes.goety.brewing('item', '" + effect + "').entityTag('" + entityStr.substring(1) + "')");
+        } else {
+            ScriptType.SERVER.console.warn("   推荐用法: event.recipes.goety.brewing('item', '" + effect + "').entityType('" + entity + "')");
+        }
+        /*
         MobEffect mobEffect = getMobEffect(effect);
         if (mobEffect == null) {
             return;
@@ -229,18 +253,23 @@ public class RegisterBrewEventJS extends EventJS {
             ScriptType.SERVER.console.error("注册实体催化剂失败: " + e.getMessage());
             e.printStackTrace();
         }
+        */
     }
     
     /**
      * 注册实体催化剂（简化版本）
+     * @deprecated 此方法已弃用，请使用 event.recipes.goety.brewing() 代替
      */
+    @Deprecated
     public void addEntityCatalyst(Object entity, String effect, int soulCost) {
         addEntityCatalyst(entity, effect, soulCost, null, null);
     }
     
     /**
      * 注册实体催化剂（带持续时间）
+     * @deprecated 此方法已弃用，请使用 event.recipes.goety.brewing() 代替
      */
+    @Deprecated
     public void addEntityCatalyst(Object entity, String effect, int soulCost, int duration) {
         addEntityCatalyst(entity, effect, soulCost, duration, null);
     }

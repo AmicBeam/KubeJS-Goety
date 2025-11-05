@@ -185,47 +185,6 @@ GoetyEvents.registerBrew(event => {
 });
 ```
 
-#### Register Item Catalysts
-
-```javascript
-GoetyEvents.registerBrew(event => {
-    // event.addCatalyst(item, effect, soulCost, duration, capacityExtra)
-    // - item: Item ID (string) or item object
-    // - effect: Effect ID (string, e.g., 'minecraft:strength')
-    // - soulCost: Soul cost (integer)
-    // - duration: Duration in ticks (integer, optional, default 600)
-    // - capacityExtra: Extra capacity (integer, optional, default 0)
-    
-    // Full version
-    event.addCatalyst('minecraft:glowstone_dust', 'minecraft:night_vision', 25, 1200, 0);
-    
-    // Simplified version (only required parameters)
-    event.addCatalyst('mymod:essence', 'minecraft:strength', 50);
-    
-    // With duration
-    event.addCatalyst('mymod:power_crystal', 'minecraft:regeneration', 60, 3600);
-});
-```
-
-#### Register Entity Catalysts
-
-```javascript
-GoetyEvents.registerBrew(event => {
-    // event.addEntityCatalyst(entity, effect, soulCost, duration, capacityExtra)
-    // - entity: Entity type ID (string) or entity tag (string starting with #)
-    // - effect: Effect ID (string)
-    // - soulCost: Soul cost (integer)
-    // - duration: Duration in ticks (integer, optional, default 600)
-    // - capacityExtra: Extra capacity (integer, optional, default 0)
-    
-    // Single entity type
-    event.addEntityCatalyst('minecraft:zombie', 'minecraft:poison', 75, 1800, 1);
-    
-    // Entity tag (affects all matching entities)
-    event.addEntityCatalyst('#minecraft:is_animal', 'minecraft:regeneration', 100);
-});
-```
-
 #### Register Augmentations
 
 ```javascript
@@ -256,22 +215,21 @@ GoetyEvents.registerBrew(event => {
 GoetyEvents.registerBrew(event => {
     // Capacity modifiers
     event.addCapacity('mymod:magic_crystal', 6);
-    
-    // Item catalysts
-    event.addCatalyst('mymod:dark_essence', 'minecraft:strength', 50, 1800, 2);
-    event.addCatalyst('mymod:light_crystal', 'minecraft:night_vision', 30, 2400, 1);
-    
-    // Entity catalysts
-    event.addEntityCatalyst('minecraft:creeper', 'minecraft:haste', 100, 1800, 1);
-    event.addEntityCatalyst('#minecraft:is_animal', 'minecraft:regeneration', 100);
+    event.addCapacity('mymod:magic_dust', 5);
     
     // Augmentations
     event.addAugmentation('mymod:time_crystal', 'duration', 3);
     event.addAugmentation('mymod:power_crystal', 'amplifier', 2);
+    event.addAugmentation('mymod:range_crystal', 'aoe', 1);
 });
 ```
 
 **See example**: `src/main/resources/kubejs/server_scripts/goety_brews.js.example`
+
+**Note**:
+- **Adjust existing effect soul costs** → Use `config/goety-brews.toml` configuration file
+- **Add catalysts (brewing recipes)** → Use `event.recipes.goety.brewing` (see Recipe System below)
+- **Add capacity modifiers and augmentations** → Use `GoetyEvents.registerBrew`
 
 ## Recipe System Configuration
 
