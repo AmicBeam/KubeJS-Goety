@@ -7,18 +7,17 @@ modId="kubejs_goety"
 version="${mod_version}"
 displayName="KubeJS Goety"
 displayURL="https://github.com/kubejs-goety/kubejs-goety"
-logoFile="kubejs_goety.png"
+logoFile="logo.png"
 credits="Integration mod for KubeJS and Goety"
 authors="AmicBeam"
 description='''
 KubeJS integration for Goety mod - Customize Goety rituals, brews, and recipes with JavaScript!
 
 Features:
-- Register/Modify/Remove ritual types with custom conditions
+- Register/Modify ritual types with custom conditions
 - Configure block requirements, dimension restrictions, biome conditions
 - Register brew effects and capacity modifiers
 - Create custom recipes (Brazier, Cursed Infuser, Soul Absorber, etc.)
-- Full support for OR logic in ritual conditions
 
 Visit the GitHub page for documentation and examples.
 '''
