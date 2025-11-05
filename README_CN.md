@@ -1,5 +1,7 @@
 # KubeJS Goety
 
+**其他语言: [English](README.md)**
+
 KubeJS 与 Goety 模组的集成，允许通过 JavaScript 脚本自定义 Goety 的仪式构建条件、药酿系统和配方系统。
 
 ## 功能特性

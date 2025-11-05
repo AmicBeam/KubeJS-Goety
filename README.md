@@ -1,5 +1,7 @@
 # KubeJS Goety
 
+**Read this in other languages: [简体中文](README_CN.md)**
+
 KubeJS integration for Goety mod. Allows customizing Goety ritual requirements, brew system, and recipe system via JavaScript scripts.
 
 ## Features
