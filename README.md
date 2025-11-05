@@ -127,7 +127,7 @@ The `ritual` object supports the following configuration options:
 - `ritual.setRequireAltarWaterlogged(boolean)` (boolean): Whether altar must be waterlogged
 - `ritual.setRequirement(function)` (function): Custom check function (overrides all configurations)
 
-**See example**: `src/main/resources/kubejs/server_scripts/goety_rituals.js.example`
+**See example**: [goety_rituals.js.example](src/main/resources/kubejs/server_scripts/goety_rituals.js.example)
 
 ## Why Use server_scripts?
 
@@ -226,7 +226,7 @@ GoetyEvents.registerBrew(event => {
 });
 ```
 
-**See example**: `src/main/resources/kubejs/server_scripts/goety_brews.js.example`
+**See example**: [goety_brews.js.example](src/main/resources/kubejs/server_scripts/goety_brews.js.example)
 
 **Note**:
 - **Adjust existing effect soul costs** → Use `config/goety-brews.toml` configuration file
@@ -349,7 +349,7 @@ ServerEvents.recipes(event => {
 });
 ```
 
-**See example**: `src/main/resources/kubejs/server_scripts/goety_recipes.js.example`
+**See example**: [goety_recipes.js.example](src/main/resources/kubejs/server_scripts/goety_recipes.js.example)
 
 ## Development
 

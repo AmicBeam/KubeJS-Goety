@@ -127,7 +127,7 @@ GoetyEvents.modifyRitual(event => {
 - `ritual.setRequireAltarWaterlogged(boolean)` (boolean): 是否需要祭坛含水
 - `ritual.setRequirement(function)` (function): 自定义检查函数（覆盖所有配置）
 
-**参考示例**：`src/main/resources/kubejs/server_scripts/goety_rituals.js.example`
+**参考示例**：[goety_rituals.js.example](src/main/resources/kubejs/server_scripts/goety_rituals.js.example)
 
 ## 为什么使用 server_scripts？
 
@@ -304,7 +304,7 @@ GoetyEvents.registerBrew(event => {
 });
 ```
 
-**参考示例**：`src/main/resources/kubejs/server_scripts/goety_brews.js.example`
+**参考示例**：[goety_brews.js.example](src/main/resources/kubejs/server_scripts/goety_brews.js.example)
 
 **注意**：
 - **调整现有效果的灵魂消耗** → 使用 `config/goety-brews.toml` 配置文件
@@ -427,7 +427,7 @@ ServerEvents.recipes(event => {
 });
 ```
 
-**参考示例**：`src/main/resources/kubejs/server_scripts/goety_recipes.js.example`
+**参考示例**：[goety_recipes.js.example](src/main/resources/kubejs/server_scripts/goety_recipes.js.example)
 
 ## 开发
 
