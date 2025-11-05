@@ -14,9 +14,9 @@ KubeJS 与 Goety 模组的集成，允许通过 JavaScript 脚本自定义 Goety
 ## 前置要求
 
 - Minecraft 1.20.1
-- NeoForge 47.1.65+
-- KubeJS 2001.7.2+
-- Goety 2.5.38.2+
+- Forge 47.1.65+
+- KubeJS 2001.6+
+- Goety 2.5+
 
 ## 安装
 
@@ -106,18 +106,23 @@ GoetyEvents.modifyRitual(event => {
 `ritual` 对象支持以下配置选项：
 
 - `ritual.range` (integer): 扫描范围（默认16）
-- `ritual.blocks` (object/array/string): 方块需求配置
+- `ritual.blocks` (array/string): 方块需求配置
+  - 支持格式：`'9x minecraft:stone'`、`'/pattern/'`、`'#tag'`、`'@mod'`
+  - 正则示例：`'16x /prismarine/'` 匹配所有包含 prismarine 的方块
 - `ritual.setDimension(dimensionId, containsMatch)` (string, boolean): 维度限制
   - `dimensionId`: 维度ID，如 'minecraft:the_nether' 或 'aether'
   - `containsMatch`: false（精确匹配，默认）或 true（模糊匹配）
 - `ritual.setWeather(weather)` (string): 天气要求（'thunder'/'rain'/'clear'）
 - `ritual.setTimeOfDay(timeOfDay)` (string): 时间要求（'day'/'night'）
 - `ritual.setBiome(biomeValue, type)` (object, string): 生物群系要求
-  - `biomeValue`: 生物群系值（可以是字符串或数组）
-  - `type`: 'id'（生物群系ID，默认）、'tags'（标签）、'coldEnoughToSnow'（寒冷检查）
+  - `biomeValue`: 生物群系值（可以是字符串或数组），或方法名（当 type='func' 时）
+  - `type`: 'id'（生物群系ID，默认）、'tags'（标签）、'func'（方法调用）
+  - 方法调用：`ritual.setBiome('coldEnoughToSnow', 'func')` 调用 `biome.coldEnoughToSnow(pos)` 方法
+  - 支持任何 Biome 类的布尔返回值方法，通过反射自动调用
 - `ritual.setMinY(y)` (integer): 最小高度要求
 - `ritual.setMaxY(y)` (integer): 最大高度要求
 - `ritual.setRequireSkyVisible(boolean)` (boolean): 是否需要看到天空
+- `ritual.setRequireAltarWaterlogged(boolean)` (boolean): 是否需要祭坛含水
 - `ritual.setRequirement(function)` (function): 自定义检查函数（覆盖所有配置）
 
 **参考示例**：`src/main/resources/kubejs/server_scripts/goety_rituals.js.example`
@@ -155,7 +160,7 @@ GoetyEvents.modifyRitual(event => {
 - `expert_nether` - 专家下界仪式
   - 配置示例：`ritual.setDimension('minecraft:the_nether')` 或 `ritual.setBiome('#minecraft:is_nether', 'tags')`
 - `frost` - 霜冻仪式
-  - 配置示例：`ritual.setBiome(null, 'coldEnoughToSnow')` 或使用自定义函数
+  - 配置示例：`ritual.setBiome('coldEnoughToSnow', 'func')` 或使用自定义函数
 
 #### 需要使用多函数参数（OR 逻辑）的仪式
 

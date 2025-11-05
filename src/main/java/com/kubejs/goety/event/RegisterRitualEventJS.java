@@ -8,7 +8,6 @@ import dev.latvian.mods.kubejs.typings.Info;
 import dev.latvian.mods.kubejs.typings.Param;
 import dev.latvian.mods.kubejs.util.ListJS;
 import dev.latvian.mods.kubejs.util.UtilsJS;
-import dev.latvian.mods.kubejs.util.MapJS;
 import dev.latvian.mods.kubejs.script.ScriptManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
@@ -106,10 +105,11 @@ public class RegisterRitualEventJS extends EventJS {
         public String weather;  // 天气要求：'thunder', 'rain', 'clear', null（不检查）
         public String timeOfDay;  // 时间要求：'day', 'night', null（不检查）
         public Object biome;  // 生物群系要求（可以是字符串或数组）
-        public String biomeType;  // 生物群系检查类型：'id'（生物群系ID，默认）、'tags'（标签）、'coldEnoughToSnow'（寒冷检查）
+        public String biomeType;  // 生物群系检查类型：'id'（生物群系ID，默认）、'tags'（标签）、'func'（方法调用）
         public Integer minY;  // 最小高度要求
         public Integer maxY;  // 最大高度要求
         public Boolean requireSkyVisible;  // 是否需要看到天空（true/false/null）
+        public Boolean requireAltarWaterlogged;  // 是否需要祭坛含水（true/false/null）
         
         private final String ritualId;
         private final RegisterRitualEventJS event;
@@ -130,6 +130,7 @@ public class RegisterRitualEventJS extends EventJS {
             this.minY = null;
             this.maxY = null;
             this.requireSkyVisible = null;
+            this.requireAltarWaterlogged = null;
         }
         
         /**
@@ -150,8 +151,7 @@ public class RegisterRitualEventJS extends EventJS {
         
         /**
          * 设置方块需求
-         * 支持 KubeJS 写法：'9x minecraft:stone' 或 ['9x minecraft:stone', '3x minecraft:diamond_block']
-         * 或对象：{ 'minecraft:stone': 9, 'minecraft:diamond_block': 3 }
+         * 支持格式：'9x minecraft:stone' 或 ['9x minecraft:stone', '3x minecraft:diamond_block']
          */
         public RitualBuilderImpl setBlocks(Object blocks) {
             this.blocks = blocks;
@@ -214,12 +214,12 @@ public class RegisterRitualEventJS extends EventJS {
         
         /**
          * 设置生物群系要求
-         * @param biome 生物群系值（可以是字符串或数组）
-         * @param type 生物群系检查类型：'id'（生物群系ID，默认）、'tags'（标签）、'coldEnoughToSnow'（寒冷检查）
+         * @param biome 生物群系值（可以是字符串或数组），或方法名（当 type='func' 时）
+         * @param type 生物群系检查类型：'id'（生物群系ID，默认）、'tags'（标签）、'func'（方法调用）
          */
         @dev.latvian.mods.kubejs.typings.Info(value = "设置生物群系要求", params = {
-            @dev.latvian.mods.kubejs.typings.Param(name = "biome", value = "生物群系值（可以是字符串或数组）。对于 'coldEnoughToSnow' 类型，此参数可以为 null"),
-            @dev.latvian.mods.kubejs.typings.Param(name = "type", value = "检查类型：'id'（生物群系ID，默认）、'tags'（标签）、'coldEnoughToSnow'（寒冷检查）")
+            @dev.latvian.mods.kubejs.typings.Param(name = "biome", value = "生物群系值（可以是字符串或数组），或方法名（当 type='func' 时）"),
+            @dev.latvian.mods.kubejs.typings.Param(name = "type", value = "检查类型：'id'（生物群系ID，默认）、'tags'（标签）、'func'（方法调用）")
         })
         public RitualBuilderImpl setBiome(Object biome, String type) {
             this.biome = biome;
@@ -271,14 +271,23 @@ public class RegisterRitualEventJS extends EventJS {
         }
         
         /**
+         * 设置是否需要祭坛含水
+         * @param requireAltarWaterlogged true（需要祭坛含水）、false（需要祭坛不含水）、null（不检查）
+         */
+        @dev.latvian.mods.kubejs.typings.Info(value = "设置是否需要祭坛含水", params = {
+            @dev.latvian.mods.kubejs.typings.Param(name = "requireAltarWaterlogged", value = "true（需要祭坛含水）、false（需要祭坛不含水）、null（不检查）")
+        })
+        public RitualBuilderImpl setRequireAltarWaterlogged(Boolean requireAltarWaterlogged) {
+            this.requireAltarWaterlogged = requireAltarWaterlogged;
+            return this;
+        }
+        
+        /**
          * 解析方块需求配置
-         * 完全复用 KubeJS 的 SizedIngredientWrapper 来解析各种格式
          * 支持：
          * - 字符串：'minecraft:stone' 或 '9x minecraft:stone'
          * - ItemStack 对象：Item.of('minecraft:stone')，包括带 NBT 的
-         * - Ingredient 对象：直接使用 KubeJS 的 Ingredient
          * - 数组：混合使用以上格式
-         * - 对象/Map：key 可以是字符串或 ItemStack，value 是数量
          */
         private Map<SizedIngredient, Integer> parseBlocks(Object blocksConfig) {
             Map<SizedIngredient, Integer> requirements = new LinkedHashMap<>();
@@ -323,28 +332,6 @@ public class RegisterRitualEventJS extends EventJS {
                     }
                 }
             }
-            // 如果是对象/Map
-            else {
-                var map = MapJS.of(blocksConfig);
-                if (map != null) {
-                    for (var entry : map.entrySet()) {
-                        try {
-                            Object key = entry.getKey();
-                            int count = ((Number) UtilsJS.cast(entry.getValue())).intValue();
-                            
-                            // 支持 key 为字符串或 ItemStack 对象
-                            InputItem inputItem = InputItem.of(key);
-                            if (inputItem != null && !inputItem.isEmpty()) {
-                                Ingredient ingredient = inputItem.ingredient;
-                                SizedIngredient sizedIngredient = SizedIngredient.of(ingredient, count);
-                                requirements.put(sizedIngredient, count);
-                            }
-                        } catch (Exception e) {
-                            ScriptType.SERVER.console.error("Failed to parse block requirement: " + entry + " - " + e.getMessage());
-                        }
-                    }
-                }
-            }
             
             return requirements;
         }
@@ -366,6 +353,7 @@ public class RegisterRitualEventJS extends EventJS {
             final Integer finalMinY = this.minY;
             final Integer finalMaxY = this.maxY;
             final Boolean finalRequireSkyVisible = this.requireSkyVisible;
+            final Boolean finalRequireAltarWaterlogged = this.requireAltarWaterlogged;
             
             return new IRitualType() {
                 @Override
@@ -454,13 +442,45 @@ public class RegisterRitualEventJS extends EventJS {
                         }
                         
                         // 检查生物群系要求
-                        if (finalBiome != null || (finalBiomeType != null && "coldEnoughToSnow".equals(finalBiomeType))) {
+                        if (finalBiome != null || finalBiomeType != null) {
                             String type = finalBiomeType != null ? finalBiomeType.toLowerCase() : "id";
                             var currentBiome = pLevel.getBiome(pPos);
                             
-                            if ("coldenoughtosnow".equals(type)) {
-                                // 寒冷检查：coldEnoughToSnow
-                                if (!currentBiome.get().coldEnoughToSnow(pPos)) {
+                            if ("func".equals(type)) {
+                                // 方法检查：使用反射调用 Biome 类的方法
+                                if (finalBiome == null) {
+                                    ScriptType.SERVER.console.warn("Biome method name is null for 'func' type");
+                                    return false;
+                                }
+                                
+                                String methodName = finalBiome.toString();
+                                try {
+                                    var biome = currentBiome.get();
+                                    var biomeClass = biome.getClass();
+                                    
+                                    // 尝试不带参数的方法
+                                    try {
+                                        var method = biomeClass.getMethod(methodName);
+                                        Object result = method.invoke(biome);
+                                        if (result instanceof Boolean && !(Boolean) result) {
+                                            return false;
+                                        }
+                                    } catch (NoSuchMethodException e1) {
+                                        // 尝试带 BlockPos 参数的方法
+                                        try {
+                                            var method = biomeClass.getMethod(methodName, net.minecraft.core.BlockPos.class);
+                                            Object result = method.invoke(biome, pPos);
+                                            if (result instanceof Boolean && !(Boolean) result) {
+                                                return false;
+                                            }
+                                        } catch (NoSuchMethodException e2) {
+                                            // 方法不存在，记录警告
+                                            ScriptType.SERVER.console.warn("Biome method '" + methodName + "' not found for biome check in ritual");
+                                            return false;
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    ScriptType.SERVER.console.error("Error invoking biome method '" + methodName + "': " + e.getMessage());
                                     return false;
                                 }
                             } else if ("tags".equals(type)) {
@@ -548,6 +568,19 @@ public class RegisterRitualEventJS extends EventJS {
                                 return false;
                             }
                             if (!finalRequireSkyVisible && canSeeSky) {
+                                return false;
+                            }
+                        }
+                        
+                        // 检查祭坛含水要求
+                        if (finalRequireAltarWaterlogged != null) {
+                            var altarState = pTileEntity.getBlockState();
+                            var BlockStateProperties = net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED;
+                            boolean isWaterlogged = altarState.hasProperty(BlockStateProperties) && altarState.getValue(BlockStateProperties);
+                            if (finalRequireAltarWaterlogged && !isWaterlogged) {
+                                return false;
+                            }
+                            if (!finalRequireAltarWaterlogged && isWaterlogged) {
                                 return false;
                             }
                         }

@@ -70,7 +70,6 @@ GoetyEvents.modifyRitual(event => {
     // ==========================================
     // 原始需求：16附魔力（累计），1个讲台（有书），1个附魔台
     // 注意：需要检查附魔力累计值和讲台的书，暂时使用自定义函数
-    // TODO: 未来可以通过 ritual.setMinEnchantPower() 和 ritual.setRequireLecternWithBook() 实现
     event.modify('magic', ritual => {
         ritual.range = 16;
         ritual.setRequirement((tileEntity, pos, level) => {
@@ -135,7 +134,7 @@ GoetyEvents.modifyRitual(event => {
         },
         // 第二个条件组：寒冷生物群系检查
         ritual => {
-            ritual.setBiome(null, 'coldEnoughToSnow');  // 检查生物群系是否寒冷到可以下雪
+            ritual.setBiome('coldEnoughToSnow', 'func');  // 调用 biome.coldEnoughToSnow(pos) 方法
         }
     );
     
@@ -144,7 +143,6 @@ GoetyEvents.modifyRitual(event => {
     // ==========================================
     // 原始需求：16个幽匿块，16个台阶，8个有花的花盆，夜晚，有天空光
     // 注意：需要检查花盆内容，暂时使用自定义函数
-    // TODO: 未来可以通过 ritual.setRequireFlowerPotWithContent() 实现
     event.modify('necroturgy', ritual => {
         ritual.range = 16;
         ritual.setRequirement((tileEntity, pos, level) => {
@@ -209,8 +207,8 @@ GoetyEvents.modifyRitual(event => {
             ritual.blocks = [
                 '8x minecraft:amethyst_block',  // 8个紫水晶块
                 'minecraft:smithing_table',     // 1个锻造台
-                // 注意：深板岩需要检查 solidRender，这里用标签代替
-                '16x #minecraft:deepslate'      // 16个深板岩（简化处理）
+                // 注意：原版检查深板岩的 solidRender 属性（实心渲染），这里用标签代替
+                '16x #minecraft:deepslate'      // 16个深板岩（使用标签代替 solidRender 检查）
             ];
         },
         // 第二个条件组：环境检查（OR 逻辑）
@@ -235,7 +233,7 @@ GoetyEvents.modifyRitual(event => {
     // event.modify('necroturgy', ritual => { ... });
     // 
     // 但请注意：修改 necroturgy 会影响所有使用 necroturgy 结构的仪式
-    // 如果只想修改 lich 相关的仪式，需要通过其他方式（如修改配方文件）
+    // 如果只想修改 lich 相关的仪式，需要通过其他方式
     
     // ==========================================
     // 8. sky (天空仪式)
@@ -297,81 +295,20 @@ GoetyEvents.modifyRitual(event => {
             ritual.setRequireSkyVisible(true);     // 需要能看到天空
             ritual.setDimension('aether', true);  // 维度ID包含 'aether'（模糊匹配）
         },
-        // 第三个条件组：结构检查 AND 天空仪式结构 AND 雷雨 AND 能看到天空
+        // 第三个条件组：结构检查 AND 天空仪式结构 AND 雷雨 AND 能看到天空（完全配置化）
         ritual => {
             ritual.range = 16;
+            ritual.blocks = [
+                '12x /copper/',                    // 12个铜相关方块（正则匹配）
+                '4x minecraft:lightning_rod',      // 4个避雷针
+                '20x minecraft:chain',             // 20个锁链
+                // 天空仪式结构需求（所有31种大理石变体、15种玉石变体、3种凹金块变体都有效）
+                '8x #goety:marble_blocks',         // 8个大理石块（使用标签支持所有变体）
+                '16x #goety:jade_blocks',          // 16个玉石块（使用标签支持所有变体）
+                '4x #goety:indented_gold_blocks'   // 4个凹金块（使用标签支持所有变体）
+            ];
             ritual.setWeather('thunder');          // 需要雷雨天气
             ritual.setRequireSkyVisible(true);     // 需要能看到天空
-            // 天空仪式结构检查需要通过自定义函数实现
-            // 注意：由于需要同时检查结构和天空结构，所有检查都在自定义函数中
-            ritual.setRequirement((tileEntity, pos, level) => {
-                // 1. 检查结构：12个铜相关方块，4个避雷针，20个锁链
-                const RANGE = ritual.range || 16;
-                let copperCount = 0;
-                let rodCount = 0;
-                let chainCount = 0;
-                
-                const LightningRodBlock = Java.loadClass('net.minecraft.world.level.block.LightningRodBlock');
-                const ChainBlock = Java.loadClass('net.minecraft.world.level.block.ChainBlock');
-                
-                for (let i = -RANGE; i <= RANGE; i++) {
-                    for (let j = -RANGE; j <= RANGE; j++) {
-                        for (let k = -RANGE; k <= RANGE; k++) {
-                            const blockPos = pos.offset(i, j, k);
-                            const blockState = level.getBlockState(blockPos);
-                            const block = blockState.getBlock();
-                            
-                            if (block.getDescriptionId().contains('copper')) {
-                                copperCount++;
-                            }
-                            if (LightningRodBlock.class.isInstance(block)) {
-                                rodCount++;
-                            }
-                            if (ChainBlock.class.isInstance(block)) {
-                                chainCount++;
-                            }
-                        }
-                    }
-                }
-                
-                const structureCheck = copperCount >= 12 && rodCount >= 4 && chainCount >= 20;
-                
-                // 2. 检查天空仪式结构：8个大理石块、16个玉石块、4个凹金块
-                let marbleCount = 0;
-                let jadeCount = 0;
-                let goldCount = 0;
-                
-                const ModTags = Java.loadClass('com.Polarice3.Goety.init.ModTags');
-                
-                for (let i = -RANGE; i <= RANGE; i++) {
-                    for (let j = -RANGE; j <= RANGE; j++) {
-                        for (let k = -RANGE; k <= RANGE; k++) {
-                            const blockPos = pos.offset(i, j, k);
-                            const blockState = level.getBlockState(blockPos);
-                            
-                            if (blockState.is(ModTags.Blocks.MARBLE_BLOCKS)) {
-                                marbleCount++;
-                            }
-                            if (blockState.is(ModTags.Blocks.JADE_BLOCKS)) {
-                                jadeCount++;
-                            }
-                            if (blockState.is(ModTags.Blocks.INDENTED_GOLD_BLOCKS)) {
-                                goldCount++;
-                            }
-                        }
-                    }
-                }
-                
-                const skyStructureCheck = marbleCount >= 8 && jadeCount >= 16 && goldCount >= 4;
-                
-                // 3. 检查天气：雷雨
-                const thunderCheck = level.isThundering();
-                
-                // 4. 检查天空可见性：能看到天空
-                const skyVisibleCheck = level.canSeeSky(pos.above());
-                
-                return structureCheck && skyStructureCheck && thunderCheck && skyVisibleCheck;
-            });
         }
     );
     
@@ -400,9 +337,9 @@ GoetyEvents.modifyRitual(event => {
         ritual => {
             ritual.range = 16;
             ritual.blocks = [
-                '8x #minecraft:basalt',        // 8个玄武岩相关方块（使用标签）
-                '16x #minecraft:blackstone',    // 16个黑石相关方块（使用标签）
-                '4x minecraft:glowstone'        // 4个荧石
+                '8x /basalt/',              // 8个玄武岩相关方块（正则匹配）
+                '16x /blackstone/',         // 16个黑石相关方块（正则匹配）
+                '4x minecraft:glowstone'    // 4个荧石
             ];
             // 条件组内部是 AND 逻辑，所以这里需要同时满足：结构 AND 维度
             ritual.setDimension('minecraft:the_nether');  // 下界维度
@@ -411,9 +348,9 @@ GoetyEvents.modifyRitual(event => {
         ritual => {
             ritual.range = 16;
             ritual.blocks = [
-                '8x #minecraft:basalt',        // 8个玄武岩相关方块（使用标签）
-                '16x #minecraft:blackstone',    // 16个黑石相关方块（使用标签）
-                '4x minecraft:glowstone'        // 4个荧石
+                '8x /basalt/',              // 8个玄武岩相关方块（正则匹配）
+                '16x /blackstone/',         // 16个黑石相关方块（正则匹配）
+                '4x minecraft:glowstone'    // 4个荧石
             ];
             // 条件组内部是 AND 逻辑，所以这里需要同时满足：结构 AND 生物群系
             ritual.setBiome('#minecraft:is_nether', 'tags');  // 下界生物群系标签
@@ -489,63 +426,21 @@ GoetyEvents.modifyRitual(event => {
     event.modify('deep',
         // 第一个条件组：深海环境检查（高度<=海平面 AND 深海生物群系）
         ritual => {
-            ritual.setRequirement((tileEntity, pos, level) => {
-                const RANGE = ritual.range || 16;
-                
-                // 检查祭坛是否被水淹没
-                const blockState = tileEntity.getBlockState();
-                const BlockStateProperties = Java.loadClass('net.minecraft.world.level.block.state.properties.BlockStateProperties');
-                if (!blockState.hasProperty(BlockStateProperties.WATERLOGGED) || !blockState.getValue(BlockStateProperties.WATERLOGGED)) {
-                    return false;
-                }
-                
-                // 检查深海环境：高度<=海平面 AND 深海生物群系
-                const BiomeTags = Java.loadClass('net.minecraft.tags.BiomeTags');
-                return pos.getY() <= level.getSeaLevel() && level.getBiome(pos).is(BiomeTags.IS_DEEP_OCEAN);
-            });
+            ritual.setRequireAltarWaterlogged(true);  // 祭坛必须被水淹没
+            ritual.setMaxY(63);  // 假设海平面为64，高度<=63
+            ritual.setBiome('#minecraft:is_deep_ocean', 'tags');  // 深海生物群系
         },
-        // 第二个条件组：结构检查
+        // 第二个条件组：结构检查（完全配置化，使用正则表达式）
         ritual => {
             ritual.range = 16;
-            ritual.setRequirement((tileEntity, pos, level) => {
-                const RANGE = ritual.range || 16;
-                
-                // 1. 检查祭坛是否被水淹没
-                const blockState = tileEntity.getBlockState();
-                const BlockStateProperties = Java.loadClass('net.minecraft.world.level.block.state.properties.BlockStateProperties');
-                if (!blockState.hasProperty(BlockStateProperties.WATERLOGGED) || !blockState.getValue(BlockStateProperties.WATERLOGGED)) {
-                    return false;
-                }
-                
-                // 2. 检查结构：4个海晶灯，16个海晶相关方块，16个花岗岩相关方块
-                let seaLanternCount = 0;
-                let prismarineCount = 0;
-                let graniteCount = 0;
-                
-                const Blocks = Java.loadClass('net.minecraft.world.level.block.Blocks');
-                
-                for (let i = -RANGE; i <= RANGE; i++) {
-                    for (let j = -RANGE; j <= RANGE; j++) {
-                        for (let k = -RANGE; k <= RANGE; k++) {
-                            const blockPos = pos.offset(i, j, k);
-                            const state = level.getBlockState(blockPos);
-                            const block = state.getBlock();
-                            
-                            if (block === Blocks.SEA_LANTERN) {
-                                seaLanternCount++;
-                            }
-                            if (block.getDescriptionId().contains('prismarine')) {
-                                prismarineCount++;
-                            }
-                            if (block.getDescriptionId().contains('granite')) {
-                                graniteCount++;
-                            }
-                        }
-                    }
-                }
-                
-                return seaLanternCount >= 4 && prismarineCount >= 16 && graniteCount >= 16;
-            });
+            ritual.setRequireAltarWaterlogged(true);  // 祭坛必须被水淹没
+            // 注意：使用 KubeJS 原生支持的正则表达式匹配方块
+            // 格式：/pattern/ 会匹配所有 ID 包含 pattern 的方块
+            ritual.blocks = [
+                '4x minecraft:sea_lantern',     // 4个海晶灯
+                '16x /prismarine/',             // 16个海晶相关方块（正则匹配）
+                '16x /granite/'                 // 16个花岗岩相关方块（正则匹配）
+            ];
         }
     );
 });
@@ -562,15 +457,6 @@ GoetyEvents.registerRitual(event => {
             '3x minecraft:emerald_block'    // 3个绿宝石块
         ];
     });
-    
-    // 创建自定义仪式：火焰仪式
-    event.create('flame_ritual', ritual => {
-        ritual.range = 16;
-        ritual.blocks = [
-            '10x minecraft:fire',           // 10个普通火
-            '2x minecraft:campfire'          // 2个篝火
-        ];
-    });
 });
 
 /**
@@ -580,10 +466,12 @@ GoetyEvents.registerRitual(event => {
  * 
  * 配置化方式：
  * 1. ritual.range - 扫描范围（整数，默认16）
- * 2. ritual.blocks - 方块需求，支持三种格式：
+ * 2. ritual.blocks - 方块需求，支持多种格式：
  *    - 字符串：'9x minecraft:stone' - 单个方块需求
  *    - 数组：['9x minecraft:stone', '3x minecraft:diamond_block'] - 多个方块需求
- *    - 对象：{ 'minecraft:stone': 9, 'minecraft:diamond_block': 3 } - 键值对形式
+ *    - 正则表达式：'/pattern/' 或 '16x /pattern/' - 匹配包含指定模式的方块
+ *    - 标签：'#minecraft:planks' 或 '9x #minecraft:planks' - 使用标签
+ *    - 模组：'@minecraft' - 匹配指定模组的所有方块
  *    - 支持使用 Item.of() 创建带 NBT 的物品栈
  * 3. ritual.setDimension(dimensionId) - 维度限制（精确匹配，默认）
  * 4. ritual.setDimension(dimensionId, containsMatch) - 维度限制
@@ -595,20 +483,21 @@ GoetyEvents.registerRitual(event => {
  * 5. ritual.setWeather(weather) - 天气要求：'thunder'（雷雨）、'rain'（下雨）、'clear'（晴天）
  * 6. ritual.setTimeOfDay(timeOfDay) - 时间要求：'day'（白天）、'night'（夜晚）
  * 7. ritual.setBiome(biomeValue, type) - 生物群系要求
- *    - biomeValue: 生物群系值（可以是字符串或数组）
- *    - type: 'id'（生物群系ID，默认）、'tags'（标签）、'coldEnoughToSnow'（寒冷检查）
+ *    - biomeValue: 生物群系值（可以是字符串或数组），或方法名（当 type='func' 时）
+ *    - type: 'id'（生物群系ID，默认）、'tags'（标签）、'func'（方法调用）
  *    示例：
  *      - ritual.setBiome('minecraft:plains')                    // 单个ID（默认type='id'）
  *      - ritual.setBiome(['minecraft:plains', 'minecraft:forest'], 'id')  // 多个ID（OR 逻辑）
- *      - ritual.setBiome('#minecraft:is_nether', 'tags')      // 标签
+ *      - ritual.setBiome('#minecraft:is_nether', 'tags')      // 标签检查
  *      - ritual.setBiome(['#minecraft:is_nether', '#minecraft:is_ocean'], 'tags')  // 多个标签（OR 逻辑）
- *      - ritual.setBiome(null, 'coldEnoughToSnow')            // 寒冷检查（coldEnoughToSnow）
+ *      - ritual.setBiome('coldEnoughToSnow', 'func')          // 方法调用：biome.coldEnoughToSnow(pos)
+ *      - 注意：使用 'func' 类型时必须显式指定第二个参数，支持任何 Biome 类的布尔方法
  * 8. ritual.setMinY(y) - 最小高度要求
  * 9. ritual.setMaxY(y) - 最大高度要求
  * 10. ritual.setRequireSkyVisible(boolean) - 是否需要看到天空（true/false）
- * 11. ritual.setRequirement(function) - 自定义检查函数（可选），如果设置了会完全覆盖所有配置检查
+ * 11. ritual.setRequireAltarWaterlogged(boolean) - 是否需要祭坛含水（true/false）
+ * 12. ritual.setRequirement(function) - 自定义检查函数（可选），如果设置了会完全覆盖所有配置检查
  * 
- * 注意：条件组内部不再使用 ritual.name，名称由 event.modify 的第一个参数（ritualId）决定
  * 
  * ==========================================
  * 多函数参数（OR 逻辑）
@@ -645,9 +534,17 @@ GoetyEvents.registerRitual(event => {
  * - 复杂需求：只使用 ritual.setRequirement()（完全自定义检查逻辑）
  * - OR 逻辑：使用多函数参数 event.modify('id', func1, func2, ...)
  * 
- * KubeJS 方块格式支持：
+ * KubeJS 方块格式支持（原生功能）：
  * - 'minecraft:stone' - 单个方块（默认为 1 个，不需要写 1x）
  * - '9x minecraft:stone' - 指定数量
+ * - '/pattern/' 或 '16x /pattern/' - 正则表达式匹配
+ *   示例：'/prismarine/' 匹配所有包含 'prismarine' 的方块（海晶石、海晶石砖、海晶石台阶等）
+ *   示例：'/.*copper.*/' 匹配所有包含 'copper' 的方块
+ *   示例：'/granite/i' 不区分大小写匹配（i = case insensitive）
+ * - '#minecraft:planks' 或 '9x #minecraft:planks' - 标签
+ * - '@minecraft' - 匹配指定模组的所有方块
+ * - '%minecraft:building_blocks' - 匹配创造标签页
+ * - '*' - 通配符（匹配所有方块）
  * - '#minecraft:logs' - 使用标签
  * - Item.of('minecraft:stone') - 使用 ItemStack 对象，支持 NBT
  * - Item.of('minecraft:stone', {nbt: 'data'}) - 带 NBT 的物品栈
@@ -691,7 +588,7 @@ GoetyEvents.registerRitual(event => {
  * 
  * 需要使用多函数参数（OR 逻辑）的仪式：
  * - forge (锻造仪式) - 熔炉或高炉（OR逻辑）
- * - frost (霜冻仪式) - 结构检查（16个冰，8个雪，4个冰冻灯）OR 寒冷生物群系检查
+ * - frost (霜冻仪式) - 结构检查（16个冰，8个雪，4个冰冻灯）OR 寒冷生物群系检查（ritual.setBiome('coldEnoughToSnow', 'func')）
  * - geoturgy (大地仪式) - 结构检查 OR 环境检查（看不到天空 AND 高度<=32）
  * - sky (天空仪式) - 结构检查 OR 高度检查（>=128）
  * - adept_nether (进阶下界仪式) - 结构检查 OR 维度检查

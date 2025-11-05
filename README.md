@@ -14,9 +14,9 @@ KubeJS integration for Goety mod. Allows customizing Goety ritual requirements, 
 ## Requirements
 
 - Minecraft 1.20.1
-- NeoForge 47.1.65+
-- KubeJS 2001.7.2+
-- Goety 2.5.38.2+
+- Forge 47.1.65+
+- KubeJS 2001.6+
+- Goety 2.5+
 
 ## Installation
 
@@ -106,18 +106,23 @@ GoetyEvents.modifyRitual(event => {
 The `ritual` object supports the following configuration options:
 
 - `ritual.range` (integer): Scan range (default 16)
-- `ritual.blocks` (object/array/string): Block requirement configuration
+- `ritual.blocks` (array/string): Block requirement configuration
+  - Supported formats: `'9x minecraft:stone'`, `'/pattern/'`, `'#tag'`, `'@mod'`
+  - Regex example: `'16x /prismarine/'` matches all blocks containing prismarine
 - `ritual.setDimension(dimensionId, containsMatch)` (string, boolean): Dimension restriction
   - `dimensionId`: Dimension ID, e.g., 'minecraft:the_nether' or 'aether'
   - `containsMatch`: false (exact match, default) or true (fuzzy match)
 - `ritual.setWeather(weather)` (string): Weather requirement ('thunder'/'rain'/'clear')
 - `ritual.setTimeOfDay(timeOfDay)` (string): Time requirement ('day'/'night')
 - `ritual.setBiome(biomeValue, type)` (object, string): Biome requirement
-  - `biomeValue`: Biome value (can be string or array)
-  - `type`: 'id' (biome ID, default), 'tags' (tags), 'coldEnoughToSnow' (cold check)
+  - `biomeValue`: Biome value (can be string or array), or method name (when type='func')
+  - `type`: 'id' (biome ID, default), 'tags' (tags), 'func' (method call)
+  - Method call: `ritual.setBiome('coldEnoughToSnow', 'func')` calls `biome.coldEnoughToSnow(pos)` method
+  - Supports any boolean method in Biome class, invoked via reflection
 - `ritual.setMinY(y)` (integer): Minimum height requirement
 - `ritual.setMaxY(y)` (integer): Maximum height requirement
 - `ritual.setRequireSkyVisible(boolean)` (boolean): Whether sky visibility is required
+- `ritual.setRequireAltarWaterlogged(boolean)` (boolean): Whether altar must be waterlogged
 - `ritual.setRequirement(function)` (function): Custom check function (overrides all configurations)
 
 **See example**: `src/main/resources/kubejs/server_scripts/goety_rituals.js.example`

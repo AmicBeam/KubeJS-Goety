@@ -10,7 +10,6 @@ import dev.latvian.mods.kubejs.typings.Info;
 import dev.latvian.mods.kubejs.typings.Param;
 import dev.latvian.mods.kubejs.util.ListJS;
 import dev.latvian.mods.kubejs.util.UtilsJS;
-import dev.latvian.mods.kubejs.util.MapJS;
 import dev.latvian.mods.kubejs.script.ScriptManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
@@ -213,13 +212,45 @@ public class ModifyRitualEventJS extends EventJS {
             }
             
             // 检查生物群系要求
-            if (group.biome != null || (group.biomeType != null && "coldEnoughToSnow".equals(group.biomeType))) {
+            if (group.biome != null || group.biomeType != null) {
                 String type = group.biomeType != null ? group.biomeType.toLowerCase() : "id";
                 var currentBiome = pLevel.getBiome(pPos);
                 
-                if ("coldenoughtosnow".equals(type)) {
-                    // 寒冷检查：coldEnoughToSnow
-                    if (!currentBiome.get().coldEnoughToSnow(pPos)) {
+                if ("func".equals(type)) {
+                    // 方法检查：使用反射调用 Biome 类的方法
+                    if (group.biome == null) {
+                        ScriptType.SERVER.console.warn("Biome method name is null for 'func' type");
+                        return false;
+                    }
+                    
+                    String methodName = group.biome.toString();
+                    try {
+                        var biome = currentBiome.get();
+                        var biomeClass = biome.getClass();
+                        
+                        // 尝试不带参数的方法
+                        try {
+                            var method = biomeClass.getMethod(methodName);
+                            Object result = method.invoke(biome);
+                            if (result instanceof Boolean && !(Boolean) result) {
+                                return false;
+                            }
+                        } catch (NoSuchMethodException e1) {
+                            // 尝试带 BlockPos 参数的方法
+                            try {
+                                var method = biomeClass.getMethod(methodName, net.minecraft.core.BlockPos.class);
+                                Object result = method.invoke(biome, pPos);
+                                if (result instanceof Boolean && !(Boolean) result) {
+                                    return false;
+                                }
+                            } catch (NoSuchMethodException e2) {
+                                // 方法不存在，记录警告
+                                ScriptType.SERVER.console.warn("Biome method '" + methodName + "' not found for biome check in ritual");
+                                return false;
+                            }
+                        }
+                    } catch (Exception e) {
+                        ScriptType.SERVER.console.error("Error invoking biome method '" + methodName + "': " + e.getMessage());
                         return false;
                     }
                 } else if ("tags".equals(type)) {
@@ -311,6 +342,19 @@ public class ModifyRitualEventJS extends EventJS {
                 }
             }
             
+            // 检查祭坛含水要求
+            if (group.requireAltarWaterlogged != null) {
+                var altarState = pTileEntity.getBlockState();
+                var BlockStateProperties = net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED;
+                boolean isWaterlogged = altarState.hasProperty(BlockStateProperties) && altarState.getValue(BlockStateProperties);
+                if (group.requireAltarWaterlogged && !isWaterlogged) {
+                    return false;
+                }
+                if (!group.requireAltarWaterlogged && isWaterlogged) {
+                    return false;
+                }
+            }
+            
             // 检查方块需求
             Map<SizedIngredient, Integer> blockRequirements = group.parseBlocks(group.blocks);
             if (!blockRequirements.isEmpty()) {
@@ -371,10 +415,11 @@ public class ModifyRitualEventJS extends EventJS {
         public String weather;  // 天气要求：'thunder', 'rain', 'clear', null（不检查）
         public String timeOfDay;  // 时间要求：'day', 'night', null（不检查）
         public Object biome;  // 生物群系要求（可以是字符串或数组）
-        public String biomeType;  // 生物群系检查类型：'id'（生物群系ID，默认）、'tags'（标签）、'coldEnoughToSnow'（寒冷检查）
+        public String biomeType;  // 生物群系检查类型：'id'（生物群系ID，默认）、'tags'（标签）、'func'（方法调用）
         public Integer minY;  // 最小高度要求
         public Integer maxY;  // 最大高度要求
         public Boolean requireSkyVisible;  // 是否需要看到天空（true/false/null）
+        public Boolean requireAltarWaterlogged;  // 是否需要祭坛含水（true/false/null）
         
         private final String ritualId;
         private final IRitualType originalRitual;
@@ -397,6 +442,7 @@ public class ModifyRitualEventJS extends EventJS {
             this.minY = null;
             this.maxY = null;
             this.requireSkyVisible = null;
+            this.requireAltarWaterlogged = null;
         }
         
         /**
@@ -417,8 +463,7 @@ public class ModifyRitualEventJS extends EventJS {
         
         /**
          * 设置方块需求
-         * 支持 KubeJS 写法：'9x minecraft:stone' 或 ['9x minecraft:stone', '3x minecraft:diamond_block']
-         * 或对象：{ 'minecraft:stone': 9, 'minecraft:diamond_block': 3 }
+         * 支持格式：'9x minecraft:stone' 或 ['9x minecraft:stone', '3x minecraft:diamond_block']
          */
         public RitualModifierImpl setBlocks(Object blocks) {
             this.blocks = blocks;
@@ -481,12 +526,12 @@ public class ModifyRitualEventJS extends EventJS {
         
         /**
          * 设置生物群系要求
-         * @param biome 生物群系值（可以是字符串或数组）
-         * @param type 生物群系检查类型：'id'（生物群系ID，默认）、'tags'（标签）、'coldEnoughToSnow'（寒冷检查）
+         * @param biome 生物群系值（可以是字符串或数组），或方法名（当 type='func' 时）
+         * @param type 生物群系检查类型：'id'（生物群系ID，默认）、'tags'（标签）、'func'（方法调用）
          */
         @dev.latvian.mods.kubejs.typings.Info(value = "设置生物群系要求", params = {
-            @dev.latvian.mods.kubejs.typings.Param(name = "biome", value = "生物群系值（可以是字符串或数组）。对于 'coldEnoughToSnow' 类型，此参数可以为 null"),
-            @dev.latvian.mods.kubejs.typings.Param(name = "type", value = "检查类型：'id'（生物群系ID，默认）、'tags'（标签）、'coldEnoughToSnow'（寒冷检查）")
+            @dev.latvian.mods.kubejs.typings.Param(name = "biome", value = "生物群系值（可以是字符串或数组），或方法名（当 type='func' 时）"),
+            @dev.latvian.mods.kubejs.typings.Param(name = "type", value = "检查类型：'id'（生物群系ID，默认）、'tags'（标签）、'func'（方法调用）")
         })
         public RitualModifierImpl setBiome(Object biome, String type) {
             this.biome = biome;
@@ -495,7 +540,8 @@ public class ModifyRitualEventJS extends EventJS {
         }
         
         /**
-         * 设置生物群系要求（默认ID类型）
+         * 设置生物群系要求（默认为 ID 类型）
+         * 如果需要调用 Biome 方法，请使用 setBiome(biome, 'func')
          */
         public RitualModifierImpl setBiome(Object biome) {
             return setBiome(biome, "id");
@@ -534,6 +580,18 @@ public class ModifyRitualEventJS extends EventJS {
         })
         public RitualModifierImpl setRequireSkyVisible(Boolean requireSkyVisible) {
             this.requireSkyVisible = requireSkyVisible;
+            return this;
+        }
+        
+        /**
+         * 设置是否需要祭坛含水
+         * @param requireAltarWaterlogged true（需要祭坛含水）、false（需要祭坛不含水）、null（不检查）
+         */
+        @dev.latvian.mods.kubejs.typings.Info(value = "设置是否需要祭坛含水", params = {
+            @dev.latvian.mods.kubejs.typings.Param(name = "requireAltarWaterlogged", value = "true（需要祭坛含水）、false（需要祭坛不含水）、null（不检查）")
+        })
+        public RitualModifierImpl setRequireAltarWaterlogged(Boolean requireAltarWaterlogged) {
+            this.requireAltarWaterlogged = requireAltarWaterlogged;
             return this;
         }
         
@@ -590,28 +648,6 @@ public class ModifyRitualEventJS extends EventJS {
                     }
                 }
             }
-            // 如果是对象/Map
-            else {
-                var map = MapJS.of(blocksConfig);
-                if (map != null) {
-                    for (var entry : map.entrySet()) {
-                        try {
-                            Object key = entry.getKey();
-                            int count = ((Number) UtilsJS.cast(entry.getValue())).intValue();
-                            
-                            // 支持 key 为字符串或 ItemStack 对象
-                            InputItem inputItem = InputItem.of(key);
-                            if (inputItem != null && !inputItem.isEmpty()) {
-                                Ingredient ingredient = inputItem.ingredient;
-                                SizedIngredient sizedIngredient = SizedIngredient.of(ingredient, count);
-                                requirements.put(sizedIngredient, count);
-                            }
-                        } catch (Exception e) {
-                            ScriptType.SERVER.console.error("Failed to parse block requirement: " + entry + " - " + e.getMessage());
-                        }
-                    }
-                }
-            }
             
             return requirements;
         }
@@ -633,6 +669,7 @@ public class ModifyRitualEventJS extends EventJS {
             final Integer finalMinY = this.minY;
             final Integer finalMaxY = this.maxY;
             final Boolean finalRequireSkyVisible = this.requireSkyVisible;
+            final Boolean finalRequireAltarWaterlogged = this.requireAltarWaterlogged;
             
             return new IRitualType() {
                 @Override
@@ -721,13 +758,45 @@ public class ModifyRitualEventJS extends EventJS {
                         }
                         
                         // 检查生物群系要求
-                        if (finalBiome != null || (finalBiomeType != null && "coldEnoughToSnow".equals(finalBiomeType))) {
+                        if (finalBiome != null || finalBiomeType != null) {
                             String type = finalBiomeType != null ? finalBiomeType.toLowerCase() : "id";
                             var currentBiome = pLevel.getBiome(pPos);
                             
-                            if ("coldenoughtosnow".equals(type)) {
-                                // 寒冷检查：coldEnoughToSnow
-                                if (!currentBiome.get().coldEnoughToSnow(pPos)) {
+                            if ("func".equals(type)) {
+                                // 方法检查：使用反射调用 Biome 类的方法
+                                if (finalBiome == null) {
+                                    ScriptType.SERVER.console.warn("Biome method name is null for 'func' type");
+                                    return false;
+                                }
+                                
+                                String methodName = finalBiome.toString();
+                                try {
+                                    var biome = currentBiome.get();
+                                    var biomeClass = biome.getClass();
+                                    
+                                    // 尝试不带参数的方法
+                                    try {
+                                        var method = biomeClass.getMethod(methodName);
+                                        Object result = method.invoke(biome);
+                                        if (result instanceof Boolean && !(Boolean) result) {
+                                            return false;
+                                        }
+                                    } catch (NoSuchMethodException e1) {
+                                        // 尝试带 BlockPos 参数的方法
+                                        try {
+                                            var method = biomeClass.getMethod(methodName, net.minecraft.core.BlockPos.class);
+                                            Object result = method.invoke(biome, pPos);
+                                            if (result instanceof Boolean && !(Boolean) result) {
+                                                return false;
+                                            }
+                                        } catch (NoSuchMethodException e2) {
+                                            // 方法不存在，记录警告
+                                            ScriptType.SERVER.console.warn("Biome method '" + methodName + "' not found for biome check in ritual");
+                                            return false;
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    ScriptType.SERVER.console.error("Error invoking biome method '" + methodName + "': " + e.getMessage());
                                     return false;
                                 }
                             } else if ("tags".equals(type)) {
@@ -815,6 +884,19 @@ public class ModifyRitualEventJS extends EventJS {
                                 return false;
                             }
                             if (!finalRequireSkyVisible && canSeeSky) {
+                                return false;
+                            }
+                        }
+                        
+                        // 检查祭坛含水要求
+                        if (finalRequireAltarWaterlogged != null) {
+                            var altarState = pTileEntity.getBlockState();
+                            var BlockStateProperties = net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED;
+                            boolean isWaterlogged = altarState.hasProperty(BlockStateProperties) && altarState.getValue(BlockStateProperties);
+                            if (finalRequireAltarWaterlogged && !isWaterlogged) {
+                                return false;
+                            }
+                            if (!finalRequireAltarWaterlogged && isWaterlogged) {
                                 return false;
                             }
                         }
