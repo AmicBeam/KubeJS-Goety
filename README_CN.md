@@ -129,13 +129,6 @@ GoetyEvents.modifyRitual(event => {
 
 **参考示例**：[goety_rituals.js.example](src/main/resources/kubejs/server_scripts/goety_rituals.js.example)
 
-## 为什么使用 server_scripts？
-
-仪式条件的检查是在服务器端进行的，因此需要使用 `server_scripts` 而不是 `startup_scripts`：
-
-- **server_scripts**: 在服务器加载时运行，可以访问服务器端的游戏状态
-- **startup_scripts**: 在模组初始化时运行，此时游戏世界还未加载
-
 ## 支持的仪式类型
 
 ### 内置仪式类型（可通过 modifyRitual 修改）

@@ -129,13 +129,6 @@ The `ritual` object supports the following configuration options:
 
 **See example**: [goety_rituals.js.example](src/main/resources/kubejs/server_scripts/goety_rituals.js.example)
 
-## Why Use server_scripts?
-
-Ritual condition checking happens on the server side, so `server_scripts` must be used instead of `startup_scripts`:
-
-- **server_scripts**: Runs when the server loads, can access server-side game state
-- **startup_scripts**: Runs during mod initialization, before the game world is loaded
-
 ## Supported Ritual Types
 
 ### Built-in Ritual Types (can be modified via modifyRitual)
