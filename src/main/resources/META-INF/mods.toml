@@ -9,7 +9,7 @@ displayName="KubeJS Goety"
 displayURL="https://github.com/kubejs-goety/kubejs-goety"
 logoFile="kubejs_goety.png"
 credits="Integration mod for KubeJS and Goety"
-authors="KubeJS Goety Contributors"
+authors="AmicBeam"
 description='''
 KubeJS integration for Goety mod - Customize Goety rituals, brews, and recipes with JavaScript!
 
