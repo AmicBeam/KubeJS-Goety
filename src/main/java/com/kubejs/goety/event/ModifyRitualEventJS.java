@@ -701,22 +701,21 @@ public class ModifyRitualEventJS extends EventJS {
             final Object finalOnFinish = this.onFinish;
             
             // 解析 JEI 图标
-            final net.minecraft.world.item.ItemStack finalJeiIcon;
+            net.minecraft.world.item.ItemStack tempJeiIcon = originalRitual.getJeiIcon();
             if (this.jeiIcon != null) {
                 try {
                     InputItem inputItem = InputItem.of(this.jeiIcon);
                     if (inputItem != null && !inputItem.isEmpty()) {
-                        finalJeiIcon = inputItem.getFirst();
-                    } else {
-                        finalJeiIcon = originalRitual.getJeiIcon();
+                        net.minecraft.world.item.ItemStack[] items = inputItem.ingredient.getItems();
+                        if (items.length > 0) {
+                            tempJeiIcon = items[0];
+                        }
                     }
                 } catch (Exception e) {
                     ScriptType.SERVER.console.error("Failed to parse JEI icon: " + this.jeiIcon + " - " + e.getMessage());
-                    finalJeiIcon = originalRitual.getJeiIcon();
                 }
-            } else {
-                finalJeiIcon = originalRitual.getJeiIcon();
             }
+            final net.minecraft.world.item.ItemStack finalJeiIcon = tempJeiIcon;
             
             return new IRitualType() {
                 @Override

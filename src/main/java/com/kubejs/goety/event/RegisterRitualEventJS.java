@@ -385,22 +385,21 @@ public class RegisterRitualEventJS extends EventJS {
             final Object finalOnFinish = this.onFinish;
             
             // 解析 JEI 图标
-            final net.minecraft.world.item.ItemStack finalJeiIcon;
+            net.minecraft.world.item.ItemStack tempJeiIcon = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.OBSIDIAN);
             if (this.jeiIcon != null) {
                 try {
                     InputItem inputItem = InputItem.of(this.jeiIcon);
                     if (inputItem != null && !inputItem.isEmpty()) {
-                        finalJeiIcon = inputItem.getFirst();
-                    } else {
-                        finalJeiIcon = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.OBSIDIAN);
+                        net.minecraft.world.item.ItemStack[] items = inputItem.ingredient.getItems();
+                        if (items.length > 0) {
+                            tempJeiIcon = items[0];
+                        }
                     }
                 } catch (Exception e) {
                     ScriptType.SERVER.console.error("Failed to parse JEI icon: " + this.jeiIcon + " - " + e.getMessage());
-                    finalJeiIcon = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.OBSIDIAN);
                 }
-            } else {
-                finalJeiIcon = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.OBSIDIAN);
             }
+            final net.minecraft.world.item.ItemStack finalJeiIcon = tempJeiIcon;
             
             return new IRitualType() {
                 @Override
