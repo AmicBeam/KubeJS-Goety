@@ -139,6 +139,18 @@ ritual.setRequireAltarWaterlogged(true);  // Requires altar to be waterlogged
 ritual.setJeiIcon('minecraft:diamond');
 
 // Completion callback (optional)
+// Parameters:
+// - world: World object (Level) - for accessing world data and performing world operations
+// - darkAltarPos: Dark altar position (BlockPos)
+// - tileEntity: Dark altar block entity (DarkAltarBlockEntity)
+//   * Access ritual state: tileEntity.currentRitualRecipe, tileEntity.currentTime, etc.
+//   * Access consumed ingredients: tileEntity.consumedIngredients
+//   * Access casting player ID: tileEntity.castingPlayerId
+//   * Access converted entity: tileEntity.getConvertEntity (if any)
+// - castingPlayer: Casting player (Player) - may be null if player is offline or doesn't exist
+// - activationItem: Activation item (ItemStack) - the item used to start the ritual
+//   * Can check item type, NBT data, etc.
+//   * Note: This is a copy from ritual start, won't affect the item in player's hand
 ritual.setOnFinish((world, darkAltarPos, tileEntity, castingPlayer, activationItem) => {
     // Play sound
     world.playSound(null, darkAltarPos, 'minecraft:entity.lightning_bolt.thunder', 'blocks', 1.0, 1.0);
@@ -160,8 +172,28 @@ ritual.setOnFinish((world, darkAltarPos, tileEntity, castingPlayer, activationIt
             darkAltarPos.z + 0.5 + offsetZ, 
             0, 0.1, 0);
     }
+    
+    // Access ritual data
+    console.log('Consumed ingredients:', tileEntity.consumedIngredients);
+    console.log('Activation item:', activationItem.getId());
 });
 ```
+
+**Callback Parameter Details**:
+
+- **`tileEntity` (DarkAltarBlockEntity)**: The dark altar's block entity, providing access to:
+  - `currentRitualRecipe` - The current ritual recipe being executed
+  - `currentTime` - Current ritual execution time
+  - `consumedIngredients` - List of ingredients consumed during the ritual
+  - `castingPlayerId` - UUID of the player who started the ritual
+  - `getConvertEntity` - The entity being converted (if applicable)
+  - Other ritual state data
+
+- **`activationItem` (ItemStack)**: The item used to activate the ritual:
+  - This is a snapshot of the item when the ritual started
+  - You can check its type, NBT data, count, etc.
+  - Modifying this item won't affect the player's inventory
+  - Useful for conditional logic based on the activation item's properties
 
 #### Custom Requirement Function
 
@@ -210,48 +242,316 @@ GoetyEvents.modifyRitual(event => {
 
 ### Built-in Rituals Reference
 
-Goety includes 14 built-in ritual types:
+Goety includes 14 built-in ritual types. Below are examples showing how to modify each ritual's structure requirements using `GoetyEvents.modifyRitual`:
 
-1. **forge** - Forge Ritual
-   - Requirements: 1 lava cauldron, 2 furnaces/blast furnaces (OR), 1 anvil
+```javascript
+// Modify all built-in rituals (complete configuration matching Goety's original implementation)
+GoetyEvents.modifyRitual(event => {
+    
+    // 1. forge - Forge Ritual
+    // Requirements: 1 lava cauldron, 2 furnaces OR blast furnaces, 1 anvil
+    event.modify('forge',
+        ritual => {
+            ritual.range = 16;
+            ritual.blocks = [
+                'minecraft:lava_cauldron',
+                '2x minecraft:furnace',
+                'minecraft:anvil'
+            ];
+        },
+        ritual => {
+            ritual.range = 16;
+            ritual.blocks = [
+                'minecraft:lava_cauldron',
+                '2x minecraft:blast_furnace',
+                'minecraft:anvil'
+            ];
+        }
+    );
+    
+    // 2. animation - Animation Ritual
+    // Requirements: 15 ladders, 15 rails, 1 carved pumpkin
+    event.modify('animation', ritual => {
+        ritual.range = 16;
+        ritual.blocks = [
+            '15x minecraft:ladder',
+            '15x #minecraft:rails',
+            'minecraft:carved_pumpkin'
+        ];
+    });
+    
+    // 3. magic - Magic Ritual
+    // Requirements: 16 enchanting power (bookshelves), 1 lectern with book, 1 enchanting table
+    event.modify('magic', ritual => {
+        ritual.range = 16;
+        ritual.setRequirement((tileEntity, pos, level) => {
+            const RANGE = ritual.range || 16;
+            let enchantPower = 0;
+            let lecternCount = 0;
+            let enchantTableCount = 0;
+            
+            const Blocks = Java.loadClass('net.minecraft.world.level.block.Blocks');
+            const LecternBlockEntity = Java.loadClass('net.minecraft.world.level.block.entity.LecternBlockEntity');
+            
+            for (let i = -RANGE; i <= RANGE; i++) {
+                for (let j = -RANGE; j <= RANGE; j++) {
+                    for (let k = -RANGE; k <= RANGE; k++) {
+                        const blockPos = pos.offset(i, j, k);
+                        const blockState = level.getBlockState(blockPos);
+                        const block = blockState.getBlock();
+                        
+                        const power = blockState.getEnchantPowerBonus(level, blockPos);
+                        if (power > 0) enchantPower += power;
+                        
+                        if (block === Blocks.LECTERN) {
+                            const blockEntity = level.getBlockEntity(blockPos);
+                            if (blockEntity && LecternBlockEntity.class.isInstance(blockEntity)) {
+                                const lectern = Java.cast(blockEntity, LecternBlockEntity);
+                                if (!lectern.getBook().isEmpty()) lecternCount++;
+                            }
+                        }
+                        
+                        if (block === Blocks.ENCHANTING_TABLE) enchantTableCount++;
+                    }
+                }
+            }
+            
+            return enchantPower >= 16 && lecternCount >= 1 && enchantTableCount >= 1;
+        });
+    });
+    
+    // 4. frost - Frost Ritual
+    // Requirements: 16 ice, 8 snow, 4 freezing lamps OR cold biome
+    event.modify('frost',
+        ritual => {
+            ritual.range = 16;
+            ritual.blocks = [
+                '16x #minecraft:ice',
+                '8x #minecraft:snow',
+                '4x goety:freezing_lamp'
+            ];
+        },
+        ritual => {
+            ritual.setBiome('coldEnoughToSnow', 'func');
+        }
+    );
+    
+    // 5. necroturgy - Necroturgy Ritual
+    // Requirements: 16 sculk, 16 slabs, 8 flower pots with flowers, nighttime, sky light
+    event.modify('necroturgy', ritual => {
+        ritual.range = 16;
+        ritual.setRequirement((tileEntity, pos, level) => {
+            const RANGE = ritual.range || 16;
+            let sculkCount = 0, slabCount = 0, flowerPotCount = 0;
+            
+            const Blocks = Java.loadClass('net.minecraft.world.level.block.Blocks');
+            const SculkBlock = Java.loadClass('net.minecraft.world.level.block.SculkBlock');
+            const SlabBlock = Java.loadClass('net.minecraft.world.level.block.SlabBlock');
+            const FlowerPotBlock = Java.loadClass('net.minecraft.world.level.block.FlowerPotBlock');
+            
+            for (let i = -RANGE; i <= RANGE; i++) {
+                for (let j = -RANGE; j <= RANGE; j++) {
+                    for (let k = -RANGE; k <= RANGE; k++) {
+                        const blockPos = pos.offset(i, j, k);
+                        const blockState = level.getBlockState(blockPos);
+                        const block = blockState.getBlock();
+                        
+                        if (SculkBlock.class.isInstance(block)) sculkCount++;
+                        if (SlabBlock.class.isInstance(block)) slabCount++;
+                        
+                        if (FlowerPotBlock.class.isInstance(block)) {
+                            const flowerPotBlock = Java.cast(block, FlowerPotBlock);
+                            if (flowerPotBlock.getContent() !== Blocks.AIR) flowerPotCount++;
+                        }
+                    }
+                }
+            }
+            
+            const structureCheck = sculkCount >= 16 && slabCount >= 16 && flowerPotCount >= 8;
+            const timeCheck = level.getSkyDarken() >= 4 && level.dimensionType().hasSkyLight();
+            
+            return structureCheck && timeCheck;
+        });
+    });
+    
+    // 6. geoturgy - Geoturgy Ritual
+    // Requirements: 8 amethyst, 1 smithing table, 16 deepslate OR (no sky AND Y≤32)
+    event.modify('geoturgy',
+        ritual => {
+            ritual.range = 16;
+            ritual.blocks = [
+                '8x minecraft:amethyst_block',
+                'minecraft:smithing_table',
+                '16x #minecraft:deepslate'
+            ];
+        },
+        ritual => {
+            ritual.setRequireSkyVisible(false);
+            ritual.setMaxY(32);
+        }
+    );
+    
+    // 7. sky - Sky Ritual
+    // Requirements: 8 marble, 16 jade, 4 indented gold OR Y≥128 OR Aether dimension
+    event.modify('sky',
+        ritual => {
+            ritual.range = 16;
+            ritual.blocks = [
+                '8x #goety:marble_blocks',
+                '16x #goety:jade_blocks',
+                '4x #goety:indented_gold_blocks'
+            ];
+        },
+        ritual => {
+            ritual.setMinY(128);
+        },
+        ritual => {
+            ritual.setDimension('aether', true);
+        }
+    );
+    
+    // 8. storm - Storm Ritual
+    // Requirements: 12 copper, 4 lightning rods, 20 chains, sky conditions, thunder, sky visible
+    event.modify('storm',
+        ritual => {
+            ritual.range = 16;
+            ritual.blocks = [
+                '12x #minecraft:copper_ores',
+                '4x minecraft:lightning_rod',
+                '20x minecraft:chain'
+            ];
+            ritual.setWeather('thunder');
+            ritual.setRequireSkyVisible(true);
+            ritual.setMinY(128);
+        },
+        ritual => {
+            ritual.range = 16;
+            ritual.blocks = [
+                '12x #minecraft:copper_ores',
+                '4x minecraft:lightning_rod',
+                '20x minecraft:chain'
+            ];
+            ritual.setWeather('thunder');
+            ritual.setRequireSkyVisible(true);
+            ritual.setDimension('aether', true);
+        },
+        ritual => {
+            ritual.range = 16;
+            ritual.blocks = [
+                '12x /copper/',
+                '4x minecraft:lightning_rod',
+                '20x minecraft:chain',
+                '8x #goety:marble_blocks',
+                '16x #goety:jade_blocks',
+                '4x #goety:indented_gold_blocks'
+            ];
+            ritual.setWeather('thunder');
+            ritual.setRequireSkyVisible(true);
+        }
+    );
+    
+    // 9. sabbath - Sabbath Ritual
+    // Requirements: 8 crying obsidian, 16 obsidian, 4 soul fire
+    event.modify('sabbath', ritual => {
+        ritual.range = 16;
+        ritual.blocks = [
+            '8x minecraft:crying_obsidian',
+            '16x minecraft:obsidian',
+            '4x minecraft:soul_fire'
+        ];
+    });
+    
+    // 10. adept_nether - Adept Nether Ritual
+    // Requirements: 8 basalt, 16 blackstone, 4 glowstone, Nether dimension OR biome
+    event.modify('adept_nether',
+        ritual => {
+            ritual.range = 16;
+            ritual.blocks = [
+                '8x /basalt/',
+                '16x /blackstone/',
+                '4x minecraft:glowstone'
+            ];
+            ritual.setDimension('minecraft:the_nether');
+        },
+        ritual => {
+            ritual.range = 16;
+            ritual.blocks = [
+                '8x /basalt/',
+                '16x /blackstone/',
+                '4x minecraft:glowstone'
+            ];
+            ritual.setBiome('#minecraft:is_nether', 'tags');
+        }
+    );
+    
+    // 11. expert_nether - Expert Nether Ritual
+    // Requirements: 4 wither skulls, 32 nether bricks, 8 nether wart, Nether dimension OR biome
+    event.modify('expert_nether',
+        ritual => {
+            ritual.range = 16;
+            ritual.blocks = [
+                '4x minecraft:wither_skeleton_skull',
+                '32x minecraft:nether_bricks',
+                '8x minecraft:nether_wart'
+            ];
+            ritual.setDimension('minecraft:the_nether');
+        },
+        ritual => {
+            ritual.range = 16;
+            ritual.blocks = [
+                '4x minecraft:wither_skeleton_skull',
+                '32x minecraft:nether_bricks',
+                '8x minecraft:nether_wart'
+            ];
+            ritual.setBiome('#minecraft:is_nether', 'tags');
+        }
+    );
+    
+    // 12. end - End Ritual
+    // Requirements: 16 void blocks, 64 end stone/bricks, 32 purpur, End dimension OR biome
+    event.modify('end',
+        ritual => {
+            ritual.range = 16;
+            ritual.blocks = [
+                '16x goety:void_block',
+                '64x #goety:end_stone',
+                '32x #minecraft:purpur'
+            ];
+            ritual.setDimension('minecraft:the_end');
+        },
+        ritual => {
+            ritual.range = 16;
+            ritual.blocks = [
+                '16x goety:void_block',
+                '64x #goety:end_stone',
+                '32x #minecraft:purpur'
+            ];
+            ritual.setBiome('#minecraft:is_end', 'tags');
+        }
+    );
+    
+    // 13. deep - Deep Ritual
+    // Requirements: 4 sea lanterns, 16 prismarine, 16 granite, deep ocean OR structure, waterlogged altar
+    event.modify('deep',
+        ritual => {
+            ritual.setRequireAltarWaterlogged(true);
+            ritual.setMaxY(63);
+            ritual.setBiome('#minecraft:is_deep_ocean', 'tags');
+        },
+        ritual => {
+            ritual.range = 16;
+            ritual.setRequireAltarWaterlogged(true);
+            ritual.blocks = [
+                '4x minecraft:sea_lantern',
+                '16x /prismarine/',
+                '16x /granite/'
+            ];
+        }
+    );
+});
+```
 
-2. **animation** - Animation Ritual
-   - Requirements: 15 ladders, 15 rails, 1 carved pumpkin
-
-3. **magic** - Magic Ritual
-   - Requirements: 16 enchanting power (bookshelves), 1 lectern with book, 1 enchanting table
-
-4. **frost** - Frost Ritual
-   - Requirements: 16 ice blocks, 8 snow blocks, 4 freezing lamps OR cold biome
-
-5. **necroturgy** - Necroturgy Ritual
-   - Requirements: 16 sculk blocks, 16 slabs, 8 flower pots with flowers, nighttime, sky light
-
-6. **geoturgy** - Geoturgy Ritual
-   - Requirements: 8 amethyst blocks, 1 smithing table, 16 deepslate OR (no sky visibility AND Y≤32)
-
-7. **sky** - Sky Ritual
-   - Requirements: 8 marble blocks, 16 jade blocks, 4 indented gold blocks OR Y≥128 OR Aether dimension
-
-8. **storm** - Storm Ritual
-   - Requirements: 12 copper blocks, 4 lightning rods, 20 chains, sky ritual conditions, thunder, sky visible
-
-9. **sabbath** - Sabbath Ritual
-   - Requirements: 8 crying obsidian, 16 obsidian, 4 soul fire
-
-10. **adept_nether** - Adept Nether Ritual
-    - Requirements: 8 basalt blocks, 16 blackstone blocks, 4 glowstone, Nether dimension OR biome
-
-11. **expert_nether** - Expert Nether Ritual
-    - Requirements: 4 wither skeleton skulls, 32 nether bricks, 8 nether wart, Nether dimension OR biome
-
-12. **end** - End Ritual
-    - Requirements: 16 void blocks, 64 end stone/bricks, 32 purpur blocks, End dimension OR biome
-
-13. **deep** - Deep Ritual
-    - Requirements: 4 sea lanterns, 16 prismarine blocks, 16 granite blocks, deep ocean OR structure, waterlogged altar
-
-**Note**: "lich" is not a separate ritual type. Lich-related rituals use `craftType: "necroturgy"` with `research: "forbidden"`.
+**Note**: "lich" is not a separate ritual type. Lich-related rituals use `craftType: "necroturgy"` with `research: "forbidden"` in recipe definitions.
 
 ---
 

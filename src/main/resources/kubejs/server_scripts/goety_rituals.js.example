@@ -539,6 +539,18 @@ GoetyEvents.registerRitual(event => {
  *       - ritual.setJeiIcon(Item.of('minecraft:diamond_sword'))  // 使用物品对象
  * 13. ritual.setOnFinish(callback) - 仪式完成时的回调函数（可选）
  *     回调函数接收参数：(world, darkAltarPos, tileEntity, castingPlayer, activationItem)
+ *     参数说明：
+ *       - world: 世界对象（Level），用于访问世界数据和执行世界操作
+ *       - darkAltarPos: 黑暗祭坛的位置（BlockPos）
+ *       - tileEntity: 黑暗祭坛的方块实体（DarkAltarBlockEntity）
+ *         * 可以访问仪式状态：tileEntity.currentRitualRecipe, tileEntity.currentTime 等
+ *         * 可以访问消耗的材料：tileEntity.consumedIngredients
+ *         * 可以访问施法玩家ID：tileEntity.castingPlayerId
+ *         * 可以访问转换的实体：tileEntity.getConvertEntity（如果有）
+ *       - castingPlayer: 施法玩家（Player），可能为 null（如果玩家离线或不存在）
+ *       - activationItem: 激活物品（ItemStack），用于启动仪式的物品
+ *         * 可以检查物品类型、NBT 数据等
+ *         * 注意：这是仪式开始时的物品副本，不会影响玩家手中的物品
  *     示例：
  *       - ritual.setOnFinish((world, pos, tile, player, item) => {
  *           world.playSound(null, pos, 'minecraft:entity.lightning_bolt.thunder', 'blocks', 1.0, 1.0);
@@ -552,6 +564,7 @@ GoetyEvents.registerRitual(event => {
  *           - 第二个参数 true：消息显示在物品栏上方（actionbar）
  *         * 给玩家物品：player.give('minecraft:diamond')
  *         * 修改方块：world.setBlock(pos, 'minecraft:air')
+ *         * 访问仪式数据：tile.consumedIngredients, tile.currentTime 等
  * 14. ritual.setRequirement(function) - 自定义检查函数（可选），如果设置了会完全覆盖所有配置检查
  * 
  * 
