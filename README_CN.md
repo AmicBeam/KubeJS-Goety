@@ -125,6 +125,7 @@ GoetyEvents.modifyRitual(event => {
 - `ritual.setMaxY(y)` (integer): 最大高度要求
 - `ritual.setRequireSkyVisible(boolean)` (boolean): 是否需要看到天空
 - `ritual.setRequireAltarWaterlogged(boolean)` (boolean): 是否需要祭坛含水
+- `ritual.setJeiIcon(item)` (string/object): JEI 显示图标（物品ID或物品对象，可选，默认为黑曜石）
 - `ritual.setRequirement(function)` (function): 自定义检查函数（覆盖所有配置）
 
 **参考示例**：[goety_rituals.js.example](src/main/resources/kubejs/server_scripts/goety_rituals.js.example)

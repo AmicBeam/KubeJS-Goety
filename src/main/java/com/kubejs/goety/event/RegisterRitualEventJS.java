@@ -100,6 +100,7 @@ public class RegisterRitualEventJS extends EventJS {
         public String dimension;  // 可选：维度ID
         public Boolean dimensionContainsMatch;  // 可选：维度匹配模式，false（精确匹配，默认）或 true（模糊匹配）
         public Object customRequirement;  // 可选：自定义检查函数
+        public Object jeiIcon;  // JEI 图标物品
         
         // 新增配置选项
         public String weather;  // 天气要求：'thunder', 'rain', 'clear', null（不检查）
@@ -123,6 +124,7 @@ public class RegisterRitualEventJS extends EventJS {
             this.dimension = null;
             this.dimensionContainsMatch = false;  // 默认精确匹配
             this.customRequirement = null;
+            this.jeiIcon = null;  // 默认使用黑曜石
             this.weather = null;
             this.timeOfDay = null;
             this.biome = null;
@@ -283,6 +285,18 @@ public class RegisterRitualEventJS extends EventJS {
         }
         
         /**
+         * 设置 JEI 显示的图标
+         * @param icon 物品ID（字符串）或物品对象
+         */
+        @dev.latvian.mods.kubejs.typings.Info(value = "设置 JEI 显示的图标", params = {
+            @dev.latvian.mods.kubejs.typings.Param(name = "icon", value = "物品ID（字符串）或物品对象")
+        })
+        public RitualBuilderImpl setJeiIcon(Object icon) {
+            this.jeiIcon = icon;
+            return this;
+        }
+        
+        /**
          * 解析方块需求配置
          * 支持：
          * - 字符串：'minecraft:stone' 或 '9x minecraft:stone'
@@ -355,10 +369,33 @@ public class RegisterRitualEventJS extends EventJS {
             final Boolean finalRequireSkyVisible = this.requireSkyVisible;
             final Boolean finalRequireAltarWaterlogged = this.requireAltarWaterlogged;
             
+            // 解析 JEI 图标
+            final net.minecraft.world.item.ItemStack finalJeiIcon;
+            if (this.jeiIcon != null) {
+                try {
+                    InputItem inputItem = InputItem.of(this.jeiIcon);
+                    if (inputItem != null && !inputItem.isEmpty()) {
+                        finalJeiIcon = inputItem.getFirst();
+                    } else {
+                        finalJeiIcon = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.OBSIDIAN);
+                    }
+                } catch (Exception e) {
+                    ScriptType.SERVER.console.error("Failed to parse JEI icon: " + this.jeiIcon + " - " + e.getMessage());
+                    finalJeiIcon = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.OBSIDIAN);
+                }
+            } else {
+                finalJeiIcon = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.OBSIDIAN);
+            }
+            
             return new IRitualType() {
                 @Override
                 public String getName() {
                     return finalName;
+                }
+                
+                @Override
+                public net.minecraft.world.item.ItemStack getJeiIcon() {
+                    return finalJeiIcon;
                 }
                 
                 @Override

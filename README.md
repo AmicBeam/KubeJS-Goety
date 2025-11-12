@@ -125,6 +125,7 @@ The `ritual` object supports the following configuration options:
 - `ritual.setMaxY(y)` (integer): Maximum height requirement
 - `ritual.setRequireSkyVisible(boolean)` (boolean): Whether sky visibility is required
 - `ritual.setRequireAltarWaterlogged(boolean)` (boolean): Whether altar must be waterlogged
+- `ritual.setJeiIcon(item)` (string/object): JEI display icon (item ID or item object, optional, defaults to obsidian)
 - `ritual.setRequirement(function)` (function): Custom check function (overrides all configurations)
 
 **See example**: [goety_rituals.js.example](src/main/resources/kubejs/server_scripts/goety_rituals.js.example)

@@ -456,6 +456,18 @@ GoetyEvents.registerRitual(event => {
             '5x minecraft:diamond_block',    // 5个钻石块
             '3x minecraft:emerald_block'    // 3个绿宝石块
         ];
+        ritual.setJeiIcon('minecraft:diamond');  // 设置 JEI 显示图标（可选，默认为黑曜石）
+    });
+    
+    // 创建自定义仪式：火焰仪式（带图标）
+    event.create('flame_ritual', ritual => {
+        ritual.range = 16;
+        ritual.blocks = [
+            '8x minecraft:netherrack',       // 8个地狱岩
+            '4x minecraft:fire'              // 4个火
+        ];
+        ritual.setDimension('minecraft:the_nether');  // 必须在下界
+        ritual.setJeiIcon('minecraft:fire_charge');   // 设置 JEI 显示图标为火焰弹
     });
 });
 
@@ -496,7 +508,12 @@ GoetyEvents.registerRitual(event => {
  * 9. ritual.setMaxY(y) - 最大高度要求
  * 10. ritual.setRequireSkyVisible(boolean) - 是否需要看到天空（true/false）
  * 11. ritual.setRequireAltarWaterlogged(boolean) - 是否需要祭坛含水（true/false）
- * 12. ritual.setRequirement(function) - 自定义检查函数（可选），如果设置了会完全覆盖所有配置检查
+ * 12. ritual.setJeiIcon(item) - JEI 显示图标（物品ID或物品对象，可选，默认为黑曜石）
+ *     示例：
+ *       - ritual.setJeiIcon('minecraft:diamond')           // 使用物品ID
+ *       - ritual.setJeiIcon('minecraft:enchanted_book')    // 使用物品ID
+ *       - ritual.setJeiIcon(Item.of('minecraft:diamond_sword'))  // 使用物品对象
+ * 13. ritual.setRequirement(function) - 自定义检查函数（可选），如果设置了会完全覆盖所有配置检查
  * 
  * 
  * ==========================================
