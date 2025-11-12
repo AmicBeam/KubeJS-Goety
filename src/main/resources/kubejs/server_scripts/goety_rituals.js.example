@@ -470,26 +470,27 @@ GoetyEvents.registerRitual(event => {
         ritual.setJeiIcon('minecraft:fire_charge');   // 设置 JEI 显示图标为火焰弹
         
         // 设置仪式完成时的回调（可选）
+        // 注意：此回调在配方完成时触发，即仪式成功执行并产生结果后
         ritual.setOnFinish((world, darkAltarPos, tileEntity, castingPlayer, activationItem) => {
-            // 播放火焰音效
-            world.playSound(null, darkAltarPos, 'minecraft:item.firecharge.use', 'blocks', 1.0, 1.0);
+            // 获取坐标
+            let x = darkAltarPos.getX ? darkAltarPos.getX() : darkAltarPos.x;
+            let y = darkAltarPos.getY ? darkAltarPos.getY() : darkAltarPos.y;
+            let z = darkAltarPos.getZ ? darkAltarPos.getZ() : darkAltarPos.z;
+            
+            // 使用命令播放音效（服务器端）
+            let server = world.getServer ? world.getServer() : null;
+            if (server) {
+                // 播放音效给所有玩家
+                server.runCommandSilent(`playsound minecraft:item.firecharge.use master @a ${x} ${y} ${z} 1 1`);
+                
+                // 生成粒子效果
+                server.runCommandSilent(`particle minecraft:flame ${x + 0.5} ${y + 1} ${z + 0.5} 1 1 1 0 20`);
+            }
             
             // 给玩家发送通知消息
             if (castingPlayer) {
                 castingPlayer.displayClientMessage('§6火焰仪式已完成！', false);  // 金色文字，显示在聊天栏
                 castingPlayer.displayClientMessage('§c地狱之火已被点燃...', true);  // 红色文字，显示在物品栏上方
-            }
-            
-            // 在祭坛周围生成火焰粒子效果
-            for (let i = 0; i < 20; i++) {
-                let offsetX = (Math.random() - 0.5) * 2;
-                let offsetY = Math.random() * 2;
-                let offsetZ = (Math.random() - 0.5) * 2;
-                world.addParticle('minecraft:flame', 
-                    darkAltarPos.x + 0.5 + offsetX, 
-                    darkAltarPos.y + offsetY, 
-                    darkAltarPos.z + 0.5 + offsetZ, 
-                    0, 0.1, 0);
             }
         });
     });
@@ -538,6 +539,7 @@ GoetyEvents.registerRitual(event => {
  *       - ritual.setJeiIcon('minecraft:enchanted_book')    // 使用物品ID
  *       - ritual.setJeiIcon(Item.of('minecraft:diamond_sword'))  // 使用物品对象
  * 13. ritual.setOnFinish(callback) - 仪式完成时的回调函数（可选）
+ *     注意：此回调在配方完成时触发，即仪式成功执行并产生结果后
  *     回调函数接收参数：(world, darkAltarPos, tileEntity, castingPlayer, activationItem)
  *     参数说明：
  *       - world: 世界对象（Level），用于访问世界数据和执行世界操作
@@ -553,11 +555,21 @@ GoetyEvents.registerRitual(event => {
  *         * 注意：这是仪式开始时的物品副本，不会影响玩家手中的物品
  *     示例：
  *       - ritual.setOnFinish((world, pos, tile, player, item) => {
- *           world.playSound(null, pos, 'minecraft:entity.lightning_bolt.thunder', 'blocks', 1.0, 1.0);
+ *           // 获取坐标
+ *           let x = pos.getX ? pos.getX() : pos.x;
+ *           let y = pos.getY ? pos.getY() : pos.y;
+ *           let z = pos.getZ ? pos.getZ() : pos.z;
+ *           
+ *           // 使用命令播放音效和粒子（服务器端）
+ *           let server = world.getServer ? world.getServer() : null;
+ *           if (server) {
+ *               server.runCommandSilent(`playsound minecraft:item.firecharge.use master @a ${x} ${y} ${z} 1 1`);
+ *               server.runCommandSilent(`particle minecraft:flame ${x + 0.5} ${y + 1} ${z + 0.5} 1 1 1 0 20`);
+ *           }
  *         })
  *       - 可以在回调中执行以下操作：
- *         * 播放音效：world.playSound(...)
- *         * 生成粒子：world.addParticle(...)
+ *         * 播放音效：使用 server.runCommandSilent(`playsound ...`) 命令
+ *         * 生成粒子：使用 server.runCommandSilent(`particle ...`) 命令
  *         * 生成实体：world.createEntity(...) 和 world.addFreshEntity(...)
  *         * 给玩家发送消息：player.displayClientMessage('消息内容', false)
  *           - 第二个参数 false：消息显示在聊天栏

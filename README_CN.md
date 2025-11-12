@@ -18,7 +18,7 @@ KubeJS 与 Goety 模组的集成，允许通过 JavaScript 脚本自定义 Goety
 - Minecraft 1.20.1
 - Forge 47.1.65+
 - KubeJS 2001.6+
-- Goety 2.5+
+- Goety 2.5.38+
 
 ## 安装
 
@@ -90,9 +90,18 @@ GoetyEvents.registerRitual(event => {
         ritual.setJeiIcon('minecraft:lightning_rod');  // 设置 JEI 显示图标（可选）
         
         // 设置仪式完成时的回调（可选）
+        // 注意：此回调在配方完成时触发，即仪式成功执行并产生结果后
         ritual.setOnFinish((world, darkAltarPos, tileEntity, castingPlayer, activationItem) => {
-            // 播放雷电音效
-            world.playSound(null, darkAltarPos, 'minecraft:entity.lightning_bolt.thunder', 'weather', 1.0, 1.0);
+            // 获取坐标
+            let x = darkAltarPos.getX ? darkAltarPos.getX() : darkAltarPos.x;
+            let y = darkAltarPos.getY ? darkAltarPos.getY() : darkAltarPos.y;
+            let z = darkAltarPos.getZ ? darkAltarPos.getZ() : darkAltarPos.z;
+            
+            // 使用命令播放音效（服务器端）
+            let server = world.getServer ? world.getServer() : null;
+            if (server) {
+                server.runCommandSilent(`playsound minecraft:entity.lightning_bolt.thunder weather @a ${x} ${y} ${z} 1 1`);
+            }
         });
     });
 });
@@ -133,7 +142,7 @@ GoetyEvents.modifyRitual(event => {
 - `ritual.setRequireSkyVisible(boolean)` (boolean): 是否需要看到天空
 - `ritual.setRequireAltarWaterlogged(boolean)` (boolean): 是否需要祭坛含水
 - `ritual.setJeiIcon(item)` (string/object): JEI 显示图标（物品ID或物品对象，可选，默认为黑曜石）
-- `ritual.setOnFinish(callback)` (function): 仪式完成时的回调函数，接收参数 (world, darkAltarPos, tileEntity, castingPlayer, activationItem)
+- `ritual.setOnFinish(callback)` (function): 仪式完成时的回调函数，在配方完成时触发（即仪式成功执行并产生结果后），接收参数 (world, darkAltarPos, tileEntity, castingPlayer, activationItem)
 - `ritual.setRequirement(function)` (function): 自定义检查函数（覆盖所有配置）
 
 **参考示例**：[goety_rituals.js.example](src/main/resources/kubejs/server_scripts/goety_rituals.js.example)
@@ -320,7 +329,7 @@ ServerEvents.recipes(event => {
     event.recipes.goety.brewing('minecraft:golden_apple', 'minecraft:regeneration')
         .soulCost(15)
         .capacityExtra(0)
-        .duration(1800);  // 30秒
+        .duration(30);  // 30秒
     
     // 需要特定生物的酿造配方
     event.recipes.goety.brewing('minecraft:nether_star', 'minecraft:resistance')

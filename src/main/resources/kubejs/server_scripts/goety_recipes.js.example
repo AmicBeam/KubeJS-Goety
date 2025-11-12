@@ -34,7 +34,7 @@ ServerEvents.recipes(event => {
     // - .activationItem(item) - 设置激活物品（可选，默认空）
     // - .craftType(type) - 设置craftType（forge、animation、magic、necroturgy、frost、geoturgy、sky、storm、sabbath、adept_nether、expert_nether、end、deep等）
     // - .soulCost(cost) - 设置灵魂消耗（可选，默认0）
-    // - .duration(ticks) - 设置持续时间（可选，默认30 tick）
+    // - .duration(seconds) - 设置持续时间（可选，默认30秒）
     // - .entityToSummon(entityId) - 设置要召唤的生物类型ID（可选）
     // - .summonLife(ticks) - 设置召唤物存在时间（可选，默认-1表示永久）
     // - .entityToSacrificeTag(tag) - 设置需要献祭的生物标签（可选）
@@ -143,7 +143,7 @@ ServerEvents.recipes(event => {
     event.recipes.goety.brewing('minecraft:golden_apple', 'minecraft:regeneration')
         .soulCost(15)
         .capacityExtra(0)
-        .duration(1800);  // 30秒
+        .duration(30);  // 30秒
     
     // 创建一个需要特定生物的酿造配方
     event.recipes.goety.brewing('minecraft:nether_star', 'minecraft:resistance')

@@ -52,12 +52,42 @@ public class RemoveRitualEventJS extends EventJS {
             return;
         }
         
-        // 从自定义列表中移除
-        if (RitualType.RITUAL_TYPE_LIST.containsKey(ritualId)) {
-            RitualType.RITUAL_TYPE_LIST.remove(ritualId);
-            ScriptType.SERVER.console.info("✓ Removed ritual type: " + ritualId);
-        } else {
-            ScriptType.SERVER.console.warn("Ritual type '" + ritualId + "' does not exist or is not registered");
+        // 使用反射访问 RitualType 的内部 Map 来移除仪式
+        try {
+            java.lang.reflect.Field field = RitualType.class.getDeclaredField("RITUAL_TYPE_LIST");
+            field.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, com.Polarice3.Goety.api.ritual.IRitualType> ritualMap = (java.util.Map<String, com.Polarice3.Goety.api.ritual.IRitualType>) field.get(null);
+            if (ritualMap.containsKey(ritualId)) {
+                ritualMap.remove(ritualId);
+                ScriptType.SERVER.console.info("✓ Removed ritual type: " + ritualId);
+            } else {
+                ScriptType.SERVER.console.warn("Ritual type '" + ritualId + "' does not exist or is not registered");
+            }
+        } catch (NoSuchFieldException e) {
+            // 如果字段不存在，尝试其他可能的字段名
+            try {
+                java.lang.reflect.Field[] fields = RitualType.class.getDeclaredFields();
+                for (java.lang.reflect.Field f : fields) {
+                    if (java.util.Map.class.isAssignableFrom(f.getType())) {
+                        f.setAccessible(true);
+                        @SuppressWarnings("unchecked")
+                        java.util.Map<String, com.Polarice3.Goety.api.ritual.IRitualType> ritualMap = (java.util.Map<String, com.Polarice3.Goety.api.ritual.IRitualType>) f.get(null);
+                        if (ritualMap != null && ritualMap.containsKey(ritualId)) {
+                            ritualMap.remove(ritualId);
+                            ScriptType.SERVER.console.info("✓ Removed ritual type: " + ritualId);
+                            return;
+                        }
+                    }
+                }
+                ScriptType.SERVER.console.warn("Ritual type '" + ritualId + "' does not exist or could not find ritual map");
+            } catch (Exception e2) {
+                ScriptType.SERVER.console.error("Failed to remove ritual type '" + ritualId + "': " + e2.getMessage());
+                e2.printStackTrace();
+            }
+        } catch (Exception e) {
+            ScriptType.SERVER.console.error("Failed to remove ritual type '" + ritualId + "': " + e.getMessage());
+            e.printStackTrace();
         }
     }
     

@@ -75,8 +75,18 @@ GoetyEvents.registerRitual(event => {
         ritual.setRequireSkyVisible(true);
         ritual.setJeiIcon('minecraft:lightning_rod');
         
+        // Completion callback - triggered when recipe completes
         ritual.setOnFinish((world, darkAltarPos, tileEntity, castingPlayer, activationItem) => {
-            world.playSound(null, darkAltarPos, 'minecraft:entity.lightning_bolt.thunder', 'weather', 1.0, 1.0);
+            // Get coordinates
+            let x = darkAltarPos.getX ? darkAltarPos.getX() : darkAltarPos.x;
+            let y = darkAltarPos.getY ? darkAltarPos.getY() : darkAltarPos.y;
+            let z = darkAltarPos.getZ ? darkAltarPos.getZ() : darkAltarPos.z;
+            
+            // Use commands to play sound (server-side)
+            let server = world.getServer ? world.getServer() : null;
+            if (server) {
+                server.runCommandSilent(`playsound minecraft:entity.lightning_bolt.thunder weather @a ${x} ${y} ${z} 1 1`);
+            }
         });
     });
 });
@@ -139,6 +149,7 @@ ritual.setRequireAltarWaterlogged(true);  // Requires altar to be waterlogged
 ritual.setJeiIcon('minecraft:diamond');
 
 // Completion callback (optional)
+// Note: This callback is triggered when the recipe completes, i.e., after the ritual successfully executes and produces results
 // Parameters:
 // - world: World object (Level) - for accessing world data and performing world operations
 // - darkAltarPos: Dark altar position (BlockPos)
@@ -152,25 +163,25 @@ ritual.setJeiIcon('minecraft:diamond');
 //   * Can check item type, NBT data, etc.
 //   * Note: This is a copy from ritual start, won't affect the item in player's hand
 ritual.setOnFinish((world, darkAltarPos, tileEntity, castingPlayer, activationItem) => {
-    // Play sound
-    world.playSound(null, darkAltarPos, 'minecraft:entity.lightning_bolt.thunder', 'blocks', 1.0, 1.0);
+    // Get coordinates
+    let x = darkAltarPos.getX ? darkAltarPos.getX() : darkAltarPos.x;
+    let y = darkAltarPos.getY ? darkAltarPos.getY() : darkAltarPos.y;
+    let z = darkAltarPos.getZ ? darkAltarPos.getZ() : darkAltarPos.z;
+    
+    // Use commands to play sound and particles (server-side)
+    let server = world.getServer ? world.getServer() : null;
+    if (server) {
+        // Play sound to all players
+        server.runCommandSilent(`playsound minecraft:item.firecharge.use master @a ${x} ${y} ${z} 1 1`);
+        
+        // Spawn particles
+        server.runCommandSilent(`particle minecraft:flame ${x + 0.5} ${y + 1} ${z + 0.5} 1 1 1 0 20`);
+    }
     
     // Send message to player
     if (castingPlayer) {
         castingPlayer.displayClientMessage('§6Ritual completed!', false);  // Chat message
         castingPlayer.displayClientMessage('§cFire ignited...', true);     // Action bar
-    }
-    
-    // Spawn particles
-    for (let i = 0; i < 20; i++) {
-        let offsetX = (Math.random() - 0.5) * 2;
-        let offsetY = Math.random() * 2;
-        let offsetZ = (Math.random() - 0.5) * 2;
-        world.addParticle('minecraft:flame', 
-            darkAltarPos.x + 0.5 + offsetX, 
-            darkAltarPos.y + offsetY, 
-            darkAltarPos.z + 0.5 + offsetZ, 
-            0, 0.1, 0);
     }
     
     // Access ritual data
@@ -705,7 +716,7 @@ The second parameter (`ritualType`) determines the ritual's behavior:
 - `.activationItem(item)` - Item used to activate ritual
 - `.craftType(type)` - Ritual structure type (forge, animation, magic, necroturgy, etc.) - This determines which ritual structure is required
 - `.soulCost(cost)` - Soul cost
-- `.duration(ticks)` - Duration in ticks
+- `.duration(seconds)` - Duration in seconds
 - `.entityToSummon(entityId)` - Entity to summon
 - `.summonLife(ticks)` - Summoned entity lifespan (-1 for permanent)
 - `.entityToSacrificeTag(tag)` - Required sacrifice entity tag
@@ -727,7 +738,7 @@ ServerEvents.recipes(event => {
     event.recipes.goety.brewing('minecraft:golden_apple', 'minecraft:regeneration')
         .soulCost(15)
         .capacityExtra(0)
-        .duration(1800);  // 30 seconds
+        .duration(30);  // 30 seconds
     
     // Recipe requiring specific entity
     event.recipes.goety.brewing('minecraft:nether_star', 'minecraft:resistance')

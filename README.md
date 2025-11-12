@@ -18,7 +18,7 @@ KubeJS integration for Goety mod. Allows customizing Goety ritual requirements, 
 - Minecraft 1.20.1
 - Forge 47.1.65+
 - KubeJS 2001.6+
-- Goety 2.5+
+- Goety 2.5.38+
 
 ## Installation
 
@@ -90,9 +90,18 @@ GoetyEvents.registerRitual(event => {
         ritual.setJeiIcon('minecraft:lightning_rod');  // Set JEI display icon (optional)
         
         // Set callback when ritual completes (optional)
+        // Note: This callback is triggered when the recipe completes, i.e., after the ritual successfully executes and produces results
         ritual.setOnFinish((world, darkAltarPos, tileEntity, castingPlayer, activationItem) => {
-            // Play thunder sound effect
-            world.playSound(null, darkAltarPos, 'minecraft:entity.lightning_bolt.thunder', 'weather', 1.0, 1.0);
+            // Get coordinates
+            let x = darkAltarPos.getX ? darkAltarPos.getX() : darkAltarPos.x;
+            let y = darkAltarPos.getY ? darkAltarPos.getY() : darkAltarPos.y;
+            let z = darkAltarPos.getZ ? darkAltarPos.getZ() : darkAltarPos.z;
+            
+            // Use commands to play sound (server-side)
+            let server = world.getServer ? world.getServer() : null;
+            if (server) {
+                server.runCommandSilent(`playsound minecraft:entity.lightning_bolt.thunder weather @a ${x} ${y} ${z} 1 1`);
+            }
         });
     });
 });
@@ -133,10 +142,43 @@ The `ritual` object supports the following configuration options:
 - `ritual.setRequireSkyVisible(boolean)` (boolean): Whether sky visibility is required
 - `ritual.setRequireAltarWaterlogged(boolean)` (boolean): Whether altar must be waterlogged
 - `ritual.setJeiIcon(item)` (string/object): JEI display icon (item ID or item object, optional, defaults to obsidian)
-- `ritual.setOnFinish(callback)` (function): Callback function when ritual completes, receives (world, darkAltarPos, tileEntity, castingPlayer, activationItem)
+- `ritual.setOnFinish(callback)` (function): Callback function triggered when the recipe completes (i.e., after the ritual successfully executes and produces results), receives (world, darkAltarPos, tileEntity, castingPlayer, activationItem)
 - `ritual.setRequirement(function)` (function): Custom check function (overrides all configurations)
 
 **See example**: [goety_rituals.js.example](src/main/resources/kubejs/server_scripts/goety_rituals.js.example)
+
+#### Localization (Optional)
+
+If you create new ritual types and want to display English names in JEI or in-game, you need to add localization files:
+
+**Using KubeJS Resource Pack**
+
+Create a resource pack structure in your world save directory:
+```
+your_world_save/
+└── kubejs/
+    └── assets/
+        └── goety/
+            └── lang/
+                └── en_us.json
+```
+
+Add to `en_us.json`:
+```json
+{
+  "jei.goety.craftType.diamond_ritual": "Diamond Ritual",
+  "jei.goety.craftType.flame_ritual": "Flame Ritual"
+}
+```
+
+**Localization Key Format:**
+- Key name: `jei.goety.craftType.<ritualId>`
+- Where `<ritualId>` is the ID you used when creating the ritual
+
+**Note:**
+- If you don't add localization, the ritual name will display as the ritual ID (e.g., `diamond_ritual`)
+- Localization is optional and does not affect ritual functionality
+- You can add only the language files you need
 
 ## Brew System Configuration
 
@@ -278,7 +320,7 @@ ServerEvents.recipes(event => {
     event.recipes.goety.brewing('minecraft:golden_apple', 'minecraft:regeneration')
         .soulCost(15)
         .capacityExtra(0)
-        .duration(1800);  // 30 seconds
+        .duration(30);  // 30 seconds
     
     // Brewing recipe requiring specific entity
     event.recipes.goety.brewing('minecraft:nether_star', 'minecraft:resistance')

@@ -88,7 +88,37 @@ public class ModifyRitualEventJS extends EventJS {
             }
             
             if (!conditionGroups.isEmpty()) {
-                RitualType.addRitualType(ritualId, buildRitualTypeWithOR(ritualId, conditionGroups));
+                // 使用反射访问 RitualType 的内部 Map 来注册修改后的仪式
+                IRitualType modifiedRitual = buildRitualTypeWithOR(ritualId, conditionGroups, existingRitual);
+                try {
+                    java.lang.reflect.Field field = RitualType.class.getDeclaredField("RITUAL_TYPE_LIST");
+                    field.setAccessible(true);
+                    @SuppressWarnings("unchecked")
+                    java.util.Map<String, IRitualType> ritualMap = (java.util.Map<String, IRitualType>) field.get(null);
+                    ritualMap.put(ritualId, modifiedRitual);
+                } catch (NoSuchFieldException e) {
+                    // 如果字段不存在，尝试其他可能的字段名
+                    try {
+                        java.lang.reflect.Field[] fields = RitualType.class.getDeclaredFields();
+                        for (java.lang.reflect.Field f : fields) {
+                            if (java.util.Map.class.isAssignableFrom(f.getType())) {
+                                f.setAccessible(true);
+                                @SuppressWarnings("unchecked")
+                                java.util.Map<String, IRitualType> ritualMap = (java.util.Map<String, IRitualType>) f.get(null);
+                                if (ritualMap != null) {
+                                    ritualMap.put(ritualId, modifiedRitual);
+                                    break;
+                                }
+                            }
+                        }
+                    } catch (Exception e2) {
+                        ScriptType.SERVER.console.error("Failed to modify ritual type '" + ritualId + "': " + e2.getMessage());
+                        e2.printStackTrace();
+                    }
+                } catch (Exception e) {
+                    ScriptType.SERVER.console.error("Failed to modify ritual type '" + ritualId + "': " + e.getMessage());
+                    e.printStackTrace();
+                }
                 if (conditionGroups.size() == 1) {
                     ScriptType.SERVER.console.info("✓ Modified ritual type: " + ritualId);
                 } else {
@@ -105,14 +135,82 @@ public class ModifyRitualEventJS extends EventJS {
      * 构建支持 OR 逻辑的 IRitualType
      * 多个条件组之间使用 OR 连接，任意一个满足即可
      */
-    private IRitualType buildRitualTypeWithOR(String ritualId, List<RitualModifierImpl> conditionGroups) {
+    private IRitualType buildRitualTypeWithOR(String ritualId, List<RitualModifierImpl> conditionGroups, IRitualType originalRitual) {
         final List<RitualModifierImpl> finalGroups = new ArrayList<>(conditionGroups);
         final String finalRitualId = ritualId;
+        
+        // 解析 JEI 图标（从第一个设置了图标的条件组中获取）
+        net.minecraft.world.item.ItemStack finalJeiIcon = originalRitual != null ? originalRitual.getJeiIcon() : new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.OBSIDIAN);
+        for (RitualModifierImpl group : conditionGroups) {
+            if (group.jeiIcon != null) {
+                try {
+                    ScriptType.SERVER.console.info("Parsing JEI icon: " + group.jeiIcon);
+                    InputItem inputItem = InputItem.of(group.jeiIcon);
+                    if (inputItem != null && !inputItem.isEmpty()) {
+                        net.minecraft.world.item.ItemStack[] items = inputItem.ingredient.getItems();
+                        if (items.length > 0) {
+                            finalJeiIcon = items[0];
+                            ScriptType.SERVER.console.info("✓ JEI icon set to: " + finalJeiIcon.getItem().toString());
+                            break;  // 使用第一个找到的图标
+                        } else {
+                            ScriptType.SERVER.console.warn("JEI icon ingredient has no items: " + group.jeiIcon);
+                        }
+                    } else {
+                        ScriptType.SERVER.console.warn("JEI icon InputItem is null or empty: " + group.jeiIcon);
+                    }
+                } catch (Exception e) {
+                    ScriptType.SERVER.console.error("Failed to parse JEI icon: " + group.jeiIcon + " - " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+        }
+        
+        // 获取 onFinish 回调（从第一个设置了回调的条件组中获取）
+        final Object finalOnFinish = conditionGroups.stream()
+            .filter(group -> group.onFinish != null)
+            .findFirst()
+            .map(group -> group.onFinish)
+            .orElse(null);
+        
+        final net.minecraft.world.item.ItemStack finalJeiIconFinal = finalJeiIcon;
         
         return new IRitualType() {
             @Override
             public String getName() {
                 return finalRitualId;  // 使用ritualId作为名称，不再使用条件组内部的name
+            }
+            
+            @Override
+            public net.minecraft.world.item.ItemStack getJeiIcon() {
+                return finalJeiIconFinal;
+            }
+            
+            @Override
+            public void onFinishRitual(Level world, BlockPos darkAltarPos, 
+                                     com.Polarice3.Goety.common.blocks.entities.DarkAltarBlockEntity tileEntity,
+                                     net.minecraft.world.entity.player.Player castingPlayer, 
+                                     net.minecraft.world.item.ItemStack activationItem) {
+                if (finalOnFinish instanceof dev.latvian.mods.rhino.BaseFunction) {
+                    dev.latvian.mods.rhino.BaseFunction func = (dev.latvian.mods.rhino.BaseFunction) finalOnFinish;
+                    var cx = ScriptManager.getCurrentContext();
+                    if (cx != null) {
+                        var scope = ScriptType.SERVER.manager.get().topLevelScope;
+                        try {
+                            func.call(
+                                cx,
+                                scope,
+                                scope,
+                                new Object[]{world, darkAltarPos, tileEntity, castingPlayer, activationItem}
+                            );
+                        } catch (Exception e) {
+                            ScriptType.SERVER.console.error("Error executing onFinishRitual callback: " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                    }
+                } else if (originalRitual != null) {
+                    // 如果没有设置自定义回调，使用原始仪式的回调
+                    originalRitual.onFinishRitual(world, darkAltarPos, tileEntity, castingPlayer, activationItem);
+                }
             }
             
             @Override
@@ -991,15 +1089,18 @@ public class ModifyRitualEventJS extends EventJS {
                                         BlockPos blockPos = pPos.offset(i, j, k);
                                         BlockState blockState = pLevel.getBlockState(blockPos);
                                         
-                                        // 检查每个需求
-                                        for (Map.Entry<SizedIngredient, Integer> entry : blockRequirements.entrySet()) {
-                                            SizedIngredient sizedIngredient = entry.getKey();
-                                            // 获取方块对应的物品栈
-                                            var item = blockState.getBlock().asItem();
-                                            if (item != null && item != net.minecraft.world.item.Items.AIR) {
+                                        // 获取方块对应的物品栈
+                                        var item = blockState.getBlock().asItem();
+                                        if (item != null && item != net.minecraft.world.item.Items.AIR) {
+                                            net.minecraft.world.item.ItemStack itemStack = item.getDefaultInstance();
+                                            
+                                            // 检查这个方块是否匹配某个需求（只匹配第一个匹配的需求）
+                                            for (Map.Entry<SizedIngredient, Integer> entry : blockRequirements.entrySet()) {
+                                                SizedIngredient sizedIngredient = entry.getKey();
                                                 // 使用 SizedIngredient 的 ingredient 来测试
-                                                if (sizedIngredient.ingredient().test(item.getDefaultInstance())) {
+                                                if (sizedIngredient.ingredient().test(itemStack)) {
                                                     found.put(sizedIngredient, found.getOrDefault(sizedIngredient, 0) + 1);
+                                                    break;  // 只计数一次，匹配第一个需求后退出
                                                 }
                                             }
                                         }
@@ -1012,6 +1113,7 @@ public class ModifyRitualEventJS extends EventJS {
                                 int required = entry.getValue();
                                 int actual = found.getOrDefault(entry.getKey(), 0);
                                 if (actual < required) {
+                                    ScriptType.SERVER.console.debug("Ritual check failed: Required " + required + " blocks, found " + actual);
                                     return false;
                                 }
                             }

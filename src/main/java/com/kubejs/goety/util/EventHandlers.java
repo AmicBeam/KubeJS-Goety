@@ -6,12 +6,14 @@ import com.kubejs.goety.event.RemoveRitualEventJS;
 import com.kubejs.goety.event.RegisterBrewEventJS;
 import dev.latvian.mods.kubejs.event.EventGroup;
 import dev.latvian.mods.kubejs.event.EventHandler;
+import dev.latvian.mods.kubejs.typings.Info;
 
 /**
  * Goety 事件处理器
  * 
  * 定义 GoetyEvents 事件组，用于在脚本中处理仪式相关事件
  */
+@Info("Goety 事件组，用于在脚本中处理仪式和药酿相关事件")
 public class EventHandlers {
     
     /**

@@ -8,7 +8,6 @@ import dev.latvian.mods.kubejs.typings.Info;
 import dev.latvian.mods.kubejs.typings.Param;
 import dev.latvian.mods.kubejs.util.ListJS;
 import dev.latvian.mods.kubejs.util.UtilsJS;
-import dev.latvian.mods.kubejs.script.ScriptManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -49,13 +48,21 @@ public class RegisterRitualEventJS extends EventJS {
         @Param(name = "builder", value = "构建器函数，用于配置仪式属性")
     })
     public void create(String ritualId, Object builder) {
+        
         if (ritualId == null || ritualId.isEmpty()) {
             ScriptType.SERVER.console.error("Ritual ID cannot be empty");
             return;
         }
         
-        if (RitualType.getRitualTypeList().containsKey(ritualId)) {
+        // 检查仪式是否已存在
+        try {
+            IRitualType existingRitual = RitualType.getRitualType(ritualId);
+            if (existingRitual != null) {
             ScriptType.SERVER.console.warn("Ritual type '" + ritualId + "' already exists, will be overwritten");
+            }
+        } catch (Exception e) {
+            // 忽略检查错误，继续创建仪式
+            ScriptType.SERVER.console.debug("Could not check if ritual exists: " + e.getMessage());
         }
         
         try {
@@ -63,18 +70,24 @@ public class RegisterRitualEventJS extends EventJS {
             
             // 如果 builder 是函数，调用它
             if (builder instanceof dev.latvian.mods.rhino.BaseFunction) {
-                var cx = ScriptManager.getCurrentContext();
-                if (cx != null) {
-                    var scope = ScriptType.SERVER.manager.get().topLevelScope;
+                var scriptManager = ScriptType.SERVER.manager.get();
+                var scope = scriptManager.topLevelScope;
+                var cx = scriptManager.context;
+                
+                try {
                     ((dev.latvian.mods.rhino.BaseFunction) builder).call(
                         cx,
                         scope,
                         scope,
                         new Object[]{ritualBuilder}
                     );
+                } catch (Exception e) {
+                    ScriptType.SERVER.console.error("Error calling builder function for ritual '" + ritualId + "': " + e.getMessage());
+                    e.printStackTrace();
+                    return;
                 }
             } else {
-                ScriptType.SERVER.console.error("Builder must be a function");
+                ScriptType.SERVER.console.error("Builder is not a function for ritual '" + ritualId + "': " + (builder != null ? builder.getClass().getName() : "null"));
                 return;
             }
             
@@ -82,8 +95,55 @@ public class RegisterRitualEventJS extends EventJS {
                 ritualBuilder.name = ritualId;
             }
             
-            RitualType.addRitualType(ritualId, ritualBuilder.buildRitualType());
-            ScriptType.SERVER.console.info("✓ Registered new ritual type: " + ritualId);
+            // 使用反射访问 RitualType 的内部 Map 来注册仪式
+            IRitualType ritualType = ritualBuilder.buildRitualType();
+            try {
+                // 尝试使用反射访问 RITUAL_TYPE_LIST 字段
+                java.lang.reflect.Field field = RitualType.class.getDeclaredField("RITUAL_TYPE_LIST");
+                field.setAccessible(true);
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, IRitualType> ritualMap = (java.util.Map<String, IRitualType>) field.get(null);
+                ritualMap.put(ritualId, ritualType);
+            } catch (NoSuchFieldException e) {
+                // 如果字段不存在，尝试其他可能的字段名
+                try {
+                    ScriptType.SERVER.console.debug("RITUAL_TYPE_LIST field not found, searching for Map fields...");
+                    java.lang.reflect.Field[] fields = RitualType.class.getDeclaredFields();
+                    ScriptType.SERVER.console.debug("Found " + fields.length + " fields in RitualType class");
+                    for (java.lang.reflect.Field f : fields) {
+                        ScriptType.SERVER.console.debug("Field: " + f.getName() + " (type: " + f.getType().getName() + ")");
+                        if (java.util.Map.class.isAssignableFrom(f.getType())) {
+                            f.setAccessible(true);
+                            @SuppressWarnings("unchecked")
+                            java.util.Map<String, IRitualType> ritualMap = (java.util.Map<String, IRitualType>) f.get(null);
+                            if (ritualMap != null) {
+                                ritualMap.put(ritualId, ritualType);
+                                return;
+                            }
+                        }
+                    }
+                    // 如果找不到 Map 字段，尝试查找静态方法
+                    ScriptType.SERVER.console.debug("No Map field found, searching for static methods...");
+                    java.lang.reflect.Method[] methods = RitualType.class.getDeclaredMethods();
+                    for (java.lang.reflect.Method m : methods) {
+                        ScriptType.SERVER.console.debug("Method: " + m.getName() + " (params: " + m.getParameterCount() + ")");
+                        if (m.getParameterCount() == 2 && 
+                            String.class.isAssignableFrom(m.getParameterTypes()[0]) &&
+                            IRitualType.class.isAssignableFrom(m.getParameterTypes()[1])) {
+                            m.setAccessible(true);
+                            m.invoke(null, ritualId, ritualType);
+                            return;
+                        }
+                    }
+                    ScriptType.SERVER.console.error("Could not find ritual type map field or registration method in RitualType class");
+                } catch (Exception e2) {
+                    ScriptType.SERVER.console.error("Failed to register ritual type '" + ritualId + "': " + e2.getMessage());
+                    e2.printStackTrace();
+                }
+            } catch (Exception e) {
+                ScriptType.SERVER.console.error("Failed to register ritual type '" + ritualId + "': " + e.getMessage());
+                e.printStackTrace();
+            }
         } catch (Exception e) {
             ScriptType.SERVER.console.error("Error registering ritual type '" + ritualId + "': " + e.getMessage());
             e.printStackTrace();
@@ -306,7 +366,9 @@ public class RegisterRitualEventJS extends EventJS {
             @dev.latvian.mods.kubejs.typings.Param(name = "callback", value = "回调函数，接收参数：(world, darkAltarPos, tileEntity, castingPlayer, activationItem)")
         })
         public RitualBuilderImpl setOnFinish(Object callback) {
+            ScriptType.SERVER.console.info("setOnFinish called with callback: " + (callback != null ? callback.getClass().getName() : "null"));
             this.onFinish = callback;
+            ScriptType.SERVER.console.info("setOnFinish: this.onFinish is now: " + (this.onFinish != null ? this.onFinish.getClass().getName() : "null"));
             return this;
         }
         
@@ -324,8 +386,6 @@ public class RegisterRitualEventJS extends EventJS {
                 return requirements;
             }
             
-            var cx = ScriptManager.getCurrentContext();
-            
             // 如果是字符串，解析为单个需求
             if (blocksConfig instanceof CharSequence) {
                 try {
@@ -335,15 +395,18 @@ public class RegisterRitualEventJS extends EventJS {
                         int count = inputItem.count;
                         SizedIngredient sizedIngredient = SizedIngredient.of(ingredient, count);
                         requirements.put(sizedIngredient, count);
+                    } else {
+                        ScriptType.SERVER.console.warn("Failed to parse block requirement: " + blocksConfig);
                     }
                 } catch (Exception e) {
                             ScriptType.SERVER.console.error("Failed to parse block requirement: " + blocksConfig + " - " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
-            // 如果是数组
-            else if (blocksConfig instanceof List || blocksConfig.getClass().isArray()) {
+            // 如果是数组或 List
+            else if (blocksConfig instanceof List || blocksConfig.getClass().isArray() || blocksConfig instanceof dev.latvian.mods.rhino.NativeArray) {
                 List<?> list = ListJS.of(blocksConfig);
-                if (list != null) {
+                if (list != null && !list.isEmpty()) {
                     for (Object item : list) {
                         try {
                             // 支持字符串和 ItemStack 对象（包括带 NBT 的）
@@ -353,14 +416,18 @@ public class RegisterRitualEventJS extends EventJS {
                                 int count = inputItem.count;
                                 SizedIngredient sizedIngredient = SizedIngredient.of(ingredient, count);
                                 requirements.put(sizedIngredient, count);
+                            } else {
+                                ScriptType.SERVER.console.warn("Failed to parse block requirement: " + item);
                             }
                         } catch (Exception e) {
                             ScriptType.SERVER.console.error("Failed to parse block requirement: " + item + " - " + e.getMessage());
+                            e.printStackTrace();
                         }
                     }
                 }
+            } else {
+                ScriptType.SERVER.console.warn("Unsupported blocksConfig type: " + blocksConfig.getClass().getName());
             }
-            
             return requirements;
         }
         
@@ -383,6 +450,7 @@ public class RegisterRitualEventJS extends EventJS {
             final Boolean finalRequireSkyVisible = this.requireSkyVisible;
             final Boolean finalRequireAltarWaterlogged = this.requireAltarWaterlogged;
             final Object finalOnFinish = this.onFinish;
+            ScriptType.SERVER.console.info("buildRitualType: finalOnFinish = " + (finalOnFinish != null ? finalOnFinish.getClass().getName() : "null"));
             
             // 解析 JEI 图标
             net.minecraft.world.item.ItemStack tempJeiIcon = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.OBSIDIAN);
@@ -393,10 +461,15 @@ public class RegisterRitualEventJS extends EventJS {
                         net.minecraft.world.item.ItemStack[] items = inputItem.ingredient.getItems();
                         if (items.length > 0) {
                             tempJeiIcon = items[0];
+                        } else {
+                            ScriptType.SERVER.console.warn("JEI icon ingredient has no items: " + this.jeiIcon);
                         }
+                    } else {
+                        ScriptType.SERVER.console.warn("JEI icon InputItem is null or empty: " + this.jeiIcon);
                     }
                 } catch (Exception e) {
                     ScriptType.SERVER.console.error("Failed to parse JEI icon: " + this.jeiIcon + " - " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
             final net.minecraft.world.item.ItemStack finalJeiIcon = tempJeiIcon;
@@ -417,23 +490,30 @@ public class RegisterRitualEventJS extends EventJS {
                                          com.Polarice3.Goety.common.blocks.entities.DarkAltarBlockEntity tileEntity,
                                          net.minecraft.world.entity.player.Player castingPlayer, 
                                          net.minecraft.world.item.ItemStack activationItem) {
+                    ScriptType.SERVER.console.info("onFinishRitual called for ritual: " + finalName + " at " + darkAltarPos);
+                    ScriptType.SERVER.console.info("finalOnFinish: " + (finalOnFinish != null ? finalOnFinish.getClass().getName() : "null"));
                     if (finalOnFinish instanceof dev.latvian.mods.rhino.BaseFunction) {
+                        ScriptType.SERVER.console.info("Calling onFinishRitual callback function");
                         dev.latvian.mods.rhino.BaseFunction func = (dev.latvian.mods.rhino.BaseFunction) finalOnFinish;
-                        var cx = ScriptManager.getCurrentContext();
-                        if (cx != null) {
-                            var scope = ScriptType.SERVER.manager.get().topLevelScope;
+                        var scriptManager = ScriptType.SERVER.manager.get();
+                        var cx = scriptManager.context;
+                        var scope = scriptManager.topLevelScope;
                             try {
+                            // 使用 Rhino 的 JavaAdapter 包装 Level 对象，使其在 JavaScript 中可以访问 KubeJS 的方法
+                            // 或者直接传递原生 Level，让 Rhino 自动包装
                                 func.call(
                                     cx,
                                     scope,
                                     scope,
                                     new Object[]{world, darkAltarPos, tileEntity, castingPlayer, activationItem}
                                 );
+                            ScriptType.SERVER.console.info("onFinishRitual callback executed successfully");
                             } catch (Exception e) {
                                 ScriptType.SERVER.console.error("Error executing onFinishRitual callback: " + e.getMessage());
                                 e.printStackTrace();
                             }
-                        }
+                    } else {
+                        ScriptType.SERVER.console.warn("onFinishRitual callback is not a function: " + (finalOnFinish != null ? finalOnFinish.getClass().getName() : "null"));
                     }
                 }
                 
@@ -445,9 +525,9 @@ public class RegisterRitualEventJS extends EventJS {
                         // 如果有自定义检查函数，优先使用
                         if (finalCustomRequirement instanceof dev.latvian.mods.rhino.BaseFunction) {
                             dev.latvian.mods.rhino.BaseFunction func = (dev.latvian.mods.rhino.BaseFunction) finalCustomRequirement;
-                            var cx = ScriptManager.getCurrentContext();
-                            if (cx != null) {
-                                var scope = ScriptType.SERVER.manager.get().topLevelScope;
+                            var scriptManager = ScriptType.SERVER.manager.get();
+                            var cx = scriptManager.context;
+                            var scope = scriptManager.topLevelScope;
                                 Object result = func.call(
                                     cx,
                                     scope,
@@ -455,7 +535,6 @@ public class RegisterRitualEventJS extends EventJS {
                                     new Object[]{pTileEntity, pPos, pLevel}
                                 );
                                 return UtilsJS.cast(result);
-                            }
                         }
                         
                         // 检查维度限制
@@ -463,7 +542,6 @@ public class RegisterRitualEventJS extends EventJS {
                             ResourceKey<Level> dimensionKey = pLevel.dimension();
                             String dimensionId = dimensionKey.location().toString();
                             boolean containsMatch = finalDimensionContainsMatch != null ? finalDimensionContainsMatch : false;
-                            
                             if (containsMatch) {
                                 // 模糊匹配
                                 if (!dimensionId.contains(finalDimension)) {
@@ -518,7 +596,7 @@ public class RegisterRitualEventJS extends EventJS {
                         }
                         
                         // 检查生物群系要求
-                        if (finalBiome != null || finalBiomeType != null) {
+                        if (finalBiome != null) {
                             String type = finalBiomeType != null ? finalBiomeType.toLowerCase() : "id";
                             var currentBiome = pLevel.getBiome(pPos);
                             
@@ -675,15 +753,18 @@ public class RegisterRitualEventJS extends EventJS {
                                     BlockPos blockPos = pPos.offset(i, j, k);
                                     BlockState blockState = pLevel.getBlockState(blockPos);
                                     
-                                    // 检查每个需求
-                                    for (Map.Entry<SizedIngredient, Integer> entry : blockRequirements.entrySet()) {
-                                        SizedIngredient sizedIngredient = entry.getKey();
                                         // 获取方块对应的物品栈
                                         var item = blockState.getBlock().asItem();
                                         if (item != null && item != net.minecraft.world.item.Items.AIR) {
+                                        net.minecraft.world.item.ItemStack itemStack = item.getDefaultInstance();
+                                        
+                                        // 检查这个方块是否匹配某个需求（只匹配第一个匹配的需求）
+                                        for (Map.Entry<SizedIngredient, Integer> entry : blockRequirements.entrySet()) {
+                                            SizedIngredient sizedIngredient = entry.getKey();
                                             // 使用 SizedIngredient 的 ingredient 来测试
-                                            if (sizedIngredient.ingredient().test(item.getDefaultInstance())) {
+                                            if (sizedIngredient.ingredient().test(itemStack)) {
                                                 found.put(sizedIngredient, found.getOrDefault(sizedIngredient, 0) + 1);
+                                                break;  // 只计数一次，匹配第一个需求后退出
                                             }
                                         }
                                     }
@@ -702,7 +783,7 @@ public class RegisterRitualEventJS extends EventJS {
                         
                         return true;
                     } catch (Exception e) {
-                        System.err.println("[Goety Ritual] Error executing ritual check: " + e.getMessage());
+                        ScriptType.SERVER.console.error("Error executing ritual requirement check: " + e.getMessage());
                         e.printStackTrace();
                         return false;
                     }
