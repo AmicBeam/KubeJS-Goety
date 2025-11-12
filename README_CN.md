@@ -276,9 +276,16 @@ GoetyEvents.registerBrew(event => {
 ServerEvents.recipes(event => {
     // event.recipes.goety.ritual(result, ritualType, ingredients)
     // - result: 产物物品（OutputItem）
-    // - ritualType: 仪式类型ID（通常是 'goety:craft'）
+    // - ritualType: 仪式类型ID，根据功能选择：
+    //   - 'goety:craft' - 制作物品（最常用）
+    //   - 'goety:enchant' - 附魔
+    //   - 'goety:summon' - 召唤生物
+    //   - 'goety:summon_tamed' - 召唤驯服生物
+    //   - 'goety:convert' - 转换实体
+    //   - 'goety:teleport' - 传送
     // - ingredients: 材料数组（InputItem[]）
     
+    // 制作物品的仪式
     event.recipes.goety.ritual('minecraft:emerald', 'goety:craft', [
         'minecraft:gold_ingot',
         'minecraft:gold_ingot',
@@ -288,6 +295,17 @@ ServerEvents.recipes(event => {
         .craftType('forge')  // 锻造仪式
         .soulCost(5)
         .duration(20);
+    
+    // 召唤生物的仪式
+    event.recipes.goety.ritual('goety:jei_dummy/none', 'goety:summon', [
+        'minecraft:rotten_flesh',
+        'minecraft:bone'
+    ])
+        .activationItem('minecraft:ender_pearl')
+        .craftType('necroturgy')
+        .soulCost(10)
+        .entityToSummon('minecraft:zombie')
+        .summonLife(6000);
 });
 ```
 

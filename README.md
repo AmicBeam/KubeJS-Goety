@@ -234,9 +234,16 @@ your_world_save/
 ServerEvents.recipes(event => {
     // event.recipes.goety.ritual(result, ritualType, ingredients)
     // - result: Output item (OutputItem)
-    // - ritualType: Ritual type ID (usually 'goety:craft')
+    // - ritualType: Ritual type ID, choose based on function:
+    //   - 'goety:craft' - Craft items (most common)
+    //   - 'goety:enchant' - Enchanting
+    //   - 'goety:summon' - Summon entities
+    //   - 'goety:summon_tamed' - Summon tamed entities
+    //   - 'goety:convert' - Convert entities
+    //   - 'goety:teleport' - Teleportation
     // - ingredients: Material array (InputItem[])
     
+    // Crafting ritual
     event.recipes.goety.ritual('minecraft:emerald', 'goety:craft', [
         'minecraft:gold_ingot',
         'minecraft:gold_ingot',
@@ -246,6 +253,17 @@ ServerEvents.recipes(event => {
         .craftType('forge')  // Forge ritual
         .soulCost(5)
         .duration(20);
+    
+    // Summoning ritual
+    event.recipes.goety.ritual('goety:jei_dummy/none', 'goety:summon', [
+        'minecraft:rotten_flesh',
+        'minecraft:bone'
+    ])
+        .activationItem('minecraft:ender_pearl')
+        .craftType('necroturgy')
+        .soulCost(10)
+        .entityToSummon('minecraft:zombie')
+        .summonLife(6000);
 });
 ```
 

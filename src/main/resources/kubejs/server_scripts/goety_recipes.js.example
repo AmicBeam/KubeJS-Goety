@@ -18,11 +18,19 @@ ServerEvents.recipes(event => {
     // 
     // event.recipes.goety.ritual(result, ritualType, ingredients)
     // - result: 产物物品（OutputItem）
-    // - ritualType: 仪式类型ID（通常是 'goety:craft'）
+    // - ritualType: 仪式类型ID，根据功能选择：
+    //   - 'goety:craft' - 制作物品（最常用）
+    //   - 'goety:enchant' - 附魔
+    //   - 'goety:summon' - 召唤生物
+    //   - 'goety:summon_tamed' - 召唤驯服生物
+    //   - 'goety:convert' - 转换实体
+    //   - 'goety:convert_tamed' - 转换驯服实体
+    //   - 'goety:convert_complete_tamed' - 完全转换驯服实体
+    //   - 'goety:teleport' - 传送
     // - ingredients: 材料数组（InputItem[]）
     //
     // 可选方法：
-    // - .ritualType(ritualType) - 设置仪式类型（通常与第一个参数相同，可省略）
+    // - .ritualType(ritualType) - 设置仪式类型（通常与第二个参数相同，可省略）
     // - .activationItem(item) - 设置激活物品（可选，默认空）
     // - .craftType(type) - 设置craftType（forge、animation、magic、necroturgy、frost、geoturgy、sky、storm、sabbath、adept_nether、expert_nether、end、deep等）
     // - .soulCost(cost) - 设置灵魂消耗（可选，默认0）
@@ -50,7 +58,7 @@ ServerEvents.recipes(event => {
         .duration(20);
     
     // 创建一个召唤生物的仪式配方
-    event.recipes.goety.ritual('minecraft:emerald', 'goety:craft', [
+    event.recipes.goety.ritual('goety:jei_dummy/none', 'goety:summon', [
         'minecraft:rotten_flesh',
         'minecraft:rotten_flesh',
         'minecraft:bone'
@@ -61,6 +69,8 @@ ServerEvents.recipes(event => {
         .duration(30)
         .entityToSummon('minecraft:zombie')
         .summonLife(6000);  // 召唤物存在时间（tick）
+    
+    // 注意：召唤仪式的 result 通常设置为 'goety:jei_dummy/none'，因为产物是生物而不是物品
     
     // 创建一个需要献祭的仪式配方
     event.recipes.goety.ritual('minecraft:emerald', 'goety:craft', [
