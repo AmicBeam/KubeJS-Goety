@@ -82,11 +82,18 @@ GoetyEvents.registerRitual(event => {
         ritual.blocks = ['5x minecraft:diamond_block', '3x minecraft:emerald_block'];
     });
     
-    // 创建复杂仪式（需要特殊条件）
+    // 创建复杂仪式（需要特殊条件和完成效果）
     event.create('thunder_ritual', ritual => {
         ritual.blocks = ['minecraft:lightning_rod'];
         ritual.setWeather('thunder');         // 需要雷雨天气
         ritual.setRequireSkyVisible(true);    // 需要能看到天空
+        ritual.setJeiIcon('minecraft:lightning_rod');  // 设置 JEI 显示图标（可选）
+        
+        // 设置仪式完成时的回调（可选）
+        ritual.setOnFinish((world, darkAltarPos, tileEntity, castingPlayer, activationItem) => {
+            // 播放雷电音效
+            world.playSound(null, darkAltarPos, 'minecraft:entity.lightning_bolt.thunder', 'weather', 1.0, 1.0);
+        });
     });
 });
 ```
@@ -126,6 +133,7 @@ GoetyEvents.modifyRitual(event => {
 - `ritual.setRequireSkyVisible(boolean)` (boolean): 是否需要看到天空
 - `ritual.setRequireAltarWaterlogged(boolean)` (boolean): 是否需要祭坛含水
 - `ritual.setJeiIcon(item)` (string/object): JEI 显示图标（物品ID或物品对象，可选，默认为黑曜石）
+- `ritual.setOnFinish(callback)` (function): 仪式完成时的回调函数，接收参数 (world, darkAltarPos, tileEntity, castingPlayer, activationItem)
 - `ritual.setRequirement(function)` (function): 自定义检查函数（覆盖所有配置）
 
 **参考示例**：[goety_rituals.js.example](src/main/resources/kubejs/server_scripts/goety_rituals.js.example)

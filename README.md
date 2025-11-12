@@ -82,11 +82,18 @@ GoetyEvents.registerRitual(event => {
         ritual.blocks = ['5x minecraft:diamond_block', '3x minecraft:emerald_block'];
     });
     
-    // Create complex ritual (needs special conditions)
+    // Create complex ritual (needs special conditions and completion effects)
     event.create('thunder_ritual', ritual => {
         ritual.blocks = ['minecraft:lightning_rod'];
         ritual.setWeather('thunder');         // Requires thunder weather
         ritual.setRequireSkyVisible(true);    // Requires sky visibility
+        ritual.setJeiIcon('minecraft:lightning_rod');  // Set JEI display icon (optional)
+        
+        // Set callback when ritual completes (optional)
+        ritual.setOnFinish((world, darkAltarPos, tileEntity, castingPlayer, activationItem) => {
+            // Play thunder sound effect
+            world.playSound(null, darkAltarPos, 'minecraft:entity.lightning_bolt.thunder', 'weather', 1.0, 1.0);
+        });
     });
 });
 ```
@@ -126,6 +133,7 @@ The `ritual` object supports the following configuration options:
 - `ritual.setRequireSkyVisible(boolean)` (boolean): Whether sky visibility is required
 - `ritual.setRequireAltarWaterlogged(boolean)` (boolean): Whether altar must be waterlogged
 - `ritual.setJeiIcon(item)` (string/object): JEI display icon (item ID or item object, optional, defaults to obsidian)
+- `ritual.setOnFinish(callback)` (function): Callback function when ritual completes, receives (world, darkAltarPos, tileEntity, castingPlayer, activationItem)
 - `ritual.setRequirement(function)` (function): Custom check function (overrides all configurations)
 
 **See example**: [goety_rituals.js.example](src/main/resources/kubejs/server_scripts/goety_rituals.js.example)

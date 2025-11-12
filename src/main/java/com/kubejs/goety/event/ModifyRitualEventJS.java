@@ -411,6 +411,7 @@ public class ModifyRitualEventJS extends EventJS {
         public Boolean dimensionContainsMatch;  // 可选：维度匹配模式，false（精确匹配，默认）或 true（模糊匹配）
         public Object customRequirement;  // 可选：自定义检查函数
         public Object jeiIcon;  // JEI 图标物品
+        public Object onFinish;  // 仪式完成时的回调函数
         
         // 新增配置选项
         public String weather;  // 天气要求：'thunder', 'rain', 'clear', null（不检查）
@@ -437,6 +438,7 @@ public class ModifyRitualEventJS extends EventJS {
             this.dimensionContainsMatch = false;  // 默认精确匹配
             this.customRequirement = null;
             this.jeiIcon = null;  // 默认使用原始仪式的图标
+            this.onFinish = null;  // 默认使用原始仪式的回调
             this.weather = null;
             this.timeOfDay = null;
             this.biome = null;
@@ -610,6 +612,18 @@ public class ModifyRitualEventJS extends EventJS {
         }
         
         /**
+         * 设置仪式完成时的回调函数
+         * @param callback 回调函数，接收参数：(world, darkAltarPos, tileEntity, castingPlayer, activationItem)
+         */
+        @dev.latvian.mods.kubejs.typings.Info(value = "设置仪式完成时的回调函数", params = {
+            @dev.latvian.mods.kubejs.typings.Param(name = "callback", value = "回调函数，接收参数：(world, darkAltarPos, tileEntity, castingPlayer, activationItem)")
+        })
+        public RitualModifierImpl setOnFinish(Object callback) {
+            this.onFinish = callback;
+            return this;
+        }
+        
+        /**
          * 解析方块需求配置
          * 完全复用 KubeJS 的 SizedIngredientWrapper 来解析各种格式
          * 支持：
@@ -684,6 +698,7 @@ public class ModifyRitualEventJS extends EventJS {
             final Integer finalMaxY = this.maxY;
             final Boolean finalRequireSkyVisible = this.requireSkyVisible;
             final Boolean finalRequireAltarWaterlogged = this.requireAltarWaterlogged;
+            final Object finalOnFinish = this.onFinish;
             
             // 解析 JEI 图标
             final net.minecraft.world.item.ItemStack finalJeiIcon;
@@ -712,6 +727,34 @@ public class ModifyRitualEventJS extends EventJS {
                 @Override
                 public net.minecraft.world.item.ItemStack getJeiIcon() {
                     return finalJeiIcon;
+                }
+                
+                @Override
+                public void onFinishRitual(Level world, BlockPos darkAltarPos, 
+                                         com.Polarice3.Goety.common.blocks.entities.DarkAltarBlockEntity tileEntity,
+                                         net.minecraft.world.entity.player.Player castingPlayer, 
+                                         net.minecraft.world.item.ItemStack activationItem) {
+                    if (finalOnFinish instanceof dev.latvian.mods.rhino.BaseFunction) {
+                        dev.latvian.mods.rhino.BaseFunction func = (dev.latvian.mods.rhino.BaseFunction) finalOnFinish;
+                        var cx = ScriptManager.getCurrentContext();
+                        if (cx != null) {
+                            var scope = ScriptType.SERVER.manager.get().topLevelScope;
+                            try {
+                                func.call(
+                                    cx,
+                                    scope,
+                                    scope,
+                                    new Object[]{world, darkAltarPos, tileEntity, castingPlayer, activationItem}
+                                );
+                            } catch (Exception e) {
+                                ScriptType.SERVER.console.error("Error executing onFinishRitual callback: " + e.getMessage());
+                                e.printStackTrace();
+                            }
+                        }
+                    } else {
+                        // 如果没有设置自定义回调，使用原始仪式的回调
+                        originalRitual.onFinishRitual(world, darkAltarPos, tileEntity, castingPlayer, activationItem);
+                    }
                 }
                 
                 @Override
