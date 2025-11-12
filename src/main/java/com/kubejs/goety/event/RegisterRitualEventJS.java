@@ -4,6 +4,7 @@ import com.Polarice3.Goety.api.ritual.IRitualType;
 import com.Polarice3.Goety.api.ritual.RitualType;
 import dev.latvian.mods.kubejs.event.EventJS;
 import dev.latvian.mods.kubejs.item.InputItem;
+import dev.latvian.mods.kubejs.typings.Generics;
 import dev.latvian.mods.kubejs.typings.Info;
 import dev.latvian.mods.kubejs.typings.Param;
 import dev.latvian.mods.kubejs.util.ListJS;
@@ -20,6 +21,7 @@ import com.kubejs.goety.util.SizedIngredient;
 import dev.latvian.mods.kubejs.script.ScriptType;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 /**
  * 注册新仪式的事件
@@ -38,6 +40,19 @@ import java.util.*;
 public class RegisterRitualEventJS extends EventJS {
     
     /**
+     * 仪式完成回调函数接口
+     * 用于指定 setOnFinish 回调函数的类型
+     */
+    @FunctionalInterface
+    @Info("仪式完成时的回调函数，接收参数：(world, darkAltarPos, tileEntity, castingPlayer, activationItem)")
+    public interface OnFinishCallback {
+        void accept(Level world, BlockPos darkAltarPos, 
+                    com.Polarice3.Goety.common.blocks.entities.DarkAltarBlockEntity tileEntity,
+                    net.minecraft.world.entity.player.Player castingPlayer, 
+                    net.minecraft.world.item.ItemStack activationItem);
+    }
+    
+    /**
      * 创建新的仪式类型
      * 
      * @param ritualId 仪式 ID（字符串，如 'my_custom_ritual'）
@@ -47,7 +62,8 @@ public class RegisterRitualEventJS extends EventJS {
         @Param(name = "ritualId", value = "仪式的唯一标识符（字符串）"),
         @Param(name = "builder", value = "构建器函数，用于配置仪式属性")
     })
-    public void create(String ritualId, Object builder) {
+    @Generics(RitualBuilderImpl.class)
+    public void create(String ritualId, Consumer<RitualBuilderImpl> builder) {
         
         if (ritualId == null || ritualId.isEmpty()) {
             ScriptType.SERVER.console.error("Ritual ID cannot be empty");
@@ -68,27 +84,9 @@ public class RegisterRitualEventJS extends EventJS {
         try {
             RitualBuilderImpl ritualBuilder = new RitualBuilderImpl(ritualId, this);
             
-            // 如果 builder 是函数，调用它
-            if (builder instanceof dev.latvian.mods.rhino.BaseFunction) {
-                var scriptManager = ScriptType.SERVER.manager.get();
-                var scope = scriptManager.topLevelScope;
-                var cx = scriptManager.context;
-                
-                try {
-                    ((dev.latvian.mods.rhino.BaseFunction) builder).call(
-                        cx,
-                        scope,
-                        scope,
-                        new Object[]{ritualBuilder}
-                    );
-                } catch (Exception e) {
-                    ScriptType.SERVER.console.error("Error calling builder function for ritual '" + ritualId + "': " + e.getMessage());
-                    e.printStackTrace();
-                    return;
-                }
-            } else {
-                ScriptType.SERVER.console.error("Builder is not a function for ritual '" + ritualId + "': " + (builder != null ? builder.getClass().getName() : "null"));
-                return;
+            // 处理 builder：KubeJS 会自动将 JavaScript 函数转换为 Consumer
+            if (builder != null) {
+                builder.accept(ritualBuilder);
             }
             
             if (ritualBuilder.name == null || ritualBuilder.name.isEmpty()) {
@@ -365,7 +363,9 @@ public class RegisterRitualEventJS extends EventJS {
         @dev.latvian.mods.kubejs.typings.Info(value = "设置仪式完成时的回调函数", params = {
             @dev.latvian.mods.kubejs.typings.Param(name = "callback", value = "回调函数，接收参数：(world, darkAltarPos, tileEntity, castingPlayer, activationItem)")
         })
-        public RitualBuilderImpl setOnFinish(Object callback) {
+        @Generics({Level.class, BlockPos.class, com.Polarice3.Goety.common.blocks.entities.DarkAltarBlockEntity.class, 
+                   net.minecraft.world.entity.player.Player.class, net.minecraft.world.item.ItemStack.class})
+        public RitualBuilderImpl setOnFinish(OnFinishCallback callback) {
             ScriptType.SERVER.console.info("setOnFinish called with callback: " + (callback != null ? callback.getClass().getName() : "null"));
             this.onFinish = callback;
             ScriptType.SERVER.console.info("setOnFinish: this.onFinish is now: " + (this.onFinish != null ? this.onFinish.getClass().getName() : "null"));
@@ -492,28 +492,36 @@ public class RegisterRitualEventJS extends EventJS {
                                          net.minecraft.world.item.ItemStack activationItem) {
                     ScriptType.SERVER.console.info("onFinishRitual called for ritual: " + finalName + " at " + darkAltarPos);
                     ScriptType.SERVER.console.info("finalOnFinish: " + (finalOnFinish != null ? finalOnFinish.getClass().getName() : "null"));
-                    if (finalOnFinish instanceof dev.latvian.mods.rhino.BaseFunction) {
+                    if (finalOnFinish instanceof OnFinishCallback) {
+                        // 如果是 OnFinishCallback 接口，直接调用
+                        try {
+                            ((OnFinishCallback) finalOnFinish).accept(world, darkAltarPos, tileEntity, castingPlayer, activationItem);
+                            ScriptType.SERVER.console.info("onFinishRitual callback executed successfully");
+                        } catch (Exception e) {
+                            ScriptType.SERVER.console.error("Error executing onFinishRitual callback: " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                    } else if (finalOnFinish instanceof dev.latvian.mods.rhino.BaseFunction) {
+                        // 如果是 JavaScript 函数，通过 Rhino 调用
                         ScriptType.SERVER.console.info("Calling onFinishRitual callback function");
                         dev.latvian.mods.rhino.BaseFunction func = (dev.latvian.mods.rhino.BaseFunction) finalOnFinish;
                         var scriptManager = ScriptType.SERVER.manager.get();
                         var cx = scriptManager.context;
                         var scope = scriptManager.topLevelScope;
-                            try {
-                            // 使用 Rhino 的 JavaAdapter 包装 Level 对象，使其在 JavaScript 中可以访问 KubeJS 的方法
-                            // 或者直接传递原生 Level，让 Rhino 自动包装
-                                func.call(
-                                    cx,
-                                    scope,
-                                    scope,
-                                    new Object[]{world, darkAltarPos, tileEntity, castingPlayer, activationItem}
-                                );
+                        try {
+                            func.call(
+                                cx,
+                                scope,
+                                scope,
+                                new Object[]{world, darkAltarPos, tileEntity, castingPlayer, activationItem}
+                            );
                             ScriptType.SERVER.console.info("onFinishRitual callback executed successfully");
-                            } catch (Exception e) {
-                                ScriptType.SERVER.console.error("Error executing onFinishRitual callback: " + e.getMessage());
-                                e.printStackTrace();
-                            }
-                    } else {
-                        ScriptType.SERVER.console.warn("onFinishRitual callback is not a function: " + (finalOnFinish != null ? finalOnFinish.getClass().getName() : "null"));
+                        } catch (Exception e) {
+                            ScriptType.SERVER.console.error("Error executing onFinishRitual callback: " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                    } else if (finalOnFinish != null) {
+                        ScriptType.SERVER.console.warn("onFinishRitual callback is not a function: " + finalOnFinish.getClass().getName());
                     }
                 }
                 

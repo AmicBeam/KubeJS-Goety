@@ -6,6 +6,7 @@ import dev.latvian.mods.kubejs.event.EventJS;
 import dev.latvian.mods.kubejs.item.InputItem;
 import net.minecraft.world.item.crafting.Ingredient;
 import dev.latvian.mods.kubejs.script.ScriptType;
+import dev.latvian.mods.kubejs.typings.Generics;
 import dev.latvian.mods.kubejs.typings.Info;
 import dev.latvian.mods.kubejs.typings.Param;
 import dev.latvian.mods.kubejs.util.ListJS;
@@ -21,6 +22,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import com.kubejs.goety.util.SizedIngredient;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 /**
  * 修改现有仪式条件的事件
@@ -46,7 +48,8 @@ public class ModifyRitualEventJS extends EventJS {
         @Param(name = "ritualId", value = "要修改的仪式 ID（字符串）"),
         @Param(name = "modifiers", value = "修改器函数（可变参数），多个函数表示多个条件组（OR 逻辑）")
     })
-    public void modify(String ritualId, Object... modifiers) {
+    @Generics(RitualModifierImpl.class)
+    public void modify(String ritualId, Consumer<RitualModifierImpl>... modifiers) {
         if (ritualId == null || ritualId.isEmpty()) {
             ScriptType.SERVER.console.error("Ritual ID cannot be empty");
             return;
@@ -68,23 +71,13 @@ public class ModifyRitualEventJS extends EventJS {
             List<RitualModifierImpl> conditionGroups = new ArrayList<>();
             
             for (int i = 0; i < modifiers.length; i++) {
-                Object modifier = modifiers[i];
-                    if (modifier instanceof dev.latvian.mods.rhino.BaseFunction) {
-                        RitualModifierImpl group = new RitualModifierImpl(ritualId, existingRitual, this);
-                        var cx = ScriptManager.getCurrentContext();
-                        if (cx != null) {
-                            var scope = ScriptType.SERVER.manager.get().topLevelScope;
-                            ((dev.latvian.mods.rhino.BaseFunction) modifier).call(
-                                cx,
-                                scope,
-                                scope,
-                                new Object[]{group}
-                            );
-                        }
-                        conditionGroups.add(group);
-                    } else {
-                        ScriptType.SERVER.console.error("Modifier #" + (i + 1) + " must be a function");
-                    }
+                Consumer<RitualModifierImpl> modifier = modifiers[i];
+                if (modifier != null) {
+                    RitualModifierImpl group = new RitualModifierImpl(ritualId, existingRitual, this);
+                    // KubeJS 会自动将 JavaScript 函数转换为 Consumer
+                    modifier.accept(group);
+                    conditionGroups.add(group);
+                }
             }
             
             if (!conditionGroups.isEmpty()) {
@@ -190,7 +183,16 @@ public class ModifyRitualEventJS extends EventJS {
                                      com.Polarice3.Goety.common.blocks.entities.DarkAltarBlockEntity tileEntity,
                                      net.minecraft.world.entity.player.Player castingPlayer, 
                                      net.minecraft.world.item.ItemStack activationItem) {
-                if (finalOnFinish instanceof dev.latvian.mods.rhino.BaseFunction) {
+                if (finalOnFinish instanceof RegisterRitualEventJS.OnFinishCallback) {
+                    // 如果是 OnFinishCallback 接口，直接调用
+                    try {
+                        ((RegisterRitualEventJS.OnFinishCallback) finalOnFinish).accept(world, darkAltarPos, tileEntity, castingPlayer, activationItem);
+                    } catch (Exception e) {
+                        ScriptType.SERVER.console.error("Error executing onFinishRitual callback: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                } else if (finalOnFinish instanceof dev.latvian.mods.rhino.BaseFunction) {
+                    // 如果是 JavaScript 函数，通过 Rhino 调用
                     dev.latvian.mods.rhino.BaseFunction func = (dev.latvian.mods.rhino.BaseFunction) finalOnFinish;
                     var cx = ScriptManager.getCurrentContext();
                     if (cx != null) {
@@ -716,7 +718,10 @@ public class ModifyRitualEventJS extends EventJS {
         @dev.latvian.mods.kubejs.typings.Info(value = "设置仪式完成时的回调函数", params = {
             @dev.latvian.mods.kubejs.typings.Param(name = "callback", value = "回调函数，接收参数：(world, darkAltarPos, tileEntity, castingPlayer, activationItem)")
         })
-        public RitualModifierImpl setOnFinish(Object callback) {
+        @Generics({net.minecraft.world.level.Level.class, net.minecraft.core.BlockPos.class, 
+                   com.Polarice3.Goety.common.blocks.entities.DarkAltarBlockEntity.class, 
+                   net.minecraft.world.entity.player.Player.class, net.minecraft.world.item.ItemStack.class})
+        public RitualModifierImpl setOnFinish(RegisterRitualEventJS.OnFinishCallback callback) {
             this.onFinish = callback;
             return this;
         }
@@ -831,7 +836,16 @@ public class ModifyRitualEventJS extends EventJS {
                                          com.Polarice3.Goety.common.blocks.entities.DarkAltarBlockEntity tileEntity,
                                          net.minecraft.world.entity.player.Player castingPlayer, 
                                          net.minecraft.world.item.ItemStack activationItem) {
-                    if (finalOnFinish instanceof dev.latvian.mods.rhino.BaseFunction) {
+                    if (finalOnFinish instanceof RegisterRitualEventJS.OnFinishCallback) {
+                        // 如果是 OnFinishCallback 接口，直接调用
+                        try {
+                            ((RegisterRitualEventJS.OnFinishCallback) finalOnFinish).accept(world, darkAltarPos, tileEntity, castingPlayer, activationItem);
+                        } catch (Exception e) {
+                            ScriptType.SERVER.console.error("Error executing onFinishRitual callback: " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                    } else if (finalOnFinish instanceof dev.latvian.mods.rhino.BaseFunction) {
+                        // 如果是 JavaScript 函数，通过 Rhino 调用
                         dev.latvian.mods.rhino.BaseFunction func = (dev.latvian.mods.rhino.BaseFunction) finalOnFinish;
                         var cx = ScriptManager.getCurrentContext();
                         if (cx != null) {
