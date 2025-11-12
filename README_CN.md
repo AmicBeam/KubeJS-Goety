@@ -138,64 +138,6 @@ GoetyEvents.modifyRitual(event => {
 
 **参考示例**：[goety_rituals.js.example](src/main/resources/kubejs/server_scripts/goety_rituals.js.example)
 
-## 支持的仪式类型
-
-### 内置仪式类型（可通过 modifyRitual 修改）
-
-#### 可以直接使用 `ritual.blocks` 配置的仪式
-
-以下仪式只需要检查方块结构，可以直接使用 `ritual.blocks` 配置：
-
-- `animation` - 活力仪式
-- `sabbath` - 安息仪式
-
-**注意：** `forge` (锻造仪式) 需要使用多函数参数（条件组），因为熔炉和高炉是OR逻辑。
-
-#### 需要使用配置化方式（结合特殊条件配置）的仪式
-
-以下仪式除了方块结构外，还需要检查其他条件，但可以通过配置化方式实现：
-
-- `storm` - 风暴仪式
-  - 配置示例：`ritual.setWeather('thunder')`, `ritual.setMinY(128)`, `ritual.setRequireSkyVisible(true)`
-- `sky` - 天空仪式
-  - 配置示例：`ritual.setMinY(128)`
-- `adept_nether` - 进阶下界仪式
-  - 配置示例：`ritual.setDimension('minecraft:the_nether')` 或 `ritual.setBiome('#minecraft:is_nether', 'tags')`
-- `expert_nether` - 专家下界仪式
-  - 配置示例：`ritual.setDimension('minecraft:the_nether')` 或 `ritual.setBiome('#minecraft:is_nether', 'tags')`
-- `frost` - 霜冻仪式
-  - 配置示例：`ritual.setBiome('coldEnoughToSnow', 'func')` 或使用自定义函数
-
-#### 需要使用多函数参数（OR 逻辑）的仪式
-
-以下仪式需要多个条件组，任意一个满足即可：
-
-- `forge` - 锻造仪式（熔炉或高炉，OR逻辑）
-- `frost` - 霜冻仪式（结构检查 OR 寒冷生物群系检查）
-- `geoturgy` - 大地仪式（结构检查 OR 环境检查）
-- `sky` - 天空仪式（结构检查 OR 高度检查）
-- `adept_nether` - 进阶下界仪式（结构检查 OR 维度检查）
-- `expert_nether` - 专家下界仪式（结构检查 OR 维度检查）
-- `storm` - 风暴仪式（多个条件组）
-
-#### 需要自定义函数 `ritual.setRequirement()` 的仪式
-
-以下仪式需要特殊检查（如附魔力、讲台的书、花盆内容等），必须使用自定义函数：
-
-- `magic` - 魔法仪式（需要检查附魔力（书架）和讲台的书）
-- `necroturgy` - 死灵仪式（需要检查花盆内容：花盆必须有花）
-
-**注意：**
-- 现在大部分仪式都可以通过配置化方式实现，只有极少数需要自定义函数
-- 配置化方式的检查顺序：维度 → 天气 → 时间 → 生物群系 → 高度 → 天空可见性 → 方块需求
-- `lich` (大师死灵仪式) 不是一个独立的仪式类型，不支持修改
-  - lich 相关的仪式使用 `craftType: "necroturgy"` 和 `research: "forbidden"`
-  - 如果需要修改 lich 仪式的结构，应修改 `necroturgy` 仪式类型（但会影响所有 necroturgy 仪式）
-
-### 自定义仪式类型
-
-通过 `GoetyEvents.registerRitual` 创建的任何仪式类型都可以被修改。
-
 #### 本地化（可选）
 
 如果你创建了新的仪式类型，并希望在 JEI 或游戏中显示中文名称，你需要添加本地化文件：
@@ -309,9 +251,8 @@ GoetyEvents.registerBrew(event => {
 **参考示例**：[goety_brews.js.example](src/main/resources/kubejs/server_scripts/goety_brews.js.example)
 
 **注意**：
-- **调整现有效果的灵魂消耗** → 使用 `config/goety-brews.toml` 配置文件
-- **添加催化剂（酿造配方）** → 使用 `event.recipes.goety.brewing`（见下方配方系统）
 - **添加容量剂和增强剂** → 使用 `GoetyEvents.registerBrew`
+- **添加催化剂（酿造配方）** → 使用 `event.recipes.goety.brewing`（见下方配方系统）
 
 ## 配方系统配置
 
@@ -369,6 +310,11 @@ ServerEvents.recipes(event => {
         .entityType('minecraft:ender_dragon');  // 需要末影龙
 });
 ```
+
+**配置优先级说明**：
+- 使用 `event.recipes.goety.brewing` 可以添加新的催化剂配方，也可以调整现有效果的灵魂消耗（`.soulCost()`）
+- 如果同时使用 `config/goety-brews.toml` 配置文件和 KubeJS 脚本，**KubeJS 脚本的优先级更高**，会覆盖配置文件中的设置
+- 推荐使用 KubeJS 脚本进行配置，因为它更灵活且易于版本控制
 
 #### 粉碎配方（pulverize）
 

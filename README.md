@@ -138,28 +138,6 @@ The `ritual` object supports the following configuration options:
 
 **See example**: [goety_rituals.js.example](src/main/resources/kubejs/server_scripts/goety_rituals.js.example)
 
-## Supported Ritual Types
-
-### Built-in Ritual Types (can be modified via modifyRitual)
-
-- `storm` - Storm ritual
-- `magic` - Magic ritual
-- `necroturgy` - Necroturgy ritual
-- `forge` - Forge ritual
-- `geoturgy` - Geoturgy ritual
-- `sabbath` - Sabbath ritual
-- `adept_nether` - Adept Nether ritual
-- `expert_nether` - Expert Nether ritual
-- `end` - End ritual
-- `frost` - Frost ritual
-- `sky` - Sky ritual
-- `deep` - Deep ritual
-- `animation` - Animation ritual
-
-### Custom Ritual Types
-
-Any ritual type created via `GoetyEvents.registerRitual` can be modified.
-
 ## Brew System Configuration
 
 ### GoetyEvents.registerBrew
@@ -231,9 +209,8 @@ GoetyEvents.registerBrew(event => {
 **See example**: [goety_brews.js.example](src/main/resources/kubejs/server_scripts/goety_brews.js.example)
 
 **Note**:
-- **Adjust existing effect soul costs** → Use `config/goety-brews.toml` configuration file
-- **Add catalysts (brewing recipes)** → Use `event.recipes.goety.brewing` (see Recipe System below)
 - **Add capacity modifiers and augmentations** → Use `GoetyEvents.registerBrew`
+- **Add catalysts (brewing recipes)** → Use `event.recipes.goety.brewing` (see Recipe System below)
 
 ## Recipe System Configuration
 
@@ -291,6 +268,11 @@ ServerEvents.recipes(event => {
         .entityType('minecraft:ender_dragon');  // Requires ender dragon
 });
 ```
+
+**Configuration Priority**:
+- You can use `event.recipes.goety.brewing` to add new catalyst recipes or adjust soul costs for existing effects (`.soulCost()`)
+- If both `config/goety-brews.toml` and KubeJS scripts are used, **KubeJS scripts have higher priority** and will override config file settings
+- Using KubeJS scripts is recommended as they are more flexible and easier to version control
 
 #### Pulverize Recipes
 
