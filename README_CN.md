@@ -329,7 +329,7 @@ ServerEvents.recipes(event => {
     event.recipes.goety.brewing('minecraft:golden_apple', 'minecraft:regeneration')
         .soulCost(15)
         .capacityExtra(0)
-        .duration(30);  // 30秒
+        .duration(600);  // 30秒
     
     // 需要特定生物的酿造配方
     event.recipes.goety.brewing('minecraft:nether_star', 'minecraft:resistance')

@@ -738,7 +738,7 @@ ServerEvents.recipes(event => {
     event.recipes.goety.brewing('minecraft:golden_apple', 'minecraft:regeneration')
         .soulCost(15)
         .capacityExtra(0)
-        .duration(30);  // 30 seconds
+        .duration(600);  // 30 seconds
     
     // Recipe requiring specific entity
     event.recipes.goety.brewing('minecraft:nether_star', 'minecraft:resistance')
