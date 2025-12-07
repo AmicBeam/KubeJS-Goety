@@ -61,6 +61,11 @@ public class GoetyKubeJSPlugin extends KubeJSPlugin {
                     EventHandlers.removeRitual.post(new com.kubejs.goety.event.RemoveRitualEventJS());
                 }
                 
+                // 触发注册药酿事件
+                if (EventHandlers.registerBrew.hasListeners()) {
+                    EventHandlers.registerBrew.post(new com.kubejs.goety.event.RegisterBrewEventJS());
+                }
+                
                 return null;
             });
         }

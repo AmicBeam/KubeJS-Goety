@@ -245,6 +245,9 @@ GoetyEvents.registerBrew(event => {
     event.addAugmentation('mymod:time_crystal', 'duration', 3);
     event.addAugmentation('mymod:power_crystal', 'amplifier', 2);
     event.addAugmentation('mymod:range_crystal', 'aoe', 1);
+
+    // Remove the built-in catalyst; the built-in catalyst cannot be removed through the recipe.
+    event.removeCatalyst('minecraft:grass');
 });
 ```
 

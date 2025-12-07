@@ -339,6 +339,7 @@ public class RegisterBrewEventJS extends EventJS {
     
     /**
      * 移除物品催化剂
+     * 通过反射访问 BrewEffects 的内部 Map 来删除代码中注册的配方
      */
     @Info(value = "移除物品催化剂", params = {
         @Param(name = "item", value = "物品ID（字符串）或物品对象")
@@ -346,20 +347,84 @@ public class RegisterBrewEventJS extends EventJS {
     public void removeCatalyst(Object item) {
         Item itemObj = getItem(item);
         if (itemObj == null) {
+            ScriptType.SERVER.console.error("无法解析物品: " + item);
             return;
         }
         
-        ScriptType.SERVER.console.warn("移除催化剂功能需要先移除原配置，然后重新注册。建议直接覆盖注册。");
+        try {
+            // 通过反射访问 BrewEffects.INSTANCE 的私有 catalyst Map
+            java.lang.reflect.Field catalystField = com.Polarice3.Goety.common.effects.brew.BrewEffects.class.getDeclaredField("catalyst");
+            catalystField.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            java.util.Map<net.minecraft.world.item.Item, com.Polarice3.Goety.common.effects.brew.BrewEffect> catalystMap = 
+                (java.util.Map<net.minecraft.world.item.Item, com.Polarice3.Goety.common.effects.brew.BrewEffect>) 
+                catalystField.get(com.Polarice3.Goety.common.effects.brew.BrewEffects.INSTANCE);
+            
+            if (catalystMap == null) {
+                ScriptType.SERVER.console.error("catalyst Map 为 null，无法移除");
+                return;
+            }
+            
+            if (catalystMap.containsKey(itemObj)) {
+                com.Polarice3.Goety.common.effects.brew.BrewEffect removed = catalystMap.remove(itemObj);
+            } else {
+                ScriptType.SERVER.console.warn("未找到催化剂: " + itemObj);
+            }
+        } catch (NoSuchFieldException e) {
+            ScriptType.SERVER.console.error("找不到 catalyst 字段: " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            ScriptType.SERVER.console.error("移除催化剂失败: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
     
     /**
      * 移除实体催化剂
+     * 通过反射访问 BrewEffects 的内部 Map 来删除代码中注册的配方
      */
     @Info(value = "移除实体催化剂", params = {
         @Param(name = "entity", value = "实体类型ID（字符串）")
     })
     public void removeEntityCatalyst(Object entity) {
-        ScriptType.SERVER.console.warn("移除实体催化剂功能需要先移除原配置，然后重新注册。建议直接覆盖注册。");
+        if (entity == null) {
+            ScriptType.SERVER.console.error("实体类型不能为 null");
+            return;
+        }
+        
+        EntityType<?> entityType = null;
+        if (entity instanceof EntityType) {
+            entityType = (EntityType<?>) entity;
+        } else if (entity instanceof CharSequence) {
+            ResourceLocation location = ResourceLocation.tryParse(entity.toString());
+            if (location != null) {
+                entityType = ForgeRegistries.ENTITY_TYPES.getValue(location);
+            }
+        }
+        
+        if (entityType == null) {
+            ScriptType.SERVER.console.error("无法解析实体类型: " + entity);
+            return;
+        }
+        
+        try {
+            // 通过反射访问 BrewEffects.INSTANCE 的私有 sacrifice Map
+            java.lang.reflect.Field sacrificeField = com.Polarice3.Goety.common.effects.brew.BrewEffects.class.getDeclaredField("sacrifice");
+            sacrificeField.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            java.util.Map<net.minecraft.world.entity.EntityType<?>, com.Polarice3.Goety.common.effects.brew.BrewEffect> sacrificeMap = 
+                (java.util.Map<net.minecraft.world.entity.EntityType<?>, com.Polarice3.Goety.common.effects.brew.BrewEffect>) 
+                sacrificeField.get(com.Polarice3.Goety.common.effects.brew.BrewEffects.INSTANCE);
+            
+            if (sacrificeMap != null && sacrificeMap.containsKey(entityType)) {
+                sacrificeMap.remove(entityType);
+            } else {
+                ScriptType.SERVER.console.warn("未找到实体催化剂: " + entityType);
+            }
+        } catch (Exception e) {
+            ScriptType.SERVER.console.error("移除实体催化剂失败: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
     
     /**

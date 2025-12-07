@@ -64,6 +64,8 @@ GoetyEvents.registerBrew(event => {
     
     // event.removeCapacity('minecraft:nether_wart');
     // event.removeAugmentation('minecraft:redstone');
+    // 移除内置催化剂，内置催化剂无法通过recipe删除
+    // event.removeCatalyst('minecraft:grass');
     
     
     // ==========================================

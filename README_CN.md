@@ -254,6 +254,9 @@ GoetyEvents.registerBrew(event => {
     event.addAugmentation('mymod:time_crystal', 'duration', 3);
     event.addAugmentation('mymod:power_crystal', 'amplifier', 2);
     event.addAugmentation('mymod:range_crystal', 'aoe', 1);
+    
+    // 移除内置催化剂，内置催化剂无法通过recipe删除
+    event.removeCatalyst('minecraft:grass');
 });
 ```
 
