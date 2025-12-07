@@ -55,9 +55,67 @@ GoetyEvents.registerBrew(event => {
     // 修改原版增强剂（直接覆盖）
     event.addAugmentation('minecraft:redstone', 'duration', 1);  // 提升等级
     
+    // ==========================================
+    // 3. 特殊效果配方（非药水效果）
+    // ==========================================
+    // 
+    // event.addSpecialBrewEffect(item, effectType)
+    //     .soulCost(cost)        // 可选，设置灵魂消耗
+    //     .capacityExtra(extra)  // 可选，设置额外容量
+    // 
+    // - item: 物品ID（字符串）或物品对象
+    // - effectType: 效果类型（字符串），如 'bats', 'bees', 'grow', 'explode' 等
+    //
+    // 注意：这些效果不是通过 event.recipes.goety.brewing() 添加的，
+    // 因为它们不是药水效果，而是即时效果或方块效果
+    
+    // 添加生长效果配方（需要 soulCost）
+    event.addSpecialBrewEffect('minecraft:bone_meal', 'grow')
+        .soulCost(10);
+    
+    // 添加爆炸效果配方（需要 soulCost 和 capacityExtra）
+    event.addSpecialBrewEffect('minecraft:tnt', 'explode')
+        .soulCost(50)
+        .capacityExtra(2);
+    
+    // 添加繁殖效果配方（不需要参数，使用默认配置）
+    event.addSpecialBrewEffect('minecraft:egg', 'fertility');
+    
+    
+    // 支持的其他效果类型（通过反射自动发现，Goety 更新新效果时无需修改代码）：
+    // - 'bees' - 召唤蜜蜂
+    // - 'blind_jump' - 盲跳效果
+    // - 'chop_tree' - 砍树效果
+    // - 'combust' - 燃烧方块
+    // - 'corrosion' - 腐蚀方块
+    // - 'drought' - 干旱效果
+    // - 'extinguish' - 灭火效果
+    // - 'flaying' - 剥皮效果
+    // - 'flood' - 洪水效果
+    // - 'freeze' - 冰冻效果
+    // - 'grow_cactus' - 仙人掌生长
+    // - 'grow_cave_vines' - 洞穴藤蔓生长
+    // - 'harvest' - 收获效果
+    // - 'launch' - 发射效果
+    // - 'leaf_shell' - 叶壳效果
+    // - 'love' - 爱情效果
+    // - 'mossify' - 苔藓化效果
+    // - 'part_lava' - 部分熔岩效果
+    // - 'part_water' - 部分水效果
+    // - 'pulverize' - 粉碎效果
+    // - 'pruning' - 修剪效果
+    // - 'raise_dead' - 复活效果
+    // - 'saturation' - 饱食效果
+    // - 'shear' - 剪毛效果
+    // - 'snow' - 雪效果
+    // - 'strip' - 剥离效果
+    // - 'sweet_berried' - 甜浆果效果
+    // - 'thorn_trap' - 荆棘陷阱
+    // - 'webbed' - 蛛网效果
+    
     
     // ==========================================
-    // 3. 移除配置（可选）
+    // 4. 移除配置（可选）
     // ==========================================
     // 注意：移除功能目前仅提供警告提示
     // 实际移除需要通过覆盖注册来实现
@@ -66,6 +124,8 @@ GoetyEvents.registerBrew(event => {
     // event.removeAugmentation('minecraft:redstone');
     // 移除内置催化剂，内置催化剂无法通过recipe删除
     // event.removeCatalyst('minecraft:grass');
+    // 
+    // ⚠️ 重要提示：移除药酿配方后，/reload 无法动态刷新更改。需要重启游戏才能使移除生效。
     
     
     // ==========================================

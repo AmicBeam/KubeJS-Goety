@@ -242,6 +242,44 @@ GoetyEvents.registerBrew(event => {
 });
 ```
 
+#### 注册特殊效果配方（非药水效果）
+
+注册非药水效果的特殊效果配方（即时效果或方块效果）：
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    // event.addSpecialBrewEffect(item, effectType)
+    //     .soulCost(cost)        // 可选，设置灵魂消耗
+    //     .capacityExtra(extra)  // 可选，设置额外容量
+    // 
+    // - item: 物品ID（字符串）或物品对象
+    // - effectType: 效果类型（字符串），如 'bats', 'bees', 'grow', 'explode' 等
+    
+    // 添加生长效果配方
+    event.addSpecialBrewEffect('minecraft:bone_meal', 'grow')
+        .soulCost(10);
+    
+    // 添加爆炸效果配方
+    event.addSpecialBrewEffect('minecraft:tnt', 'explode')
+        .soulCost(50)
+        .capacityExtra(2);
+    
+    // 添加繁殖效果配方（不需要参数）
+    event.addSpecialBrewEffect('minecraft:egg', 'fertility');
+    
+    // 移除已存在的特殊效果配方（适用于内置效果和自定义效果）
+    event.removeCatalyst('minecraft:bone_meal');  // 移除上面注册的 'grow' 效果
+});
+```
+
+**支持的效果类型**：`bats`, `bees`, `blind_jump`, `chop_tree`, `combust`, `corrosion`, `drought`, `explode`, `extinguish`, `fertility`, `flaying`, `flood`, `freeze`, `grow`, `grow_cactus`, `grow_cave_vines`, `harvest`, `launch`, `leaf_shell`, `love`, `mossify`, `part_lava`, `part_water`, `pulverize`, `pruning`, `raise_dead`, `saturation`, `shear`, `snow`, `strip`, `sweet_berried`, `thorn_trap`, `transpose`, `webbed`
+
+**注意**：效果类型通过反射自动发现。当 Goety 添加新效果时，无需修改代码即可使用。
+
+**移除特殊效果配方**：使用 `event.removeCatalyst(item)` 可以移除指定物品注册的特殊效果配方。这适用于内置效果和通过 `addSpecialBrewEffect` 添加的自定义效果。
+
+⚠️ **重要提示**：移除药酿配方后，`/reload` 无法动态刷新更改。需要**重启游戏**才能使移除生效。
+
 #### 完整示例
 
 ```javascript
@@ -257,6 +295,7 @@ GoetyEvents.registerBrew(event => {
     
     // 移除内置催化剂，内置催化剂无法通过recipe删除
     event.removeCatalyst('minecraft:grass');
+    // ⚠️ 注意：移除药酿配方后，/reload 无法动态刷新。需要重启游戏。
 });
 ```
 
@@ -264,6 +303,7 @@ GoetyEvents.registerBrew(event => {
 
 **注意**：
 - **添加容量剂和增强剂** → 使用 `GoetyEvents.registerBrew`
+- **添加特殊效果配方（非药水效果）** → 在 `GoetyEvents.registerBrew` 中使用 `event.addSpecialBrewEffect()`
 - **添加催化剂（酿造配方）** → 使用 `event.recipes.goety.brewing`（见下方配方系统）
 
 ## 配方系统配置

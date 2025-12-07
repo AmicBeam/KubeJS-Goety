@@ -233,6 +233,44 @@ GoetyEvents.registerBrew(event => {
 });
 ```
 
+#### Register Special Brew Effects (Non-Potion Effects)
+
+Register special brew effects that are not potion effects (instant effects or block effects):
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    // event.addSpecialBrewEffect(item, effectType)
+    //     .soulCost(cost)        // Optional, set soul cost
+    //     .capacityExtra(extra)  // Optional, set extra capacity
+    // 
+    // - item: Item ID (string) or item object
+    // - effectType: Effect type (string), e.g., 'bats', 'bees', 'grow', 'explode', etc.
+    
+    // Add growth effect recipe
+    event.addSpecialBrewEffect('minecraft:bone_meal', 'grow')
+        .soulCost(10);
+    
+    // Add explosion effect recipe
+    event.addSpecialBrewEffect('minecraft:tnt', 'explode')
+        .soulCost(50)
+        .capacityExtra(2);
+    
+    // Add fertility effect recipe (no parameters needed)
+    event.addSpecialBrewEffect('minecraft:egg', 'fertility');
+    
+    // Remove existing special brew effect (works for both built-in and custom effects)
+    event.removeCatalyst('minecraft:bone_meal');  // Removes the 'grow' effect registered above
+});
+```
+
+**Available effect types**: `bats`, `bees`, `blind_jump`, `chop_tree`, `combust`, `corrosion`, `drought`, `explode`, `extinguish`, `fertility`, `flaying`, `flood`, `freeze`, `grow`, `grow_cactus`, `grow_cave_vines`, `harvest`, `launch`, `leaf_shell`, `love`, `mossify`, `part_lava`, `part_water`, `pulverize`, `pruning`, `raise_dead`, `saturation`, `shear`, `snow`, `strip`, `sweet_berried`, `thorn_trap`, `transpose`, `webbed`
+
+**Note**: Effect types are automatically discovered via reflection. When Goety adds new effects, they will be available without requiring code changes.
+
+**Removing special brew effects**: Use `event.removeCatalyst(item)` to remove special brew effects registered for a specific item. This works for both built-in effects and custom effects added via `addSpecialBrewEffect`.
+
+⚠️ **Important**: After removing brew effects, `/reload` cannot dynamically refresh the changes. You need to **restart the game** for the removal to take effect.
+
 #### Complete Example
 
 ```javascript
@@ -248,6 +286,7 @@ GoetyEvents.registerBrew(event => {
 
     // Remove the built-in catalyst; the built-in catalyst cannot be removed through the recipe.
     event.removeCatalyst('minecraft:grass');
+    // ⚠️ Note: After removing brew effects, /reload cannot dynamically refresh. You need to restart the game.
 });
 ```
 
@@ -255,6 +294,7 @@ GoetyEvents.registerBrew(event => {
 
 **Note**:
 - **Add capacity modifiers and augmentations** → Use `GoetyEvents.registerBrew`
+- **Add special brew effects (non-potion effects)** → Use `event.addSpecialBrewEffect()` in `GoetyEvents.registerBrew`
 - **Add catalysts (brewing recipes)** → Use `event.recipes.goety.brewing` (see Recipe System below)
 
 ## Recipe System Configuration

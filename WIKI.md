@@ -632,6 +632,83 @@ GoetyEvents.registerBrew(event => {
 
 **Note**: To add catalysts (brewing recipes), use `event.recipes.goety.brewing` in the recipe system.
 
+### Special Brew Effects (Non-Potion Effects)
+
+Register special brew effects that are not potion effects (instant effects or block effects):
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    // event.addSpecialBrewEffect(item, effectType)
+    //     .soulCost(cost)        // Optional, set soul cost
+    //     .capacityExtra(extra)  // Optional, set extra capacity
+    // 
+    // - item: Item ID (string) or item object
+    // - effectType: Effect type (string), e.g., 'bats', 'bees', 'grow', 'explode', etc.
+    //
+    // Note: These effects are not added via event.recipes.goety.brewing()
+    // because they are not potion effects, but instant effects or block effects
+    // Supports method chaining, similar to event.recipes.goety.brewing()
+    
+    // Add growth effect recipe (requires soulCost)
+    event.addSpecialBrewEffect('minecraft:bone_meal', 'grow')
+        .soulCost(10);
+    
+    // Add explosion effect recipe (requires soulCost and capacityExtra)
+    event.addSpecialBrewEffect('minecraft:tnt', 'explode')
+        .soulCost(50)
+        .capacityExtra(2);
+    
+    // Add fertility effect recipe (no parameters needed, uses default config)
+    event.addSpecialBrewEffect('minecraft:egg', 'fertility');
+});
+```
+
+**Available effect types** (automatically discovered via reflection, no code changes needed when Goety updates):
+- `'bats'` - Summon bats
+- `'bees'` - Summon bees
+- `'blind_jump'` - Blind jump effect
+- `'chop_tree'` - Chop tree effect
+- `'combust'` - Combust blocks
+- `'corrosion'` - Corrosion blocks
+- `'drought'` - Drought effect
+- `'explode'` - Explosion effect
+- `'extinguish'` - Extinguish fire effect
+- `'fertility'` - Fertility effect
+- `'flaying'` - Flaying effect
+- `'flood'` - Flood effect
+- `'freeze'` - Freeze effect
+- `'grow'` - Growth effect
+- `'grow_cactus'` - Cactus growth
+- `'grow_cave_vines'` - Cave vines growth
+- `'harvest'` - Harvest effect
+- `'launch'` - Launch effect
+- `'leaf_shell'` - Leaf shell effect
+- `'love'` - Love effect
+- `'mossify'` - Mossify effect
+- `'part_lava'` - Part lava effect
+- `'part_water'` - Part water effect
+- `'pulverize'` - Pulverize effect
+- `'pruning'` - Pruning effect
+- `'raise_dead'` - Raise dead effect
+- `'saturation'` - Saturation effect
+- `'shear'` - Shear effect
+- `'snow'` - Snow effect
+- `'strip'` - Strip effect
+- `'sweet_berried'` - Sweet berried effect
+- `'thorn_trap'` - Thorn trap effect
+- `'transpose'` - Transpose effect
+- `'webbed'` - Webbed effect
+
+**Available methods**:
+- `.soulCost(cost)` - Set soul cost (optional, default 25)
+- `.capacityExtra(extra)` - Set extra capacity (optional, default 0)
+
+**Note**: Effect types are automatically discovered via reflection. When Goety adds new effects, they will be available without requiring code changes to KubeJS-Goety.
+
+**Removing special brew effects**: Use `event.removeCatalyst(item)` in `GoetyEvents.registerBrew` to remove special brew effects registered for a specific item. This works for both built-in effects and custom effects added via `addSpecialBrewEffect`.
+
+⚠️ **Important**: After removing brew effects, `/reload` cannot dynamically refresh the changes. You need to **restart the game** for the removal to take effect.
+
 ---
 
 ## Recipe System
