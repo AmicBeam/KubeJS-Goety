@@ -2,6 +2,7 @@ package com.kubejs.goety.event;
 
 import com.Polarice3.Goety.api.ritual.IRitualType;
 import com.Polarice3.Goety.api.ritual.RitualType;
+import com.Polarice3.Goety.common.blocks.entities.RitualBlockEntity;
 import dev.latvian.mods.kubejs.event.EventJS;
 import dev.latvian.mods.kubejs.item.InputItem;
 import dev.latvian.mods.kubejs.typings.Generics;
@@ -11,14 +12,17 @@ import dev.latvian.mods.kubejs.util.ListJS;
 import dev.latvian.mods.kubejs.util.UtilsJS;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.item.crafting.Ingredient;
 import com.kubejs.goety.util.SizedIngredient;
 import dev.latvian.mods.kubejs.script.ScriptType;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -526,7 +530,8 @@ public class RegisterRitualEventJS extends EventJS {
                 }
                 
                 @Override
-                public boolean getRequirement(com.Polarice3.Goety.common.blocks.entities.RitualBlockEntity pTileEntity, 
+                public boolean getRequirement(RitualBlockEntity pTileEntity,
+                                            @Nullable Player pPlayer,
                                             BlockPos pPos, 
                                             Level pLevel) {
                     try {
@@ -540,7 +545,7 @@ public class RegisterRitualEventJS extends EventJS {
                                     cx,
                                     scope,
                                     scope,
-                                    new Object[]{pTileEntity, pPos, pLevel}
+                                    new Object[]{pTileEntity, pPlayer, pPos, pLevel}
                                 );
                                 return UtilsJS.cast(result);
                         }
@@ -553,11 +558,17 @@ public class RegisterRitualEventJS extends EventJS {
                             if (containsMatch) {
                                 // 模糊匹配
                                 if (!dimensionId.contains(finalDimension)) {
+                                    if (pPlayer != null) {
+                                        pPlayer.displayClientMessage(Component.translatable("info.kubejs_goety.ritual.dimension.required", finalDimension), true);
+                                    }
                                     return false;
                                 }
                             } else {
                                 // 精确匹配（默认）
                                 if (!dimensionId.equals(finalDimension)) {
+                                    if (pPlayer != null) {
+                                        pPlayer.displayClientMessage(Component.translatable("info.kubejs_goety.ritual.dimension.required", finalDimension), true);
+                                    }
                                     return false;
                                 }
                             }
@@ -568,16 +579,25 @@ public class RegisterRitualEventJS extends EventJS {
                             switch (finalWeather.toLowerCase()) {
                                 case "thunder":
                                     if (!pLevel.isThundering()) {
+                                        if (pPlayer != null) {
+                                            pPlayer.displayClientMessage(Component.translatable("info.goety.ritual.structure.storm"), true);
+                                        }
                                         return false;
                                     }
                                     break;
                                 case "rain":
                                     if (!pLevel.isRaining()) {
+                                        if (pPlayer != null) {
+                                            pPlayer.displayClientMessage(Component.translatable("info.kubejs_goety.ritual.weather.rain.required"), true);
+                                        }
                                         return false;
                                     }
                                     break;
                                 case "clear":
                                     if (pLevel.isRaining() || pLevel.isThundering()) {
+                                        if (pPlayer != null) {
+                                            pPlayer.displayClientMessage(Component.translatable("info.kubejs_goety.ritual.weather.clear.required"), true);
+                                        }
                                         return false;
                                     }
                                     break;
@@ -591,12 +611,18 @@ public class RegisterRitualEventJS extends EventJS {
                                 case "night":
                                     // getSkyDarken >= 4 表示夜晚
                                     if (skyDarken < 4) {
+                                        if (pPlayer != null) {
+                                            pPlayer.displayClientMessage(Component.translatable("info.goety.ritual.structure.night"), true);
+                                        }
                                         return false;
                                     }
                                     break;
                                 case "day":
                                     // getSkyDarken < 4 表示白天
                                     if (skyDarken >= 4) {
+                                        if (pPlayer != null) {
+                                            pPlayer.displayClientMessage(Component.translatable("info.kubejs_goety.ritual.time.day.required"), true);
+                                        }
                                         return false;
                                     }
                                     break;
@@ -625,6 +651,9 @@ public class RegisterRitualEventJS extends EventJS {
                                         var method = biomeClass.getMethod(methodName);
                                         Object result = method.invoke(biome);
                                         if (result instanceof Boolean && !(Boolean) result) {
+                                            if (pPlayer != null) {
+                                                pPlayer.displayClientMessage(Component.translatable("info.kubejs_goety.ritual.biome.required"), true);
+                                            }
                                             return false;
                                         }
                                     } catch (NoSuchMethodException e1) {
@@ -633,11 +662,17 @@ public class RegisterRitualEventJS extends EventJS {
                                             var method = biomeClass.getMethod(methodName, net.minecraft.core.BlockPos.class);
                                             Object result = method.invoke(biome, pPos);
                                             if (result instanceof Boolean && !(Boolean) result) {
+                                                if (pPlayer != null) {
+                                                    pPlayer.displayClientMessage(Component.translatable("info.kubejs_goety.ritual.biome.required"), true);
+                                                }
                                                 return false;
                                             }
                                         } catch (NoSuchMethodException e2) {
                                             // 方法不存在，记录警告
                                             ScriptType.SERVER.console.warn("Biome method '" + methodName + "' not found for biome check in ritual");
+                                            if (pPlayer != null) {
+                                                pPlayer.displayClientMessage(Component.translatable("info.kubejs_goety.ritual.biome.required"), true);
+                                            }
                                             return false;
                                         }
                                     }
@@ -672,6 +707,9 @@ public class RegisterRitualEventJS extends EventJS {
                                 }
                                 
                                 if (!biomeTagMatch) {
+                                    if (pPlayer != null) {
+                                        pPlayer.displayClientMessage(Component.translatable("info.kubejs_goety.ritual.biome.required"), true);
+                                    }
                                     return false;
                                 }
                             } else {
@@ -710,6 +748,9 @@ public class RegisterRitualEventJS extends EventJS {
                                 }
                                 
                                 if (!biomeIdMatch) {
+                                    if (pPlayer != null) {
+                                        pPlayer.displayClientMessage(Component.translatable("info.kubejs_goety.ritual.biome.required"), true);
+                                    }
                                     return false;
                                 }
                             }
@@ -717,9 +758,15 @@ public class RegisterRitualEventJS extends EventJS {
                         
                         // 检查高度要求
                         if (finalMinY != null && pPos.getY() < finalMinY) {
+                            if (pPlayer != null) {
+                                pPlayer.displayClientMessage(Component.translatable("info.kubejs_goety.ritual.height.min.required", finalMinY), true);
+                            }
                             return false;
                         }
                         if (finalMaxY != null && pPos.getY() > finalMaxY) {
+                            if (pPlayer != null) {
+                                pPlayer.displayClientMessage(Component.translatable("info.kubejs_goety.ritual.height.max.required", finalMaxY), true);
+                            }
                             return false;
                         }
                         
@@ -727,9 +774,15 @@ public class RegisterRitualEventJS extends EventJS {
                         if (finalRequireSkyVisible != null) {
                             boolean canSeeSky = pLevel.canSeeSky(pPos.above());
                             if (finalRequireSkyVisible && !canSeeSky) {
+                                if (pPlayer != null) {
+                                    pPlayer.displayClientMessage(Component.translatable("info.goety.ritual.structure.exposed"), true);
+                                }
                                 return false;
                             }
                             if (!finalRequireSkyVisible && canSeeSky) {
+                                if (pPlayer != null) {
+                                    pPlayer.displayClientMessage(Component.translatable("info.kubejs_goety.ritual.sky.blocked.required"), true);
+                                }
                                 return false;
                             }
                         }
@@ -740,9 +793,15 @@ public class RegisterRitualEventJS extends EventJS {
                             var BlockStateProperties = net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED;
                             boolean isWaterlogged = altarState.hasProperty(BlockStateProperties) && altarState.getValue(BlockStateProperties);
                             if (finalRequireAltarWaterlogged && !isWaterlogged) {
+                                if (pPlayer != null) {
+                                    pPlayer.displayClientMessage(Component.translatable("info.goety.ritual.structure.waterlogged"), true);
+                                }
                                 return false;
                             }
                             if (!finalRequireAltarWaterlogged && isWaterlogged) {
+                                if (pPlayer != null) {
+                                    pPlayer.displayClientMessage(Component.translatable("info.kubejs_goety.ritual.waterlogged.not_required"), true);
+                                }
                                 return false;
                             }
                         }
@@ -785,6 +844,13 @@ public class RegisterRitualEventJS extends EventJS {
                             int required = entry.getValue();
                             int actual = found.getOrDefault(entry.getKey(), 0);
                             if (actual < required) {
+                                if (pPlayer != null) {
+                                    // 尝试获取物品名称用于提示
+                                    net.minecraft.world.item.ItemStack[] items = entry.getKey().ingredient().getItems();
+                                    String itemName = items.length > 0 ? items[0].getDisplayName().getString() : "blocks";
+                                    pPlayer.displayClientMessage(Component.translatable("info.goety.ritual.structure.noBlocks", 
+                                        Component.literal(String.format("%d× %s", required, itemName))), true);
+                                }
                                 return false;
                             }
                         }

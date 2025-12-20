@@ -1,0 +1,12 @@
+{
+  "info.kubejs_goety.ritual.dimension.required": "仪式必须在维度 %s 中进行！",
+  "info.kubejs_goety.ritual.weather.rain.required": "仪式需要雨天！",
+  "info.kubejs_goety.ritual.weather.clear.required": "仪式需要晴天！",
+  "info.kubejs_goety.ritual.time.day.required": "仪式必须在白天进行！",
+  "info.kubejs_goety.ritual.biome.required": "仪式需要特定的生物群系条件！",
+  "info.kubejs_goety.ritual.height.min.required": "仪式必须在 Y 坐标 %d 或更高处进行！",
+  "info.kubejs_goety.ritual.height.max.required": "仪式必须在 Y 坐标 %d 或更低处进行！",
+  "info.kubejs_goety.ritual.sky.blocked.required": "仪式必须在看不到天空的地方进行！",
+  "info.kubejs_goety.ritual.waterlogged.not_required": "祭坛不能含水！"
+}
+

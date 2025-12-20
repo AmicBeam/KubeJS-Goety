@@ -1,0 +1,12 @@
+{
+  "info.kubejs_goety.ritual.dimension.required": "Ritual must be performed in dimension: %s",
+  "info.kubejs_goety.ritual.weather.rain.required": "Ritual requires rainy weather!",
+  "info.kubejs_goety.ritual.weather.clear.required": "Ritual requires clear weather!",
+  "info.kubejs_goety.ritual.time.day.required": "Ritual must be performed during day!",
+  "info.kubejs_goety.ritual.biome.required": "Ritual requires specific biome conditions!",
+  "info.kubejs_goety.ritual.height.min.required": "Ritual must be performed at Y level %d or higher!",
+  "info.kubejs_goety.ritual.height.max.required": "Ritual must be performed at Y level %d or lower!",
+  "info.kubejs_goety.ritual.sky.blocked.required": "Ritual must be performed without sky visibility!",
+  "info.kubejs_goety.ritual.waterlogged.not_required": "Altar must not be waterlogged!"
+}
+
