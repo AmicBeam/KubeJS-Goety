@@ -844,6 +844,8 @@ ServerEvents.recipes(event => {
 
 ### Pulverize Recipes
 
+**Note**: Pulverize recipes can output both items and blocks simultaneously, but JEI will only display the item output.
+
 Create recipes for the Haunted block pulverizer:
 
 ```javascript

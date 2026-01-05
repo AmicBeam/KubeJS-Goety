@@ -379,6 +379,8 @@ ServerEvents.recipes(event => {
 
 #### Pulverize Recipes
 
+**Note**: Pulverize recipes can output both items and blocks simultaneously, but JEI will only display the item output.
+
 ```javascript
 ServerEvents.recipes(event => {
     // event.recipes.goety.pulverize(ingredient)

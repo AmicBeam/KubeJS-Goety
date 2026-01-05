@@ -388,6 +388,8 @@ ServerEvents.recipes(event => {
 
 #### 粉碎配方（pulverize）
 
+**注意**：粉碎配方可以同时输出物品和方块，但JEI只会显示输出物品。
+
 ```javascript
 ServerEvents.recipes(event => {
     // event.recipes.goety.pulverize(ingredient)
