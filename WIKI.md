@@ -873,6 +873,12 @@ ServerEvents.recipes(event => {
     // Basic recipe
     event.recipes.goety.cursed_infuser_recipes('minecraft:emerald', 'minecraft:iron_sword')
         .cookingTime(100);  // 5 seconds
+
+    // Output with NBT
+    event.recipes.goety.cursed_infuser_recipes(
+        Item.of('minecraft:potion', '{Potion:"minecraft:healing"}'),
+        'minecraft:glass_bottle'
+    );
     
     // Grim recipe
     event.recipes.goety.cursed_infuser_recipes('minecraft:emerald', '#forge:obsidian')

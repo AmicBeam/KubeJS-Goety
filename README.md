@@ -399,11 +399,17 @@ ServerEvents.recipes(event => {
 ```javascript
 ServerEvents.recipes(event => {
     // event.recipes.goety.cursed_infuser_recipes(result, ingredient)
-    // - result: Output item ID (String)
+    // - result: Output item (OutputItem)
     // - ingredient: Material item (InputItem)
     
     event.recipes.goety.cursed_infuser_recipes('minecraft:emerald', 'minecraft:iron_sword')
         .cookingTime(100);  // 5 seconds (100 ticks)
+
+    // Output with NBT
+    event.recipes.goety.cursed_infuser_recipes(
+        Item.of('minecraft:potion', '{Potion:"minecraft:healing"}'),
+        'minecraft:glass_bottle'
+    );
 });
 ```
 

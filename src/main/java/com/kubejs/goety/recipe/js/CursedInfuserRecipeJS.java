@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import dev.latvian.mods.kubejs.core.ItemStackKJS;
 import dev.latvian.mods.kubejs.item.InputItem;
+import dev.latvian.mods.kubejs.item.OutputItem;
 import dev.latvian.mods.kubejs.recipe.RecipeJS;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
@@ -49,5 +50,9 @@ public class CursedInfuserRecipeJS extends RecipeJS {
         
         return defaultJson;
     }
-}
 
+    @Override
+    public JsonElement writeOutputItem(OutputItem value) {
+        return super.writeOutputItem(value);
+    }
+}

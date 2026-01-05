@@ -408,11 +408,17 @@ ServerEvents.recipes(event => {
 ```javascript
 ServerEvents.recipes(event => {
     // event.recipes.goety.cursed_infuser_recipes(result, ingredient)
-    // - result: 产物物品ID（String）
+    // - result: 产物物品（OutputItem）
     // - ingredient: 材料物品（InputItem）
     
     event.recipes.goety.cursed_infuser_recipes('minecraft:emerald', 'minecraft:iron_sword')
         .cookingTime(100);  // 5秒（100 tick）
+
+    // 带 NBT 的输出
+    event.recipes.goety.cursed_infuser_recipes(
+        Item.of('minecraft:potion', '{Potion:"minecraft:healing"}'),
+        'minecraft:glass_bottle'
+    );
 });
 ```
 
