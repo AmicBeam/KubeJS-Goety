@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.kubejs.goety.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "BrewCauldronBlockEntityMixin",
+    "BrewEffectsMixin",
+    "BrewEffectInstanceMixin",
+    "BrewingCatalystProcessorMixin",
+    "BrewingSacrificeProcessorMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

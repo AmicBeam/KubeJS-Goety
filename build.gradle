@@ -4,6 +4,7 @@ plugins {
     id 'idea'
     id 'maven-publish'
     id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    id 'org.spongepowered.mixin' version '0.7.+'
 }
 
 version = mod_version
@@ -26,9 +27,11 @@ minecraft {
         configureEach {
             workingDirectory project.file("run")
 
+            property 'mixin.env.disableRefMap', 'true'
             property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
 
             property 'forge.logging.console.level', 'debug'
+            arg '-mixin.config=kubejs_goety.mixins.json'
 
             mods {
                 "${mod_id}" {
@@ -50,6 +53,10 @@ minecraft {
             args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
         }
     }
+}
+
+mixin {
+    add sourceSets.main, "kubejs_goety.refmap.json"
 }
 
 repositories {
@@ -89,6 +96,7 @@ repositories {
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 
     // KubeJS
     // Use compileOnly for library mods - dependencies will be provided at runtime
@@ -112,7 +120,8 @@ tasks.named('jar', Jar).configure {
                 'Implementation-Title'    : project.name,
                 'Implementation-Version'  : project.jar.archiveVersion,
                 'Implementation-Vendor'    : mod_authors,
-                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+                'MixinConfigs'            : 'kubejs_goety.mixins.json'
         ])
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
@@ -149,4 +158,3 @@ publishing {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
-

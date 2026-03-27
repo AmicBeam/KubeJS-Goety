@@ -5,6 +5,7 @@ import com.Polarice3.Goety.common.effects.brew.BrewEffects;
 import com.Polarice3.Goety.common.effects.brew.PotionBrewEffect;
 import com.Polarice3.Goety.common.effects.brew.modifiers.BrewModifier;
 import com.Polarice3.Goety.common.effects.brew.modifiers.CapacityModifier;
+import com.kubejs.goety.bridge.BrewEffectsInvoker;
 import dev.latvian.mods.kubejs.event.EventJS;
 import dev.latvian.mods.kubejs.item.ItemStackJS;
 import dev.latvian.mods.kubejs.script.ScriptType;
@@ -39,6 +40,7 @@ public class RegisterBrewEventJS extends EventJS {
     private static Method registerMethod;
     private static Method registerEntityMethod;
     private static Method modifierRegisterMethod;
+    private static java.lang.reflect.Field modifiersField;
     
     static {
         try {
@@ -50,6 +52,9 @@ public class RegisterBrewEventJS extends EventJS {
             
             modifierRegisterMethod = BrewEffects.class.getDeclaredMethod("modifierRegister", BrewModifier.class, Item.class);
             modifierRegisterMethod.setAccessible(true);
+            
+            modifiersField = BrewEffects.class.getDeclaredField("modifiers");
+            modifiersField.setAccessible(true);
         } catch (Exception e) {
             System.err.println("[KubeJS Goety] Failed to initialize reflection methods: " + e.getMessage());
             e.printStackTrace();
@@ -79,7 +84,11 @@ public class RegisterBrewEventJS extends EventJS {
         
         try {
             CapacityModifier modifier = new CapacityModifier(level);
-            modifierRegisterMethod.invoke(BrewEffects.INSTANCE, modifier, itemObj);
+            if (BrewEffects.INSTANCE instanceof BrewEffectsInvoker invoker) {
+                invoker.forceModifierRegister_(modifier, itemObj);
+            } else {
+                modifierRegisterMethod.invoke(BrewEffects.INSTANCE, modifier, itemObj);
+            }
             ScriptType.SERVER.console.info("✓ 已注册容量剂: " + itemObj + " (等级: " + level + ")");
         } catch (Exception e) {
             ScriptType.SERVER.console.error("注册容量剂失败: " + e.getMessage());
@@ -669,8 +678,11 @@ public class RegisterBrewEventJS extends EventJS {
             } else {
                 brewModifier = new BrewModifier(modifierLower, level);
             }
-            
-            modifierRegisterMethod.invoke(BrewEffects.INSTANCE, brewModifier, itemObj);
+            if (BrewEffects.INSTANCE instanceof BrewEffectsInvoker invoker) {
+                invoker.forceModifierRegister_(brewModifier, itemObj);
+            } else {
+                modifierRegisterMethod.invoke(BrewEffects.INSTANCE, brewModifier, itemObj);
+            }
             ScriptType.SERVER.console.info("✓ 已注册增强剂: " + itemObj + " -> " + modifier + " (等级: " + level + ")");
         } catch (Exception e) {
             ScriptType.SERVER.console.error("注册增强剂失败: " + e.getMessage());
@@ -689,10 +701,23 @@ public class RegisterBrewEventJS extends EventJS {
         if (itemObj == null) {
             return;
         }
-        
-        // 注意：BrewEffects 没有公开的移除方法，我们需要通过反射访问私有 Map
-        // 这里我们只能通过覆盖来实现移除，即注册一个 null 或新的配置
-        ScriptType.SERVER.console.warn("移除容量剂功能需要先移除原配置，然后重新注册。建议直接覆盖注册。");
+        int removed = com.kubejs.goety.brew.BrewData.removeCapacityItem(itemObj);
+        if (removed > 0) {
+            try {
+                @SuppressWarnings("unchecked")
+                java.util.Map<Item, BrewModifier> map =
+                        (java.util.Map<Item, BrewModifier>) modifiersField.get(BrewEffects.INSTANCE);
+                if (map != null) {
+                    map.remove(itemObj);
+                }
+            } catch (Exception e) {
+                ScriptType.SERVER.console.error("移除容量剂映射失败: " + e.getMessage());
+                e.printStackTrace();
+            }
+            ScriptType.SERVER.console.info("✓ 已移除容量剂: " + itemObj);
+        } else {
+            ScriptType.SERVER.console.warn("未找到容量剂: " + itemObj);
+        }
     }
     
     /**
@@ -912,4 +937,3 @@ public class RegisterBrewEventJS extends EventJS {
                modifier.equals("gas");
     }
 }
-
