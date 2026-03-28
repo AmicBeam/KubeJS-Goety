@@ -11,17 +11,17 @@ import dev.latvian.mods.kubejs.item.ItemStackJS;
 import dev.latvian.mods.kubejs.script.ScriptType;
 import dev.latvian.mods.kubejs.typings.Info;
 import dev.latvian.mods.kubejs.typings.Param;
+import dev.latvian.mods.kubejs.util.ListJS;
 import dev.latvian.mods.kubejs.util.UtilsJS;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.TagKey;
-import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 注册药酿配置的事件
@@ -29,27 +29,18 @@ import java.lang.reflect.Method;
  * 在脚本中使用：
  * GoetyEvents.registerBrew(event => {
  *     event.addCapacity('minecraft:nether_wart', 0);
- *     event.addCatalyst('minecraft:glowstone_dust', 'minecraft:night_vision', 25, 1200, 0);
- *     event.addEntityCatalyst('minecraft:zombie', 'minecraft:poison', 75, 1800, 1);
+ *     event.setCapacityLevels([2,2,2,2,4]);
  *     event.addAugmentation('minecraft:redstone', 'duration', 0);
  * });
  */
 @Info("用于注册药酿系统的配置（容量剂、催化剂、增强剂）")
 public class RegisterBrewEventJS extends EventJS {
     
-    private static Method registerMethod;
-    private static Method registerEntityMethod;
     private static Method modifierRegisterMethod;
     private static java.lang.reflect.Field modifiersField;
     
     static {
         try {
-            registerMethod = BrewEffects.class.getDeclaredMethod("register", BrewEffect.class, Item.class);
-            registerMethod.setAccessible(true);
-            
-            registerEntityMethod = BrewEffects.class.getDeclaredMethod("register", BrewEffect.class, EntityType.class);
-            registerEntityMethod.setAccessible(true);
-            
             modifierRegisterMethod = BrewEffects.class.getDeclaredMethod("modifierRegister", BrewModifier.class, Item.class);
             modifierRegisterMethod.setAccessible(true);
             
@@ -69,11 +60,11 @@ public class RegisterBrewEventJS extends EventJS {
      */
     @Info(value = "注册容量剂", params = {
         @Param(name = "item", value = "物品ID（字符串）或物品对象"),
-        @Param(name = "level", value = "等级（0-7）")
+        @Param(name = "level", value = "等级（>=0）")
     })
     public void addCapacity(Object item, int level) {
-        if (level < 0 || level > 7) {
-            ScriptType.SERVER.console.error("容量剂等级必须在 0-7 之间，当前值: " + level);
+        if (level < 0) {
+            ScriptType.SERVER.console.error("容量剂等级必须 >= 0，当前值: " + level);
             return;
         }
         
@@ -95,194 +86,29 @@ public class RegisterBrewEventJS extends EventJS {
             e.printStackTrace();
         }
     }
-    
-    /**
-     * 注册物品催化剂
-     * 
-     * @deprecated 此方法已弃用，请使用 event.recipes.goety.brewing() 代替
-     * 推荐用法：event.recipes.goety.brewing('item', 'effect').soulCost(cost).duration(duration)
-     * 
-     * @param item 物品ID（字符串）或物品对象
-     * @param effect 效果ID（字符串）
-     * @param soulCost 灵魂消耗
-     * @param duration 持续时间 tick（可选，默认600）
-     * @param capacityExtra 额外容量（可选，默认0）
-     */
-    @Deprecated
-    @Info(value = "注册物品催化剂（已弃用，请使用 event.recipes.goety.brewing）", params = {
-        @Param(name = "item", value = "物品ID（字符串）或物品对象"),
-        @Param(name = "effect", value = "效果ID（字符串，如 'minecraft:strength'）"),
-        @Param(name = "soulCost", value = "灵魂消耗（整数）"),
-        @Param(name = "duration", value = "持续时间 tick（整数，可选，默认600）"),
-        @Param(name = "capacityExtra", value = "额外容量（整数，可选，默认0）")
+
+    @Info(value = "设置容量等级增量表", params = {
+        @Param(name = "levels", value = "等级增量数组，从1级开始，例如 [2,2,2,2,4]")
     })
-    public void addCatalyst(Object item, String effect, int soulCost, Object duration, Object capacityExtra) {
-        ScriptType.SERVER.console.warn("⚠ addCatalyst() 已弃用，请使用 event.recipes.goety.brewing() 代替");
-        ScriptType.SERVER.console.warn("   推荐用法: event.recipes.goety.brewing('" + item + "', '" + effect + "').soulCost(" + soulCost + ")");
-        /*
-        Item itemObj = getItem(item);
-        if (itemObj == null) {
+    public void setCapacityLevels(Object levels) {
+        List<?> list = ListJS.of(levels);
+        if (list == null) {
+            ScriptType.SERVER.console.error("容量等级增量表不能为空");
             return;
         }
-        
-        MobEffect mobEffect = getMobEffect(effect);
-        if (mobEffect == null) {
-            return;
-        }
-        
-        int durationValue = duration != null ? ((Number) UtilsJS.cast(duration)).intValue() : 600;
-        int capacityExtraValue = capacityExtra != null ? ((Number) UtilsJS.cast(capacityExtra)).intValue() : 0;
-        
-        if (durationValue <= 0) {
-            ScriptType.SERVER.console.error("持续时间必须大于 0，当前值: " + durationValue);
-            return;
-        }
-        
-        if (soulCost < 0) {
-            ScriptType.SERVER.console.error("灵魂消耗不能为负数，当前值: " + soulCost);
-            return;
-        }
-        
-        try {
-            PotionBrewEffect brewEffect;
-            if (capacityExtraValue != 0) {
-                brewEffect = new PotionBrewEffect(mobEffect, soulCost, capacityExtraValue, durationValue);
-            } else {
-                brewEffect = new PotionBrewEffect(mobEffect, soulCost, durationValue);
+        List<Integer> deltas = new ArrayList<>();
+        for (Object item : list) {
+            int value = ((Number) UtilsJS.cast(item)).intValue();
+            if (value < 0) {
+                ScriptType.SERVER.console.error("容量增量不能为负数: " + value);
+                return;
             }
-            registerMethod.invoke(BrewEffects.INSTANCE, brewEffect, itemObj);
-            ScriptType.SERVER.console.info("✓ 已注册物品催化剂: " + itemObj + " -> " + effect + " (灵魂消耗: " + soulCost + ", 持续时间: " + durationValue + ", 额外容量: " + capacityExtraValue + ")");
-        } catch (Exception e) {
-            ScriptType.SERVER.console.error("注册物品催化剂失败: " + e.getMessage());
-            e.printStackTrace();
+            deltas.add(value);
         }
-        */
+        com.kubejs.goety.brew.BrewData.setCapacityLevelDeltas(deltas);
+        ScriptType.SERVER.console.info("✓ 已设置容量等级增量表: " + deltas);
     }
-    
-    /**
-     * 注册物品催化剂（简化版本，只使用必填参数）
-     * @deprecated 此方法已弃用，请使用 event.recipes.goety.brewing() 代替
-     */
-    @Deprecated
-    public void addCatalyst(Object item, String effect, int soulCost) {
-        addCatalyst(item, effect, soulCost, null, null);
-    }
-    
-    /**
-     * 注册物品催化剂（带持续时间）
-     * @deprecated 此方法已弃用，请使用 event.recipes.goety.brewing() 代替
-     */
-    @Deprecated
-    public void addCatalyst(Object item, String effect, int soulCost, int duration) {
-        addCatalyst(item, effect, soulCost, duration, null);
-    }
-    
-    /**
-     * 注册实体催化剂
-     * 
-     * @deprecated 此方法已弃用，请使用 event.recipes.goety.brewing().entityType() 或 .entityTag() 代替
-     * 推荐用法：event.recipes.goety.brewing('item', 'effect').entityType('entity')
-     * 
-     * @param entity 实体类型ID（字符串）或实体标签（字符串，以 # 开头）
-     * @param effect 效果ID（字符串）
-     * @param soulCost 灵魂消耗
-     * @param duration 持续时间 tick（可选，默认600）
-     * @param capacityExtra 额外容量（可选，默认0）
-     */
-    @Deprecated
-    @Info(value = "注册实体催化剂（已弃用，请使用 event.recipes.goety.brewing）", params = {
-        @Param(name = "entity", value = "实体类型ID（字符串）或实体标签（字符串，以 # 开头）"),
-        @Param(name = "effect", value = "效果ID（字符串）"),
-        @Param(name = "soulCost", value = "灵魂消耗（整数）"),
-        @Param(name = "duration", value = "持续时间 tick（整数，可选，默认600）"),
-        @Param(name = "capacityExtra", value = "额外容量（整数，可选，默认0）")
-    })
-    public void addEntityCatalyst(Object entity, String effect, int soulCost, Object duration, Object capacityExtra) {
-        ScriptType.SERVER.console.warn("⚠ addEntityCatalyst() 已弃用，请使用 event.recipes.goety.brewing().entityType() 代替");
-        String entityStr = entity.toString();
-        if (entityStr.startsWith("#")) {
-            ScriptType.SERVER.console.warn("   推荐用法: event.recipes.goety.brewing('item', '" + effect + "').entityTag('" + entityStr.substring(1) + "')");
-        } else {
-            ScriptType.SERVER.console.warn("   推荐用法: event.recipes.goety.brewing('item', '" + effect + "').entityType('" + entity + "')");
-        }
-        /*
-        MobEffect mobEffect = getMobEffect(effect);
-        if (mobEffect == null) {
-            return;
-        }
-        
-        int durationValue = duration != null ? ((Number) UtilsJS.cast(duration)).intValue() : 600;
-        int capacityExtraValue = capacityExtra != null ? ((Number) UtilsJS.cast(capacityExtra)).intValue() : 0;
-        
-        if (durationValue <= 0) {
-            ScriptType.SERVER.console.error("持续时间必须大于 0，当前值: " + durationValue);
-            return;
-        }
-        
-        if (soulCost < 0) {
-            ScriptType.SERVER.console.error("灵魂消耗不能为负数，当前值: " + soulCost);
-            return;
-        }
-        
-        try {
-            PotionBrewEffect brewEffect;
-            if (capacityExtraValue != 0) {
-                brewEffect = new PotionBrewEffect(mobEffect, soulCost, capacityExtraValue, durationValue);
-            } else {
-                brewEffect = new PotionBrewEffect(mobEffect, soulCost, durationValue);
-            }
-            
-            String entityStr = entity.toString();
-            if (entityStr.startsWith("#")) {
-                // 实体标签
-                String tagStr = entityStr.substring(1);
-                TagKey<EntityType<?>> tagKey = TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.tryParse(tagStr));
-                if (tagKey != null) {
-                    int count = 0;
-                    // 遍历所有实体类型，检查是否匹配标签
-                    for (EntityType<?> entityType : ForgeRegistries.ENTITY_TYPES.getValues()) {
-                        if (entityType.is(tagKey)) {
-                            registerEntityMethod.invoke(BrewEffects.INSTANCE, brewEffect, entityType);
-                            count++;
-                        }
-                    }
-                    ScriptType.SERVER.console.info("✓ 已注册实体标签催化剂: #" + tagStr + " -> " + effect + " (影响 " + count + " 个实体类型)");
-                } else {
-                    ScriptType.SERVER.console.error("无效的实体标签: " + tagStr);
-                }
-            } else {
-                // 单个实体类型
-                EntityType<?> entityType = getEntityType(entityStr);
-                if (entityType != null) {
-                    registerEntityMethod.invoke(BrewEffects.INSTANCE, brewEffect, entityType);
-                    ScriptType.SERVER.console.info("✓ 已注册实体催化剂: " + entityStr + " -> " + effect + " (灵魂消耗: " + soulCost + ", 持续时间: " + durationValue + ", 额外容量: " + capacityExtraValue + ")");
-                }
-            }
-        } catch (Exception e) {
-            ScriptType.SERVER.console.error("注册实体催化剂失败: " + e.getMessage());
-            e.printStackTrace();
-        }
-        */
-    }
-    
-    /**
-     * 注册实体催化剂（简化版本）
-     * @deprecated 此方法已弃用，请使用 event.recipes.goety.brewing() 代替
-     */
-    @Deprecated
-    public void addEntityCatalyst(Object entity, String effect, int soulCost) {
-        addEntityCatalyst(entity, effect, soulCost, null, null);
-    }
-    
-    /**
-     * 注册实体催化剂（带持续时间）
-     * @deprecated 此方法已弃用，请使用 event.recipes.goety.brewing() 代替
-     */
-    @Deprecated
-    public void addEntityCatalyst(Object entity, String effect, int soulCost, int duration) {
-        addEntityCatalyst(entity, effect, soulCost, duration, null);
-    }
-    
+
     /**
      * 注册特殊效果的 brewing 配方（非持续时间效果）
      * 
@@ -833,8 +659,24 @@ public class RegisterBrewEventJS extends EventJS {
         if (itemObj == null) {
             return;
         }
-        
-        ScriptType.SERVER.console.warn("移除增强剂功能需要先移除原配置，然后重新注册。建议直接覆盖注册。");
+
+        int removed = com.kubejs.goety.brew.BrewData.removeAugmentationItem(itemObj);
+        if (removed > 0) {
+            try {
+                @SuppressWarnings("unchecked")
+                java.util.Map<Item, BrewModifier> map =
+                        (java.util.Map<Item, BrewModifier>) modifiersField.get(BrewEffects.INSTANCE);
+                if (map != null) {
+                    map.remove(itemObj);
+                }
+            } catch (Exception e) {
+                ScriptType.SERVER.console.error("移除增强剂映射失败: " + e.getMessage());
+                e.printStackTrace();
+            }
+            ScriptType.SERVER.console.info("✓ 已移除增强剂: " + itemObj);
+        } else {
+            ScriptType.SERVER.console.warn("未找到增强剂: " + itemObj);
+        }
     }
     
     // ==================== 辅助方法 ====================
@@ -882,24 +724,6 @@ public class RegisterBrewEventJS extends EventJS {
         }
         
         ScriptType.SERVER.console.error("无法找到物品: " + item);
-        return null;
-    }
-    
-    private MobEffect getMobEffect(String effectId) {
-        if (effectId == null || effectId.isEmpty()) {
-            ScriptType.SERVER.console.error("效果ID不能为空");
-            return null;
-        }
-        
-        ResourceLocation location = ResourceLocation.tryParse(effectId);
-        if (location != null) {
-            MobEffect effect = ForgeRegistries.MOB_EFFECTS.getValue(location);
-            if (effect != null) {
-                return effect;
-            }
-        }
-        
-        ScriptType.SERVER.console.error("无法找到效果: " + effectId);
         return null;
     }
     

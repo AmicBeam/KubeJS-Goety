@@ -568,7 +568,19 @@ GoetyEvents.modifyRitual(event => {
 
 ## Brew System
 
-Configure Goety's brewing system with capacity modifiers and augmentations.
+Configure Goety's brewing system with capacity modifiers, augmentations, and special brew effects.
+
+### Capacity Level Deltas
+
+Capacity upgrades are driven by a level delta table. Levels start at 1 and each entry defines how much capacity is added at that level.
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    // event.setCapacityLevels([level1, level2, ...])
+    // Example: [2,2,2,2,4] means level 1~5 add 2/2/2/2/4
+    event.setCapacityLevels([2, 2, 2, 2, 4, 6, 8]);
+});
+```
 
 ### Capacity Modifiers
 
@@ -578,13 +590,18 @@ Capacity modifiers determine the base capacity level of brews:
 GoetyEvents.registerBrew(event => {
     // event.addCapacity(item, level)
     // - item: Item ID (string) or item object
-    // - level: Level (0-7)
+    // - level: Level (>=0)
     
     event.addCapacity('minecraft:nether_wart', 0);
     event.addCapacity('mymod:magic_crystal', 6);
     event.addCapacity('mymod:soul_crystal', 7);
 });
 ```
+
+**Notes**:
+- Level 0 activates the initial capacity
+- Levels 1~N must be defined in `setCapacityLevels`
+- Multiple items can share the same level; the delta comes from the level table
 
 ### Augmentation Modifiers
 
@@ -601,6 +618,18 @@ GoetyEvents.registerBrew(event => {
     event.addAugmentation('mymod:time_crystal', 'duration', 3);
     event.addAugmentation('mymod:power_crystal', 'amplifier', 2);
     event.addAugmentation('mymod:range_crystal', 'aoe', 1);
+});
+```
+
+### Remove Capacity Modifiers and Augmentations
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    // Remove capacity modifier
+    event.removeCapacity('minecraft:nether_wart');
+
+    // Remove augmentation
+    event.removeAugmentation('minecraft:redstone');
 });
 ```
 
@@ -631,6 +660,12 @@ GoetyEvents.registerBrew(event => {
 ```
 
 **Note**: To add catalysts (brewing recipes), use `event.recipes.goety.brewing` in the recipe system.
+
+⚠️ **Important**: Brew configuration changes (capacity/augmentation/special effects/removals) do not apply via `/reload`. You must **re-enter the world or restart the server**.
+
+**Compatibility (Revelation)**:
+- When **Revelation (revelationfix)** is present, this mod disables its cauldron capacity mixin to avoid conflicts
+- In that case `setCapacityLevels` is ignored and capacity upgrades are handled by Revelation
 
 ### Special Brew Effects (Non-Potion Effects)
 
@@ -707,7 +742,7 @@ GoetyEvents.registerBrew(event => {
 
 **Removing special brew effects**: Use `event.removeCatalyst(item)` in `GoetyEvents.registerBrew` to remove special brew effects registered for a specific item. This works for both built-in effects and custom effects added via `addSpecialBrewEffect`.
 
-⚠️ **Important**: After removing brew effects, `/reload` cannot dynamically refresh the changes. You need to **restart the game** for the removal to take effect.
+⚠️ **Important**: Brew configuration changes (capacity/augmentation/special effects/removals) do not apply via `/reload`. You must **re-enter the world or restart the server**.
 
 ---
 

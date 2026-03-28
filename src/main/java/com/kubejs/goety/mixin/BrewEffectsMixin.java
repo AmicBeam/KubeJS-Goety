@@ -22,9 +22,7 @@ public abstract class BrewEffectsMixin implements BrewEffectsInvoker {
     public void forceModifierRegister_(BrewModifier modifier, Item ingredient) {
         this.modifiers.put(ingredient, modifier);
         if (modifier instanceof CapacityModifier) {
-            for (Item removed : BrewData.replaceCapacity(ingredient, modifier.level)) {
-                this.modifiers.remove(removed);
-            }
+            BrewData.registerCapacity(ingredient, modifier.level);
         } else {
             BrewData.registerAugmentation(ingredient, modifier.id, modifier.level);
         }

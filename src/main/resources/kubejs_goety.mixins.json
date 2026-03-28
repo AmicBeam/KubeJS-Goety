@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_17",
   "plugin": "com.kubejs.goety.mixin.KubejsGoetyMixinPlugin",
   "mixins": [
+    "BrewCauldronCapacityMixin",
     "BrewCauldronBlockEntityMixin",
     "BrewEffectsMixin",
     "BrewEffectInstanceMixin",

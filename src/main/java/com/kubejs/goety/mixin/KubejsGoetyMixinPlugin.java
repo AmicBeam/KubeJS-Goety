@@ -22,8 +22,9 @@ public class KubejsGoetyMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        if (mixinClassName.endsWith("BrewCauldronBlockEntityMixin")
-                && isModLoadedEarly("revelationfix")) {
+        if (isModLoadedEarly("revelationfix")
+                && (mixinClassName.endsWith("BrewCauldronBlockEntityMixin")
+                || mixinClassName.endsWith("BrewCauldronCapacityMixin"))) {
             return false;
         }
         return true;

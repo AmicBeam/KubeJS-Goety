@@ -10,7 +10,7 @@
  * 使用方法：
  * 1. 将此文件放在世界存档的 kubejs/server_scripts/ 目录中
  * 2. 根据需要修改配置
- * 3. 重新加载世界或重启服务器
+ * 3. 重新进入世界或重启服务器
  */
 
 GoetyEvents.registerBrew(event => {
@@ -18,16 +18,19 @@ GoetyEvents.registerBrew(event => {
     // ==========================================
     // 1. 容量剂配置（Capacity Modifiers）
     // ==========================================
+    // event.setCapacityLevels([level1, level2, ...])
+    // - 传入等级增量数组，从 1 级开始
+    event.setCapacityLevels([2, 2, 2, 2, 4, 6, 8]);
+    
     // event.addCapacity(item, level)
     // - item: 物品ID（字符串）或物品对象
-    // - level: 等级（0-7）
+    // - level: 等级（>=0）
     
     // 添加自定义容量剂
     event.addCapacity('mymod:magic_crystal', 6);
     event.addCapacity('mymod:soul_crystal', 7);
     
-    // 覆盖原版容量剂（可选）
-    // event.addCapacity('minecraft:nether_wart', 0);  // 会覆盖原版配置
+    // 说明：同等级可注册多个物品，容量增量由等级表决定
     
     
     // ==========================================
@@ -117,15 +120,12 @@ GoetyEvents.registerBrew(event => {
     // ==========================================
     // 4. 移除配置（可选）
     // ==========================================
-    // 注意：移除功能目前仅提供警告提示
-    // 实际移除需要通过覆盖注册来实现
-    
     // event.removeCapacity('minecraft:nether_wart');
     // event.removeAugmentation('minecraft:redstone');
     // 移除内置催化剂，内置催化剂无法通过recipe删除
     // event.removeCatalyst('minecraft:grass');
     // 
-    // ⚠️ 重要提示：移除药酿配方后，/reload 无法动态刷新更改。需要重启游戏才能使移除生效。
+    // ⚠️ 重要提示：药酿配置变更需要重进世界或重启服务器
     
     
     // ==========================================
@@ -152,4 +152,3 @@ GoetyEvents.registerBrew(event => {
 //         .soulCost(50)
 //         .duration(3600);
 // });
-

@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 @Mixin(value = BrewCauldronBlockEntity.class, remap = false)
 public class BrewCauldronBlockEntityMixin {
     @Redirect(
-            method = {"insertItem", "getBrew"},
+            method = {"getBrew"},
             at = @At(value = "NEW", target = "com/Polarice3/Goety/common/effects/brew/BrewEffects", remap = false),
             remap = false
     )

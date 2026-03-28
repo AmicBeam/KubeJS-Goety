@@ -193,7 +193,7 @@ GoetyEvents.modifyRitual(event => {
 
 ### GoetyEvents.registerBrew
 
-配置 Goety 药酿系统，包括容量剂、催化剂和增强剂。
+配置 Goety 药酿系统，包括容量剂、增强剂和特殊效果配方。
 
 #### 创建脚本文件
 
@@ -205,18 +205,36 @@ GoetyEvents.modifyRitual(event => {
         └── goety_brews.js
 ```
 
+#### 设置容量等级增量表
+
+容量提升由“等级增量表”驱动。等级从 1 开始，对应每次升级增加的容量值。
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    // event.setCapacityLevels([level1, level2, ...])
+    // - 传入等级增量数组，从 1 级开始
+    // - 例如 [2,2,2,2,4] 表示 1~5 级分别增加 2/2/2/2/4
+    event.setCapacityLevels([2, 2, 2, 2, 4, 6, 8]);
+});
+```
+
 #### 注册容量剂
 
 ```javascript
 GoetyEvents.registerBrew(event => {
     // event.addCapacity(item, level)
     // - item: 物品ID（字符串）或物品对象
-    // - level: 等级（0-7）
+    // - level: 等级（>=0）
     
     event.addCapacity('minecraft:nether_wart', 0);
     event.addCapacity('mymod:magic_crystal', 6);
 });
 ```
+
+**说明**：
+- level 0 用于激活初始容量
+- level 1~N 必须在 `setCapacityLevels` 中定义对应增量
+- 同一等级可以注册多个物品，容量增量由等级表统一决定
 
 #### 注册增强剂
 
@@ -239,6 +257,18 @@ GoetyEvents.registerBrew(event => {
     event.addAugmentation('minecraft:redstone', 'duration', 0);
     event.addAugmentation('mymod:time_crystal', 'duration', 3);
     event.addAugmentation('mymod:power_crystal', 'amplifier', 2);
+});
+```
+
+#### 移除容量剂与增强剂
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    // 移除容量剂
+    event.removeCapacity('minecraft:nether_wart');
+
+    // 移除增强剂
+    event.removeAugmentation('minecraft:redstone');
 });
 ```
 
@@ -278,7 +308,7 @@ GoetyEvents.registerBrew(event => {
 
 **移除特殊效果配方**：使用 `event.removeCatalyst(item)` 可以移除指定物品注册的特殊效果配方。这适用于内置效果和通过 `addSpecialBrewEffect` 添加的自定义效果。
 
-⚠️ **重要提示**：移除药酿配方后，`/reload` 无法动态刷新更改。需要**重启游戏**才能使移除生效。
+⚠️ **重要提示**：药酿配置变更（容量剂/增强剂/特殊效果/移除）无法通过 `/reload` 生效，需要**重进世界或重启服务器**。
 
 #### 完整示例
 
@@ -295,7 +325,7 @@ GoetyEvents.registerBrew(event => {
     
     // 移除内置催化剂，内置催化剂无法通过recipe删除
     event.removeCatalyst('minecraft:grass');
-    // ⚠️ 注意：移除药酿配方后，/reload 无法动态刷新。需要重启游戏。
+    // ⚠️ 注意：药酿配置变更需要重进世界或重启服务器
 });
 ```
 
@@ -305,6 +335,10 @@ GoetyEvents.registerBrew(event => {
 - **添加容量剂和增强剂** → 使用 `GoetyEvents.registerBrew`
 - **添加特殊效果配方（非药水效果）** → 在 `GoetyEvents.registerBrew` 中使用 `event.addSpecialBrewEffect()`
 - **添加催化剂（酿造配方）** → 使用 `event.recipes.goety.brewing`（见下方配方系统）
+
+**兼容说明（启示录）**：
+- 若同时加载 **启示录（revelationfix）**，为了避免冲突，本模组会禁用自身的坩埚容量扩展逻辑
+- 此情况下 `setCapacityLevels` 不会生效，容量上限与升级逻辑由启示录接管
 
 ## 配方系统配置
 
