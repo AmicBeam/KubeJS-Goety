@@ -39,7 +39,7 @@ side="BOTH"
 [[dependencies.kubejs_goety]]
 modId="goety"
 mandatory=true
-versionRange="[2.5.41,)"
+versionRange="[2.5.50.0,)"
 ordering="AFTER"
 side="BOTH"
 
@@ -49,4 +49,3 @@ mandatory=true
 versionRange="${minecraft_version_range}"
 ordering="NONE"
 side="BOTH"
-

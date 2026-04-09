@@ -20,6 +20,7 @@ GoetyEvents.registerBrew(event => {
     // ==========================================
     // event.setCapacityLevels([level1, level2, ...])
     // - 传入等级增量数组，从 1 级开始
+    // - 注意：坩埚最大总容量上限为 32，超过会被截断
     event.setCapacityLevels([2, 2, 2, 2, 4, 6, 8]);
     
     // event.addCapacity(item, level)

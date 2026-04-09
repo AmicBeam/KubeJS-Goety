@@ -218,6 +218,8 @@ GoetyEvents.registerBrew(event => {
 });
 ```
 
+**上限**：坩埚的最大总容量被限制为 32（超过的部分会被截断）。
+
 #### 注册容量剂
 
 ```javascript

@@ -156,7 +156,7 @@ public abstract class BrewCauldronCapacityMixin extends BlockEntity implements W
                 int initialCapacity = BrewData.getInitialCapacity();
                 if (this.mode == BrewCauldronBlockEntity.Mode.IDLE && this.getCapacity() < initialCapacity && activate) {
                     this.clearContent();
-                    this.capacity = initialCapacity;
+                    this.capacity = Math.min(BrewData.MAX_CAULDRON_CAPACITY, initialCapacity);
                     if (this.level instanceof ServerLevel serverLevel) {
                         for (int k = 0; k < 20; ++k) {
                             float f2 = serverLevel.random.nextFloat() * 4.0F;
@@ -322,7 +322,7 @@ public abstract class BrewCauldronCapacityMixin extends BlockEntity implements W
                                 int initial = BrewData.getInitialCapacity();
                                 int expected = initial + BrewData.getCapacityPrefixSum(targetLevel - 1);
                                 if (this.getCapacity() == expected) {
-                                    this.capacity += BrewData.getCapacityDelta(targetLevel);
+                                    this.capacity = Math.min(BrewData.MAX_CAULDRON_CAPACITY, this.capacity + BrewData.getCapacityDelta(targetLevel));
                                     this.clearContent();
                                     return BrewCauldronBlockEntity.Mode.BREWING;
                                 }
@@ -332,7 +332,7 @@ public abstract class BrewCauldronCapacityMixin extends BlockEntity implements W
                 }
             } else if (this.mode == BrewCauldronBlockEntity.Mode.IDLE && this.getCapacity() < BrewData.getInitialCapacity() && activate) {
                 this.clearContent();
-                this.capacity = BrewData.getInitialCapacity();
+                this.capacity = Math.min(BrewData.MAX_CAULDRON_CAPACITY, BrewData.getInitialCapacity());
                 if (this.level instanceof ServerLevel serverLevel) {
                     for (int k = 0; k < 20; ++k) {
                         float f2 = serverLevel.random.nextFloat() * 4.0F;

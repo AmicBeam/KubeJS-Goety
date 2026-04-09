@@ -582,6 +582,8 @@ GoetyEvents.registerBrew(event => {
 });
 ```
 
+**Limit**: The cauldron's maximum total capacity is capped at 32 (values above are clamped).
+
 ### Capacity Modifiers
 
 Capacity modifiers determine the base capacity level of brews:

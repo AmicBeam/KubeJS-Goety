@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 public class BrewData {
+    public static final int MAX_CAULDRON_CAPACITY = 32;
     public static final int MAX_CAPACITY_LEVEL = 7;
     public static final int MAX_AUGMENT_LEVEL = 4;
     public static final Map<Integer, List<Item>> LEVEL_TO_CAPACITY_ITEMS = createLevelMap(MAX_CAPACITY_LEVEL);
@@ -83,14 +84,14 @@ public class BrewData {
     }
 
     public static int getMaxCapacity() {
-        return getInitialCapacity() + getCapacityPrefixSum(getMaxCapacityLevel());
+        return Math.min(MAX_CAULDRON_CAPACITY, getInitialCapacity() + getCapacityPrefixSum(getMaxCapacityLevel()));
     }
 
     public static int getInitialCapacity() {
         if (INITIAL_CAPACITY_OVERRIDE != null) {
-            return INITIAL_CAPACITY_OVERRIDE;
+            return Math.min(MAX_CAULDRON_CAPACITY, INITIAL_CAPACITY_OVERRIDE);
         }
-        return readConfigInt("InitialCapacity", DEFAULT_INITIAL_CAPACITY);
+        return Math.min(MAX_CAULDRON_CAPACITY, readConfigInt("InitialCapacity", DEFAULT_INITIAL_CAPACITY));
     }
 
     public static void setInitialCapacity(int value) {

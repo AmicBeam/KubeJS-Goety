@@ -208,6 +208,8 @@ GoetyEvents.registerBrew(event => {
 });
 ```
 
+**Limit**: The cauldron's maximum total capacity is capped at 32 (values above are clamped).
+
 #### Register Capacity Modifiers
 
 ```javascript
