@@ -82,7 +82,7 @@ ServerEvents.recipes(event => {
         .duration(40)
         .entityToSacrificeTag('minecraft:is_animal')
         .entityToSacrificeDisplayName('动物');
-    
+
     // 创建一个魔法仪式的附魔仪式配方（经验修补）
     // 注意：附魔仪式会对激活物品进行附魔，如果激活物品是书，则会产生附魔书
     // result 字段通常是附魔书，作为占位符
@@ -269,9 +269,52 @@ ServerEvents.recipes(event => {
     event.recipes.goety.soul_absorber_recipes('minecraft:sculk')
         .soulIncrease(5)
         .cookingTime(50);
+
+    // ==========================================
+    // 7. 输入材料的 NBT 匹配说明
+    // ==========================================
+    //
+    // 所有 Goety 配方类型的输入都与 KubeJS 默认行为对齐：
+    // - 普通输入默认忽略 NBT
+    // - 需要“子集匹配”时，使用 Item.of(...).weakNBT()
+    // - 需要“完全匹配”时，使用 Item.of(...).strongNBT()
+    // - 适用于 ritual、brewing、pulverize、cursed_infuser_recipes、brazier、soul_absorber_recipes
+    //
+    // 示例1：默认忽略 NBT
+    event.recipes.goety.ritual('minecraft:emerald', 'goety:craft', [
+        Item.of('minecraft:potion', '{Potion:"minecraft:healing"}')
+    ])
+        .activationItem(Item.of('minecraft:book', '{CustomModelData:1}'))
+        .craftType('magic')
+        .soulCost(10)
+        .duration(20);
+
+    // 示例2：NBT 子集匹配
+    event.recipes.goety.ritual('minecraft:emerald', 'goety:craft', [
+        Item.of('minecraft:potion', '{Potion:"minecraft:healing"}').weakNBT()
+    ])
+        .activationItem(Item.of('minecraft:book', '{CustomModelData:1}').weakNBT())
+        .craftType('magic')
+        .soulCost(10)
+        .duration(20);
+
+    // 示例3：NBT 完全匹配
+    event.recipes.goety.ritual('minecraft:emerald', 'goety:craft', [
+        Item.of('minecraft:potion', '{Potion:"minecraft:healing"}').strongNBT()
+    ])
+        .activationItem(Item.of('minecraft:book', '{CustomModelData:1}').strongNBT())
+        .craftType('magic')
+        .soulCost(10)
+        .duration(20);
+
+    // 示例4：其他配方类型同样适用
+    event.recipes.goety.brewing(
+        Item.of('minecraft:potion', '{Potion:"minecraft:healing"}').weakNBT(),
+        'minecraft:regeneration'
+    );
     
     // ==========================================
-    // 配方修改方式1：replaceInput / replaceOutput（推荐）
+    // 8. 配方修改方式1：replaceInput / replaceOutput（推荐）
     // ==========================================
     // 
     // ✅ 推荐：使用 replaceInput 和 replaceOutput 进行批量替换
@@ -313,7 +356,7 @@ ServerEvents.recipes(event => {
     // );
     
     // ==========================================
-    // 配方修改方式2：删除并重新创建（用于修改特殊字段）
+    // 9. 配方修改方式2：删除并重新创建（用于修改特殊字段）
     // ==========================================
     // 
     // 当需要修改 soulCost、duration、craftType 等字段时使用此方式
@@ -346,4 +389,3 @@ ServerEvents.recipes(event => {
     //     .soulCost(50)
     //     .duration(60);
 });
-

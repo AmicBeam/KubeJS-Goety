@@ -978,6 +978,43 @@ ServerEvents.recipes(event => {
 
 **Note**: Soul absorber recipes have no output item. They consume items to increase soul value.
 
+### Input NBT Matching
+
+All Goety recipe inputs now follow KubeJS default matching behavior:
+
+- Plain item inputs ignore NBT by default
+- Use `.weakNBT()` for partial/subset NBT matching
+- Use `.strongNBT()` for exact NBT matching
+- This applies to ritual, brewing, pulverize, cursed infuser, brazier, and soul absorber recipes
+
+```javascript
+ServerEvents.recipes(event => {
+    // Default behavior: ignores NBT
+    event.recipes.goety.ritual('minecraft:emerald', 'goety:craft', [
+        Item.of('minecraft:potion', '{Potion:"minecraft:healing"}')
+    ])
+        .activationItem(Item.of('minecraft:book', '{CustomModelData:1}'))
+        .craftType('magic');
+
+    // Partial NBT match
+    event.recipes.goety.ritual('minecraft:emerald', 'goety:craft', [
+        Item.of('minecraft:potion', '{Potion:"minecraft:healing"}').weakNBT()
+    ])
+        .activationItem(Item.of('minecraft:book', '{CustomModelData:1}').weakNBT())
+        .craftType('magic');
+
+    // Exact NBT match
+    event.recipes.goety.ritual('minecraft:emerald', 'goety:craft', [
+        Item.of('minecraft:potion', '{Potion:"minecraft:healing"}').strongNBT()
+    ])
+        .activationItem(Item.of('minecraft:book', '{CustomModelData:1}').strongNBT())
+        .craftType('magic');
+
+    // The same rules also apply to other Goety recipe types
+    event.recipes.goety.brewing(Item.of('minecraft:potion', '{Potion:"minecraft:healing"}').weakNBT(), 'minecraft:regeneration');
+});
+```
+
 ### Recipe Modification
 
 #### Method 1: Replace Input/Output (Recommended)

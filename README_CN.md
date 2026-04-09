@@ -348,6 +348,8 @@ GoetyEvents.registerBrew(event => {
 
 使用 KubeJS 标准配方事件来配置 Goety 的配方系统。
 
+Goety 配方输入现已与 KubeJS 默认 NBT 匹配行为对齐：普通输入默认忽略 NBT，`.weakNBT()` 为子集匹配，`.strongNBT()` 为完全匹配。
+
 #### 创建脚本文件
 
 在世界存档目录下创建脚本文件：

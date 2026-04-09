@@ -338,6 +338,8 @@ GoetyEvents.registerBrew(event => {
 
 Use KubeJS standard recipe events to configure Goety's recipe system.
 
+Goety recipe inputs now follow KubeJS default NBT matching behavior: plain inputs ignore NBT, `.weakNBT()` performs partial matching, and `.strongNBT()` performs exact matching.
+
 #### Create Script File
 
 Create a script file in your world save directory:
