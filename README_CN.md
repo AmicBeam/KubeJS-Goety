@@ -238,6 +238,38 @@ GoetyEvents.registerBrew(event => {
 - level 1~N 必须在 `setCapacityLevels` 中定义对应增量
 - 同一等级可以注册多个物品，容量增量由等级表统一决定
 
+#### 设置增强剂等级表
+
+等级型增强剂由“等级表”驱动。等级从 0 开始，对应每个等级增加的数值。
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    // event.setAugmentationLevels(modifier, levels)
+    // - modifier: 等级型增强类型（字符串）
+    // - levels: 等级表数组，从 level 0 开始
+    // - 数字项：只配置该等级增加的值；soul cost 倍率使用 Goety 原有默认值，
+    //   超出原有等级后复用最后一个默认倍率。
+    event.setAugmentationLevels('duration', [1, 1, 1, 1, 1]);
+
+    // 对象项：同时配置增加值和 soul cost 倍率。
+    // 别名：value/delta，cost/costMultiplier/multiplier。
+    event.setAugmentationLevels('amplifier', [
+        { value: 1, cost: 2.0 },
+        { value: 1, cost: 2.5 },
+        { value: 1, cost: 3.0 },
+        { value: 1, cost: 3.5 }
+    ]);
+});
+```
+
+**支持的等级型类型**：`duration`、`amplifier`、`aoe`、`linger`、`quaff`、`velocity`。
+
+**说明**：
+- `addAugmentation(item, modifier, level)` 会使用对应增强类型等级表中的该 level 项
+- `duration`、`amplifier`、`aoe`、`quaff` 的 value 必须是整数
+- `linger`、`velocity` 的 value 可以是小数
+- 未通过 `setAugmentationLevels` 覆盖时，会继续使用 Goety 原有等级表
+
 #### 注册增强剂
 
 ```javascript
@@ -261,6 +293,10 @@ GoetyEvents.registerBrew(event => {
     event.addAugmentation('mymod:power_crystal', 'amplifier', 2);
 });
 ```
+
+**说明**：
+- 等级型增强剂的 level 必须在该类型的 `setAugmentationLevels` 等级表中存在
+- 同一个增强类型的同一等级可以注册多个物品，增加值和消耗倍率由等级表统一决定
 
 #### 移除容量剂与增强剂
 
@@ -321,6 +357,7 @@ GoetyEvents.registerBrew(event => {
     event.addCapacity('mymod:magic_dust', 5);
     
     // 增强剂配置
+    event.setAugmentationLevels('duration', [1, 1, 1, 1]);
     event.addAugmentation('mymod:time_crystal', 'duration', 3);
     event.addAugmentation('mymod:power_crystal', 'amplifier', 2);
     event.addAugmentation('mymod:range_crystal', 'aoe', 1);
@@ -339,8 +376,13 @@ GoetyEvents.registerBrew(event => {
 - **添加催化剂（酿造配方）** → 使用 `event.recipes.goety.brewing`（见下方配方系统）
 
 **兼容说明（启示录）**：
-- 若同时加载 **启示录（revelationfix）**，为了避免冲突，本模组会禁用自身的坩埚容量扩展逻辑
-- 此情况下 `setCapacityLevels` 不会生效，容量上限与升级逻辑由启示录接管
+- 若同时加载 **启示录（`revelationfix` 或 `goety_revelation`）**，本模组默认跳过自身的坩埚酿药 mixin，恢复保守退避策略，避免和启示录的坩埚覆盖逻辑争抢。
+- 默认模式下，`setCapacityLevels` 以及自定义容量/增强剂的坩埚逻辑不会作用到启示录的坩埚流程。
+- 默认配置文件会自动创建在 `config/kubejs_goety.properties`。如整合包已自行处理启示录侧兼容，可在启动前修改它：
+```properties
+skipCauldronBrewingMixinsWithRevelation=false
+```
+- 该文件会在 mixin 加载阶段读取，因此必须完整重启。也可以通过 JVM 参数 `-Dkubejs_goety.skipCauldronBrewingMixinsWithRevelation=false` 设置同一开关。
 
 ## 配方系统配置
 

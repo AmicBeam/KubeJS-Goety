@@ -17,9 +17,11 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import com.kubejs.goety.util.SizedIngredient;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -217,6 +219,14 @@ public class ModifyRitualEventJS extends EventJS {
             
             @Override
             public boolean getRequirement(com.Polarice3.Goety.common.blocks.entities.RitualBlockEntity pTileEntity,
+                                        BlockPos pPos,
+                                        Level pLevel) {
+                return getRequirement(pTileEntity, null, pPos, pLevel);
+            }
+
+            @Override
+            public boolean getRequirement(com.Polarice3.Goety.common.blocks.entities.RitualBlockEntity pTileEntity,
+                                        @Nullable Player pPlayer,
                                         BlockPos pPos,
                                         Level pLevel) {
                 // 遍历所有条件组，任意一个满足即可（OR 逻辑）
@@ -872,6 +882,14 @@ public class ModifyRitualEventJS extends EventJS {
                 public boolean getRequirement(com.Polarice3.Goety.common.blocks.entities.RitualBlockEntity pTileEntity, 
                                             BlockPos pPos, 
                                             Level pLevel) {
+                    return getRequirement(pTileEntity, null, pPos, pLevel);
+                }
+
+                @Override
+                public boolean getRequirement(com.Polarice3.Goety.common.blocks.entities.RitualBlockEntity pTileEntity,
+                                            @Nullable Player pPlayer,
+                                            BlockPos pPos,
+                                            Level pLevel) {
                     try {
                         // 如果有自定义检查函数，优先使用
                         if (finalCustomRequirement instanceof dev.latvian.mods.rhino.BaseFunction) {
@@ -1136,7 +1154,7 @@ public class ModifyRitualEventJS extends EventJS {
                         }
                         
                         // 如果没有配置方块需求，使用原始检查逻辑
-                        return originalRitual.getRequirement(pTileEntity, pPos, pLevel);
+                        return originalRitual.getRequirement(pTileEntity, pPlayer, pPos, pLevel);
                     } catch (Exception e) {
                         System.err.println("[Goety Ritual] Error executing ritual check: " + e.getMessage());
                         e.printStackTrace();

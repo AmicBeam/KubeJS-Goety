@@ -34,7 +34,7 @@ import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import java.util.ArrayList;
 import java.util.List;
 
-@Mixin(value = BrewCauldronBlockEntity.class, remap = false)
+@Mixin(value = BrewCauldronBlockEntity.class, remap = false, priority = 500)
 public abstract class BrewCauldronCapacityMixin extends BlockEntity implements WorldlyContainer {
     @Shadow(remap = false)
     public BrewCauldronBlockEntity.Mode mode;
@@ -201,107 +201,8 @@ public abstract class BrewCauldronCapacityMixin extends BlockEntity implements W
                                 }
                                 return BrewCauldronBlockEntity.Mode.BREWING;
                             }
-                            if (brewModifier.getId().equals(BrewModifier.DURATION)) {
-                                if (this.getDuration() == 0 && modLevel == 0) {
-                                    this.duration++;
-                                    this.multiplyCost(1.25F);
-                                    return BrewCauldronBlockEntity.Mode.BREWING;
-                                }
-                                if (this.getDuration() == 1 && modLevel == 1) {
-                                    this.duration++;
-                                    this.multiplyCost(1.5F);
-                                    return BrewCauldronBlockEntity.Mode.BREWING;
-                                }
-                                if (this.getDuration() == 2 && modLevel == 2) {
-                                    this.duration++;
-                                    this.multiplyCost(2.0F);
-                                    return BrewCauldronBlockEntity.Mode.BREWING;
-                                }
-                            }
-                            if (brewModifier.getId().equals(BrewModifier.AMPLIFIER)) {
-                                if (this.getAmplifier() == 0 && modLevel == 0) {
-                                    this.amplifier++;
-                                    this.multiplyCost(2.0F);
-                                    return BrewCauldronBlockEntity.Mode.BREWING;
-                                }
-                                if (this.getAmplifier() == 1 && modLevel == 1) {
-                                    this.amplifier++;
-                                    this.multiplyCost(2.5F);
-                                    return BrewCauldronBlockEntity.Mode.BREWING;
-                                }
-                                if (this.getAmplifier() == 2 && modLevel == 2) {
-                                    this.amplifier++;
-                                    this.multiplyCost(3.0F);
-                                    return BrewCauldronBlockEntity.Mode.BREWING;
-                                }
-                            }
-                            if (brewModifier.getId().equals(BrewModifier.AOE)) {
-                                if (this.getAoE() == 0 && modLevel == 0) {
-                                    this.aoe++;
-                                    this.multiplyCost(1.25F);
-                                    return BrewCauldronBlockEntity.Mode.BREWING;
-                                }
-                                if (this.getAoE() == 1 && modLevel == 1) {
-                                    this.aoe++;
-                                    this.multiplyCost(1.5F);
-                                    return BrewCauldronBlockEntity.Mode.BREWING;
-                                }
-                                if (this.getAoE() == 2 && modLevel == 2) {
-                                    this.aoe++;
-                                    this.multiplyCost(2.0F);
-                                    return BrewCauldronBlockEntity.Mode.BREWING;
-                                }
-                            }
-                            if (brewModifier.getId().equals(BrewModifier.LINGER)) {
-                                if (this.getLingering() == 0 && modLevel == 0) {
-                                    this.lingering++;
-                                    this.multiplyCost(1.25F);
-                                    return BrewCauldronBlockEntity.Mode.BREWING;
-                                }
-                                if (this.getLingering() == 1 && modLevel == 1) {
-                                    this.lingering++;
-                                    this.multiplyCost(1.25F);
-                                    return BrewCauldronBlockEntity.Mode.BREWING;
-                                }
-                                if (this.getLingering() == 2 && modLevel == 2) {
-                                    this.lingering++;
-                                    this.multiplyCost(1.25F);
-                                    return BrewCauldronBlockEntity.Mode.BREWING;
-                                }
-                            }
-                            if (brewModifier.getId().equals(BrewModifier.QUAFF)) {
-                                if (this.getQuaff() == 0 && modLevel == 0) {
-                                    this.quaff += 8;
-                                    this.multiplyCost(1.25F);
-                                    return BrewCauldronBlockEntity.Mode.BREWING;
-                                }
-                                if (this.getQuaff() == 8 && modLevel == 1) {
-                                    this.quaff += 8;
-                                    this.multiplyCost(1.25F);
-                                    return BrewCauldronBlockEntity.Mode.BREWING;
-                                }
-                                if (this.getQuaff() == 16 && modLevel == 2) {
-                                    this.quaff += 8;
-                                    this.multiplyCost(1.25F);
-                                    return BrewCauldronBlockEntity.Mode.BREWING;
-                                }
-                            }
-                            if (brewModifier.getId().equals(BrewModifier.VELOCITY)) {
-                                if (this.getVelocity() == 0 && modLevel == 0) {
-                                    this.velocity += 0.1F;
-                                    this.multiplyCost(1.25F);
-                                    return BrewCauldronBlockEntity.Mode.BREWING;
-                                }
-                                if (this.getVelocity() == 0.1F && modLevel == 1) {
-                                    this.velocity += 0.2F;
-                                    this.multiplyCost(1.25F);
-                                    return BrewCauldronBlockEntity.Mode.BREWING;
-                                }
-                                if (this.getVelocity() == 0.3F && modLevel == 2) {
-                                    this.velocity += 0.2F;
-                                    this.multiplyCost(1.25F);
-                                    return BrewCauldronBlockEntity.Mode.BREWING;
-                                }
+                            if (this.applyLevelableAugmentation(brewModifier)) {
+                                return BrewCauldronBlockEntity.Mode.BREWING;
                             }
                             if (brewModifier.getId().equals(BrewModifier.AQUATIC)) {
                                 if (!this.isAquatic() && modLevel == 0) {
@@ -348,5 +249,55 @@ public abstract class BrewCauldronCapacityMixin extends BlockEntity implements W
             this.markUpdated();
         }
         return fail();
+    }
+
+    private boolean applyLevelableAugmentation(BrewModifier brewModifier) {
+        String id = brewModifier.getId();
+        int modLevel = brewModifier.getLevel();
+        BrewData.AugmentationLevel level = BrewData.getAugmentationLevel(id, modLevel);
+        if (level == null) {
+            return false;
+        }
+
+        float expected = BrewData.getAugmentationValuePrefix(id, modLevel);
+        if (id.equals(BrewModifier.DURATION) && this.matchesIntValue(this.getDuration(), expected)) {
+            this.duration += Math.round(level.value());
+            this.multiplyCost(level.cost());
+            return true;
+        }
+        if (id.equals(BrewModifier.AMPLIFIER) && this.matchesIntValue(this.getAmplifier(), expected)) {
+            this.amplifier += Math.round(level.value());
+            this.multiplyCost(level.cost());
+            return true;
+        }
+        if (id.equals(BrewModifier.AOE) && this.matchesIntValue(this.getAoE(), expected)) {
+            this.aoe += Math.round(level.value());
+            this.multiplyCost(level.cost());
+            return true;
+        }
+        if (id.equals(BrewModifier.LINGER) && this.matchesFloatValue(this.getLingering(), expected)) {
+            this.lingering += level.value();
+            this.multiplyCost(level.cost());
+            return true;
+        }
+        if (id.equals(BrewModifier.QUAFF) && this.matchesIntValue(this.getQuaff(), expected)) {
+            this.quaff += Math.round(level.value());
+            this.multiplyCost(level.cost());
+            return true;
+        }
+        if (id.equals(BrewModifier.VELOCITY) && this.matchesFloatValue(this.getVelocity(), expected)) {
+            this.velocity += level.value();
+            this.multiplyCost(level.cost());
+            return true;
+        }
+        return false;
+    }
+
+    private boolean matchesIntValue(int current, float expected) {
+        return current == Math.round(expected);
+    }
+
+    private boolean matchesFloatValue(float current, float expected) {
+        return Math.abs(current - expected) < 0.0001F;
     }
 }

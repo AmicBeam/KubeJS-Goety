@@ -5,6 +5,7 @@ import com.Polarice3.Goety.common.effects.brew.BrewEffects;
 import com.Polarice3.Goety.common.effects.brew.PotionBrewEffect;
 import com.Polarice3.Goety.common.effects.brew.modifiers.BrewModifier;
 import com.Polarice3.Goety.common.effects.brew.modifiers.CapacityModifier;
+import com.kubejs.goety.brew.BrewData;
 import com.kubejs.goety.bridge.BrewEffectsInvoker;
 import dev.latvian.mods.kubejs.event.EventJS;
 import dev.latvian.mods.kubejs.item.ItemStackJS;
@@ -22,6 +23,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 注册药酿配置的事件
@@ -107,6 +109,42 @@ public class RegisterBrewEventJS extends EventJS {
         }
         com.kubejs.goety.brew.BrewData.setCapacityLevelDeltas(deltas);
         ScriptType.SERVER.console.info("✓ 已设置容量等级增量表: " + deltas);
+    }
+
+    @Info(value = "设置等级型增强剂的等级表", params = {
+        @Param(name = "modifier", value = "增强类型：duration, amplifier, aoe, linger, quaff, velocity"),
+        @Param(name = "levels", value = "等级表，从0级开始。可用数字数组 [1,1,1] 或对象数组 [{value:1,cost:2.0}]")
+    })
+    public void setAugmentationLevels(String modifier, Object levels) {
+        if (modifier == null || modifier.isEmpty()) {
+            ScriptType.SERVER.console.error("增强类型不能为空");
+            return;
+        }
+
+        String modifierLower = modifier.toLowerCase();
+        if (!BrewData.isLevelableAugmentation(modifierLower)) {
+            ScriptType.SERVER.console.error("只有等级型增强剂支持等级表: duration, amplifier, aoe, linger, quaff, velocity");
+            return;
+        }
+
+        List<?> list = ListJS.of(levels);
+        if (list == null || list.isEmpty()) {
+            ScriptType.SERVER.console.error("增强剂等级表不能为空");
+            return;
+        }
+
+        List<BrewData.AugmentationLevel> parsedLevels = new ArrayList<>();
+        for (int i = 0; i < list.size(); i++) {
+            try {
+                parsedLevels.add(parseAugmentationLevel(modifierLower, list.get(i), i));
+            } catch (IllegalArgumentException e) {
+                ScriptType.SERVER.console.error(e.getMessage());
+                return;
+            }
+        }
+
+        BrewData.setAugmentationLevels(modifierLower, parsedLevels);
+        ScriptType.SERVER.console.info("✓ 已设置增强剂等级表: " + modifierLower + " -> " + parsedLevels);
     }
 
     /**
@@ -389,7 +427,7 @@ public class RegisterBrewEventJS extends EventJS {
         
         return result.toString();
     }
-    
+
     /**
      * 创建特殊效果的 BrewEffect 实例
      * 通过反射尝试不同的构造函数签名
@@ -409,7 +447,7 @@ public class RegisterBrewEventJS extends EventJS {
                     }
                 }
             }
-            
+
             if (effectClass == null) {
                 ScriptType.SERVER.console.warn("未找到效果类型: " + effectType + 
                     "，可用效果: " + String.join(", ", EFFECT_CLASS_CACHE.keySet()));
@@ -480,6 +518,11 @@ public class RegisterBrewEventJS extends EventJS {
         @Param(name = "level", value = "等级（整数）")
     })
     public void addAugmentation(Object item, String modifier, int level) {
+        if (level < 0) {
+            ScriptType.SERVER.console.error("增强剂等级必须 >= 0，当前值: " + level);
+            return;
+        }
+
         Item itemObj = getItem(item);
         if (itemObj == null) {
             return;
@@ -493,7 +536,7 @@ public class RegisterBrewEventJS extends EventJS {
         // 验证增强类型
         String modifierLower = modifier.toLowerCase();
         if (!isValidModifier(modifierLower)) {
-            ScriptType.SERVER.console.error("无效的增强类型: " + modifier + "，有效值: capacity, duration, amplifier, aoe, linger, quaff, velocity, aquatic, fire_proof");
+            ScriptType.SERVER.console.error("无效的增强类型: " + modifier + "，有效值: capacity, duration, amplifier, aoe, linger, quaff, velocity, aquatic, fire_proof, hidden, splash, lingering, gas");
             return;
         }
         
@@ -759,5 +802,68 @@ public class RegisterBrewEventJS extends EventJS {
                modifier.equals("splash") ||
                modifier.equals("lingering") ||
                modifier.equals("gas");
+    }
+
+    private BrewData.AugmentationLevel parseAugmentationLevel(String modifier, Object entry, int index) {
+        Object valueObj = entry;
+        Object costObj = null;
+
+        if (entry instanceof Map<?, ?> map) {
+            valueObj = firstMapValue(map, "value", "delta");
+            costObj = firstMapValue(map, "cost", "costMultiplier", "multiplier");
+            if (valueObj == null) {
+                throw new IllegalArgumentException("增强剂等级表第 " + index + " 项缺少 value/delta: " + entry);
+            }
+        }
+
+        float value = parsePositiveFloat(valueObj, "增强剂等级表第 " + index + " 项 value");
+        if (requiresWholeAugmentationValue(modifier) && Math.abs(value - Math.round(value)) > 0.0001F) {
+            throw new IllegalArgumentException("增强剂 " + modifier + " 的 value 必须是整数，第 " + index + " 项为: " + value);
+        }
+
+        float cost = costObj == null
+                ? BrewData.getDefaultAugmentationCost(modifier, index)
+                : parsePositiveFloat(costObj, "增强剂等级表第 " + index + " 项 cost");
+
+        return new BrewData.AugmentationLevel(value, cost);
+    }
+
+    private Object firstMapValue(Map<?, ?> map, String... keys) {
+        for (String key : keys) {
+            if (map.containsKey(key)) {
+                return map.get(key);
+            }
+        }
+        return null;
+    }
+
+    private float parsePositiveFloat(Object value, String name) {
+        if (value == null) {
+            throw new IllegalArgumentException(name + " 不能为空");
+        }
+
+        Object cast = UtilsJS.cast(value);
+        float parsed;
+        if (cast instanceof Number number) {
+            parsed = number.floatValue();
+        } else {
+            try {
+                parsed = Float.parseFloat(cast.toString());
+            } catch (Exception e) {
+                throw new IllegalArgumentException(name + " 必须是数字: " + value);
+            }
+        }
+
+        if (parsed <= 0.0F) {
+            throw new IllegalArgumentException(name + " 必须 > 0，当前值: " + parsed);
+        }
+        return parsed;
+    }
+
+    private boolean requiresWholeAugmentationValue(String modifier) {
+        return modifier.equals("duration") ||
+               modifier.equals("amplifier") ||
+               modifier.equals("aoe") ||
+               modifier.equals("quaff");
     }
 }
