@@ -429,6 +429,50 @@ public class RegisterBrewEventJS extends EventJS {
     }
 
     /**
+     * Forge production environments expose mod JAR resources through the
+     * {@code union:} protocol, so package scanning is not always available.
+     * Resolve Goety's conventional effect class names directly as a fallback.
+     */
+    private static Class<? extends BrewEffect> tryLoadEffectClassByConvention(String effectType) {
+        StringBuilder simpleName = new StringBuilder();
+        for (String part : effectType.toLowerCase().split("_")) {
+            if (!part.isEmpty()) {
+                simpleName.append(Character.toUpperCase(part.charAt(0)));
+                simpleName.append(part.substring(1));
+            }
+        }
+
+        String baseName = simpleName.toString();
+        String[] candidates = {
+                "com.Polarice3.Goety.common.effects.brew.block." + baseName + "BlockEffect",
+                "com.Polarice3.Goety.common.effects.brew.block." + baseName + "BrewEffect",
+                "com.Polarice3.Goety.common.effects.brew.block." + baseName + "Effect",
+                "com.Polarice3.Goety.common.effects.brew." + baseName + "BlockEffect",
+                "com.Polarice3.Goety.common.effects.brew." + baseName + "BrewEffect",
+                "com.Polarice3.Goety.common.effects.brew." + baseName + "Effect"
+        };
+
+        for (String className : candidates) {
+            try {
+                Class<?> clazz = Class.forName(className);
+                if (BrewEffect.class.isAssignableFrom(clazz)
+                        && clazz != BrewEffect.class
+                        && !java.lang.reflect.Modifier.isAbstract(clazz.getModifiers())) {
+                    @SuppressWarnings("unchecked")
+                    Class<? extends BrewEffect> effectClass = (Class<? extends BrewEffect>) clazz;
+                    EFFECT_CLASS_CACHE.put(effectType.toLowerCase(), effectClass);
+                    ScriptType.SERVER.console.info("✓ 通过类名回退解析特殊效果: "
+                            + effectType + " -> " + className);
+                    return effectClass;
+                }
+            } catch (ClassNotFoundException | LinkageError ignored) {
+                // Try the next conventional class name.
+            }
+        }
+        return null;
+    }
+
+    /**
      * 创建特殊效果的 BrewEffect 实例
      * 通过反射尝试不同的构造函数签名
      */
@@ -446,6 +490,10 @@ public class RegisterBrewEventJS extends EventJS {
                         break;
                     }
                 }
+            }
+
+            if (effectClass == null) {
+                effectClass = tryLoadEffectClassByConvention(effectType);
             }
 
             if (effectClass == null) {
