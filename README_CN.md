@@ -18,7 +18,7 @@ KubeJS 与 Goety 模组的集成，允许通过 JavaScript 脚本自定义 Goety
 - Minecraft 1.20.1
 - Forge 47.1.65+
 - KubeJS 2001.6+
-- Goety 2.5.41+
+- Goety 2.5.55.0+
 
 ## 安装
 

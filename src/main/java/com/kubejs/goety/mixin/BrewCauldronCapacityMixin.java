@@ -132,6 +132,12 @@ public abstract class BrewCauldronCapacityMixin extends BlockEntity implements W
     @Shadow(remap = false)
     public abstract EntityType<?> getSacrificed(int pIndex);
 
+    @Shadow(remap = false)
+    public abstract boolean addCraftItem(ItemStack itemStack);
+
+    @Shadow(remap = false)
+    public abstract boolean canCraft(Level world);
+
     @ModifyConstant(method = "<init>", constant = @Constant(intValue = 32))
     private int kubejs_goety$expandContainerSize(int original) {
         return Math.max(original, BrewData.getMaxCapacity());
@@ -140,12 +146,23 @@ public abstract class BrewCauldronCapacityMixin extends BlockEntity implements W
     @Overwrite(remap = false)
     public BrewCauldronBlockEntity.Mode insertItem(ItemStack itemStack) {
         if (this.level != null && !this.level.isClientSide) {
+            boolean craft = itemStack.is(ModItems.NIGHTSHADE_BLOSSOM.get());
+            if (this.mode == BrewCauldronBlockEntity.Mode.IDLE && craft) {
+                this.clearContent();
+                return BrewCauldronBlockEntity.Mode.CRAFTING;
+            } else if (this.mode == BrewCauldronBlockEntity.Mode.CRAFTING && this.addCraftItem(itemStack)) {
+                if (!this.canCraft(this.level)) {
+                    return fail();
+                }
+                return BrewCauldronBlockEntity.Mode.CRAFTING;
+            }
+
             Item ingredient = itemStack.getItem();
             BrewModifier brewModifier = BrewEffects.INSTANCE.getModifier(ingredient);
             int modLevel = brewModifier != null ? brewModifier.getLevel() : -1;
             boolean activate = brewModifier instanceof CapacityModifier && brewModifier.getLevel() == 0;
             int firstEmpty = getFirstEmptySlot();
-            if (firstEmpty != -1) {
+            if (firstEmpty != -1 && this.mode != BrewCauldronBlockEntity.Mode.CRAFTING) {
                 if (this.mode == BrewCauldronBlockEntity.Mode.BREWING && !this.freeModifier(brewModifier) && !activate) {
                     if (this.getOccupiedSlots() >= this.getCapacity()) {
                         return fail();

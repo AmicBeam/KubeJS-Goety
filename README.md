@@ -18,7 +18,7 @@ KubeJS integration for Goety mod. Allows customizing Goety ritual requirements, 
 - Minecraft 1.20.1
 - Forge 47.1.65+
 - KubeJS 2001.6+
-- Goety 2.5.41+
+- Goety 2.5.55.0+
 
 ## Installation
 
