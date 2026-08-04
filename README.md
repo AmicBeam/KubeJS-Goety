@@ -598,6 +598,16 @@ kubejs-goety/
 │               └── goety_brews.js.example    # Brew configuration example script
 ```
 
+## Acknowledgements and Third-Party Attribution
+
+The initial brew modifier tracking and bridge design in `BrewData`,
+`BrewEffectsInvoker`, and `BrewEffectsMixin` was developed with reference to
+the corresponding implementation in **RevelationFix**. RevelationFix credits
+MegaDarkness as programmer and declares its license as **ARR (All Rights
+Reserved)**. All rights in RevelationFix remain with its respective rights
+holders. See [NOTICE.md](NOTICE.md) for the full attribution and licensing
+clarification.
+
 ## License
 
 MIT License

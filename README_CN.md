@@ -602,6 +602,14 @@ kubejs-goety/
 │               └── goety_brews.js.example    # 药酿配置示例脚本
 ```
 
+## 致谢与第三方来源声明
+
+`BrewData`、`BrewEffectsInvoker` 和 `BrewEffectsMixin` 的初版药酿修饰剂追踪与
+桥接设计，参考了 **RevelationFix** 中对应的药酿实现。RevelationFix 的模组元数据
+将 MegaDarkness 列为程序作者，并将许可证声明为 **ARR（保留所有权利）**。
+RevelationFix 的代码及相关权利仍归其相应权利人所有。完整来源声明与许可证说明
+见 [NOTICE.md](NOTICE.md)。
+
 ## 许可证
 
 MIT License

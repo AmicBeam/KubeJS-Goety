@@ -9,6 +9,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Stores KubeJS-configured brew modifier data.
+ *
+ * <p>Historical attribution: the initial capacity/augmentation lookup-table
+ * design was developed with reference to RevelationFix's corresponding
+ * {@code BrewData} implementation. RevelationFix declares ARR (All Rights
+ * Reserved); its rights remain with its respective rights holders. See the
+ * repository's {@code NOTICE.md}.</p>
+ */
 public class BrewData {
     public static final int MAX_CAULDRON_CAPACITY = 32;
     public static final int MAX_CAPACITY_LEVEL = 7;
