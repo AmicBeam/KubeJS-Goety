@@ -602,6 +602,15 @@ kubejs-goety/
 │               └── goety_brews.js.example    # 药酿配置示例脚本
 ```
 
+## 致谢与第三方来源声明
+
+来源声明仅限两个早期实现细节：`forceModifierRegister_` 桥接方法的名称/签名，
+以及容量剂与增强剂两张物品索引表的初始组织方式；这些部分参考了
+**RevelationFix** 中的对应实现。本声明不涵盖 KubeJS Goety 的整个药酿体系：脚本
+API、动态等级配置、坩埚处理、配方、修饰剂移除/替换及后续扩展均为 KubeJS Goety
+的实现。RevelationFix 将 MegaDarkness 列为程序作者，许可证为 **ARR（保留所有
+权利）**。准确范围及许可证说明见 [NOTICE.md](NOTICE.md)。
+
 ## 许可证
 
 MIT License

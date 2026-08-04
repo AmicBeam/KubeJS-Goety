@@ -12,6 +12,7 @@ import java.util.Map;
 public class BrewData {
     public static final int MAX_CAULDRON_CAPACITY = 32;
     public static final int MAX_CAPACITY_LEVEL = 7;
+    // The initial two-index layout referenced RevelationFix's BrewData; see NOTICE.md.
     public static final Map<Integer, List<Item>> LEVEL_TO_CAPACITY_ITEMS = createLevelMap(MAX_CAPACITY_LEVEL);
     public static final Map<String, Map<Integer, List<Item>>> TYPE_TO_LEVEL_AUGMENT_ITEMS = createAugmentMap();
     private static List<Integer> CAPACITY_LEVEL_DELTAS = new ArrayList<>();

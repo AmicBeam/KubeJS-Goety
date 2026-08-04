@@ -1294,6 +1294,18 @@ event.create('desert_ritual', ritual => {
 
 ---
 
+## Acknowledgements and Third-Party Attribution
+
+Limited early implementation details—the name/signature of the
+`forceModifierRegister_` bridge and the initial organization of the two
+capacity/augmentation item index tables—were developed with reference to the
+corresponding implementation in **RevelationFix**. This attribution does not
+cover KubeJS Goety's scripting APIs, dynamic level configuration, cauldron
+logic, recipes, modifier removal/replacement, or later brew extensions. See
+[NOTICE.md](NOTICE.md) for the exact scope and licensing clarification.
+
+---
+
 ## Additional Resources
 
 - [KubeJS Documentation](https://kubejs.com/)

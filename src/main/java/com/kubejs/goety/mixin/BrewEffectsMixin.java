@@ -18,6 +18,7 @@ public abstract class BrewEffectsMixin implements BrewEffectsInvoker {
     @Final
     private Map<Item, BrewModifier> modifiers;
 
+    // The initial bridge shape referenced RevelationFix; current behavior is KubeJS Goety's.
     @Override
     public void forceModifierRegister_(BrewModifier modifier, Item ingredient) {
         BrewData.removeModifierItem(ingredient);

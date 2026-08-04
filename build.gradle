@@ -140,6 +140,10 @@ tasks.named('processResources', ProcessResources).configure {
     filesMatching(['META-INF/mods.toml']) {
         expand replaceProperties
     }
+
+    from(rootProject.file('NOTICE.md')) {
+        into ''
+    }
 }
 
 publishing {
