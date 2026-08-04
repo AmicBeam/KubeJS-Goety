@@ -2,11 +2,21 @@
 
 ## RevelationFix
 
-The initial design of KubeJS Goety's brew modifier tracking and bridge layer,
-including the capacity/augmentation lookup-table organization in `BrewData`
-and the `BrewEffectsInvoker` / `BrewEffectsMixin` registration bridge, was
+This attribution is limited to two early implementation details that were
 developed with reference to the corresponding brew implementation in
-**RevelationFix**.
+**RevelationFix**:
+
+- the name and signature of the `forceModifierRegister_` bridge exposed by
+  `BrewEffectsInvoker`, together with the initial shape of its small
+  `BrewEffectsMixin` implementation; and
+- the initial organization of the two item index tables for capacity and
+  augmentation modifiers in `BrewData`.
+
+This notice does **not** apply to KubeJS Goety's brew system as a whole. In
+particular, its KubeJS event and recipe APIs, dynamic capacity and augmentation
+level configuration, cauldron processing, modifier replacement/removal
+behavior, special brew effects, documentation, and later extensions are
+KubeJS Goety work and are not attributed to RevelationFix by this notice.
 
 RevelationFix 4.4 identifies the following contributors in its mod metadata:
 

@@ -600,13 +600,15 @@ kubejs-goety/
 
 ## Acknowledgements and Third-Party Attribution
 
-The initial brew modifier tracking and bridge design in `BrewData`,
-`BrewEffectsInvoker`, and `BrewEffectsMixin` was developed with reference to
-the corresponding implementation in **RevelationFix**. RevelationFix credits
-MegaDarkness as programmer and declares its license as **ARR (All Rights
-Reserved)**. All rights in RevelationFix remain with its respective rights
-holders. See [NOTICE.md](NOTICE.md) for the full attribution and licensing
-clarification.
+Limited early implementation details—the name/signature of the
+`forceModifierRegister_` bridge and the initial organization of the two
+capacity/augmentation item index tables—were developed with reference to the
+corresponding implementation in **RevelationFix**. This attribution does not
+cover KubeJS Goety's brew system as a whole; its scripting APIs, dynamic level
+configuration, cauldron logic, recipes, modifier removal/replacement, and later
+extensions are KubeJS Goety work. RevelationFix credits MegaDarkness as
+programmer and declares **ARR (All Rights Reserved)**. See
+[NOTICE.md](NOTICE.md) for the exact scope and licensing clarification.
 
 ## License
 

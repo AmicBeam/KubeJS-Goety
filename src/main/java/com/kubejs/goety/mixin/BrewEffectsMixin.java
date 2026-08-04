@@ -12,19 +12,13 @@ import org.spongepowered.asm.mixin.Shadow;
 
 import java.util.Map;
 
-/**
- * Applies the KubeJS brew registry bridge.
- *
- * <p>The initial modifier-registration bridge was developed with reference to
- * RevelationFix's corresponding mixin. RevelationFix declares ARR (All Rights
- * Reserved); see the repository's {@code NOTICE.md}.</p>
- */
 @Mixin(value = BrewEffects.class, remap = false)
 public abstract class BrewEffectsMixin implements BrewEffectsInvoker {
     @Shadow
     @Final
     private Map<Item, BrewModifier> modifiers;
 
+    // The initial bridge shape referenced RevelationFix; current behavior is KubeJS Goety's.
     @Override
     public void forceModifierRegister_(BrewModifier modifier, Item ingredient) {
         BrewData.removeModifierItem(ingredient);

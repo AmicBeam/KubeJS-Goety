@@ -8,7 +8,7 @@ version="${mod_version}"
 displayName="KubeJS Goety"
 displayURL="https://github.com/kubejs-goety/kubejs-goety"
 logoFile="logo.png"
-credits="Integration mod for KubeJS and Goety. Initial brew modifier tracking and bridge design referenced RevelationFix by MegaDarkness (ARR); see the packaged NOTICE.md."
+credits="Integration mod for KubeJS and Goety. Limited early bridge/index-table details referenced RevelationFix by MegaDarkness (ARR); see the packaged NOTICE.md for exact scope."
 authors="AmicBeam"
 description='''
 KubeJS integration for Goety mod - Customize Goety rituals, brews, and recipes with JavaScript!
