@@ -158,9 +158,32 @@ ServerEvents.recipes(event => {
         .capacityExtra(5)
         .duration(2400)
         .entityTag('minecraft:is_animal');  // 需要动物
+
+    // ==========================================
+    // 3. cauldron（坩埚合成配方）
+    // ==========================================
+    //
+    // event.recipes.goety.cauldron(result, ingredients)
+    // - result: 产物物品（OutputItem）
+    // - ingredients: 无序材料数组（InputItem[]）
+    //
+    // 可选方法：
+    // - .takeWith(item) - 取出产物所需物品；省略时空手取出
+    // - .levelLeft(level) - 完成后剩余水位，Goety 会限制为 1~3
+    // - .soulCost(cost) - 灵魂消耗
+    // - .color(rgb) - 十进制 RGB 颜色
+    event.recipes.goety.cauldron('minecraft:nether_star', [
+        '2x minecraft:diamond',
+        'minecraft:blaze_powder',
+        '#forge:ingots/gold'
+    ])
+        .takeWith('minecraft:glass_bottle')
+        .levelLeft(1)
+        .soulCost(100)
+        .color(0xB1FF7F);
     
     // ==========================================
-    // 3. pulverize（粉碎配方）
+    // 4. pulverize（粉碎配方）
     // ==========================================
     // 
     // event.recipes.goety.pulverize(ingredient)
@@ -187,7 +210,7 @@ ServerEvents.recipes(event => {
         .itemResult('minecraft:sand');  // 这个会被忽略，因为 blockResult 优先
     
     // ==========================================
-    // 4. cursed_infuser_recipes（诅咒注入器配方）
+    // 5. cursed_infuser_recipes（诅咒注入器配方）
     // ==========================================
     // 
     // event.recipes.goety.cursed_infuser_recipes(result, ingredient)
@@ -212,7 +235,7 @@ ServerEvents.recipes(event => {
         .cookingTime(20);
     
     // ==========================================
-    // 5. brazier（火盆配方）
+    // 6. brazier（火盆配方）
     // ==========================================
     // 
     // event.recipes.goety.brazier(result, ingredients)
@@ -243,7 +266,7 @@ ServerEvents.recipes(event => {
         .soulCost(25);
     
     // ==========================================
-    // 6. soul_absorber_recipes（灵魂吸收器配方）
+    // 7. soul_absorber_recipes（灵魂吸收器配方）
     // ==========================================
     // 
     // event.recipes.goety.soul_absorber_recipes(ingredient)
@@ -271,7 +294,7 @@ ServerEvents.recipes(event => {
         .cookingTime(50);
 
     // ==========================================
-    // 7. 输入材料的 NBT 匹配说明
+    // 8. 输入材料的 NBT 匹配说明
     // ==========================================
     //
     // 所有 Goety 配方类型的输入都与 KubeJS 默认行为对齐：
@@ -314,7 +337,7 @@ ServerEvents.recipes(event => {
     );
     
     // ==========================================
-    // 8. 配方修改方式1：replaceInput / replaceOutput（推荐）
+    // 9. 配方修改方式1：replaceInput / replaceOutput（推荐）
     // ==========================================
     // 
     // ✅ 推荐：使用 replaceInput 和 replaceOutput 进行批量替换
@@ -356,7 +379,7 @@ ServerEvents.recipes(event => {
     // );
     
     // ==========================================
-    // 9. 配方修改方式2：删除并重新创建（用于修改特殊字段）
+    // 10. 配方修改方式2：删除并重新创建（用于修改特殊字段）
     // ==========================================
     // 
     // 当需要修改 soulCost、duration、craftType 等字段时使用此方式

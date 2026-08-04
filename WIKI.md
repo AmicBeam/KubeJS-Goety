@@ -10,7 +10,9 @@ Complete guide for customizing Goety mod features using KubeJS scripts.
   - [Configuration Options](#configuration-options)
   - [Built-in Rituals Reference](#built-in-rituals-reference)
 - [Brew System](#brew-system)
+  - [Capacity Level Deltas](#capacity-level-deltas)
   - [Capacity Modifiers](#capacity-modifiers)
+  - [Augmentation Level Tables](#augmentation-level-tables)
   - [Augmentation Modifiers](#augmentation-modifiers)
 - [Recipe System](#recipe-system)
   - [Ritual Recipes](#ritual-recipes)
@@ -584,6 +586,9 @@ GoetyEvents.registerBrew(event => {
 
 **Limit**: The cauldron's maximum total capacity is capped at 32 (values above are clamped).
 
+Without `setCapacityLevels`, the Goety 2.5.55 six-level delta table
+`[2, 2, 2, 2, 4, 6]` is used.
+
 ### Capacity Modifiers
 
 Capacity modifiers determine the base capacity level of brews:
@@ -605,6 +610,38 @@ GoetyEvents.registerBrew(event => {
 - Levels 1~N must be defined in `setCapacityLevels`
 - Multiple items can share the same level; the delta comes from the level table
 
+### Augmentation Level Tables
+
+Levelable augmentations are driven by level tables. Levels start at 0 and each entry defines the value added by that level.
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    // event.setAugmentationLevels(modifier, levels)
+    // - modifier: Levelable augmentation type (string)
+    // - levels: Array indexed from level 0
+    // - Number entry: value only; soul cost uses Goety's built-in multiplier
+    //   for known levels, then repeats the last built-in multiplier.
+    event.setAugmentationLevels('duration', [1, 1, 1, 1, 1]);
+
+    // Object entry: configure both value and soul cost multiplier.
+    // Aliases: value/delta, cost/costMultiplier/multiplier.
+    event.setAugmentationLevels('amplifier', [
+        { value: 1, cost: 2.0 },
+        { value: 1, cost: 2.5 },
+        { value: 1, cost: 3.0 },
+        { value: 1, cost: 3.5 }
+    ]);
+});
+```
+
+**Supported levelable types**: `duration`, `amplifier`, `aoe`, `linger`, `quaff`, `velocity`.
+
+**Notes**:
+- `addAugmentation(item, modifier, level)` uses the matching entry in the modifier's level table
+- `duration`, `amplifier`, `aoe`, and `quaff` values must be whole numbers
+- `linger` and `velocity` may use decimal values
+- Existing Goety level tables are used unless overridden with `setAugmentationLevels`
+
 ### Augmentation Modifiers
 
 Augmentation modifiers enhance brew properties:
@@ -623,6 +660,10 @@ GoetyEvents.registerBrew(event => {
 });
 ```
 
+**Notes**:
+- Levelable modifier levels must exist in that modifier's `setAugmentationLevels` table
+- Multiple items can share the same modifier level; the value and cost come from the level table
+
 ### Remove Capacity Modifiers and Augmentations
 
 ```javascript
@@ -634,6 +675,9 @@ GoetyEvents.registerBrew(event => {
     event.removeAugmentation('minecraft:redstone');
 });
 ```
+
+Both removal methods work with Goety's built-in registrations and script-added
+registrations, and validate the modifier type currently mapped to the item.
 
 **Available augmentation types**:
 - `'capacity'` - Capacity
@@ -655,6 +699,7 @@ GoetyEvents.registerBrew(event => {
     event.addCapacity('mymod:magic_dust', 5);
     
     // Augmentations
+    event.setAugmentationLevels('duration', [1, 1, 1, 1]);
     event.addAugmentation('mymod:time_crystal', 'duration', 3);
     event.addAugmentation('mymod:power_crystal', 'amplifier', 2);
     event.addAugmentation('mymod:range_crystal', 'aoe', 1);
@@ -666,8 +711,13 @@ GoetyEvents.registerBrew(event => {
 ⚠️ **Important**: Brew configuration changes (capacity/augmentation/special effects/removals) do not apply via `/reload`. You must **re-enter the world or restart the server**.
 
 **Compatibility (Revelation)**:
-- When **Revelation (revelationfix)** is present, this mod disables its cauldron capacity mixin to avoid conflicts
-- In that case `setCapacityLevels` is ignored and capacity upgrades are handled by Revelation
+- When **Revelation (`revelationfix` or `goety_revelation`)** is present, KubeJS Goety skips its cauldron brewing mixins by default. This restores the conservative fallback and avoids fighting Revelation's own cauldron overwrites.
+- In that default mode, `setCapacityLevels` and custom capacity/augmentation cauldron logic do not affect Revelation's cauldron path.
+- The default config file is created automatically at `config/kubejs_goety.properties`. To opt in anyway for a pack that has already handled Revelation-side compatibility, edit it before launch:
+```properties
+skipCauldronBrewingMixinsWithRevelation=false
+```
+- This file is read during mixin loading, so a full restart is required. The same value can also be set with JVM property `-Dkubejs_goety.skipCauldronBrewingMixinsWithRevelation=false`.
 
 ### Special Brew Effects (Non-Potion Effects)
 
@@ -878,6 +928,42 @@ ServerEvents.recipes(event => {
 - `.entityTag(tag)` - Required entity tag
 
 **Note**: The first parameter is the ingredient (catalyst), and the second is the effect ID (not an item).
+
+### Cauldron Crafting Recipes
+
+Create unordered item recipes for Goety's cauldron `CRAFTING` mode:
+
+```javascript
+ServerEvents.recipes(event => {
+    event.recipes.goety.cauldron('minecraft:nether_star', [
+        '2x minecraft:diamond',
+        'minecraft:blaze_powder',
+        '#forge:ingots/gold'
+    ])
+        .takeWith('minecraft:glass_bottle')
+        .levelLeft(1)
+        .soulCost(100)
+        .color(0xB1FF7F);
+});
+```
+
+**Available methods**:
+- `.takeWith(item)` - Item required to collect the result; omit for empty-hand collection
+- `.levelLeft(level)` - Remaining water level, clamped by Goety to 1-3
+- `.soulCost(cost)` - Soul cost
+- `.color(rgb)` - Decimal RGB cauldron color
+
+Counted inputs are expanded into repeated unordered ingredients. The item that
+switches an idle cauldron into crafting mode can be replaced separately:
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    event.setCauldronStarter('mymod:custom_nightshade');
+});
+```
+
+The default starter is `goety:nightshade_blossom`, and the setter replaces it
+rather than adding another starter.
 
 ### Pulverize Recipes
 

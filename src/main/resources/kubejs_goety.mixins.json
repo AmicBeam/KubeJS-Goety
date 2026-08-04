@@ -6,6 +6,7 @@
   "plugin": "com.kubejs.goety.mixin.KubejsGoetyMixinPlugin",
   "mixins": [
     "BrewCauldronCapacityMixin",
+    "BrewCauldronCraftingStarterMixin",
     "BrewCauldronBlockEntityMixin",
     "BrewEffectsMixin",
     "BrewEffectInstanceMixin",

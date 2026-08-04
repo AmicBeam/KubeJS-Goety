@@ -20,11 +20,18 @@ public abstract class BrewEffectsMixin implements BrewEffectsInvoker {
 
     @Override
     public void forceModifierRegister_(BrewModifier modifier, Item ingredient) {
+        BrewData.removeModifierItem(ingredient);
         this.modifiers.put(ingredient, modifier);
         if (modifier instanceof CapacityModifier) {
             BrewData.registerCapacity(ingredient, modifier.level);
         } else {
             BrewData.registerAugmentation(ingredient, modifier.id, modifier.level);
         }
+    }
+
+    @Override
+    public BrewModifier removeModifier_(Item ingredient) {
+        BrewData.removeModifierItem(ingredient);
+        return this.modifiers.remove(ingredient);
     }
 }
