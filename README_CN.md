@@ -205,6 +205,17 @@ GoetyEvents.modifyRitual(event => {
         └── goety_brews.js
 ```
 
+#### 设置坩埚合成起手物
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    // 默认起手物为 goety:nightshade_blossom（颠茄花）
+    event.setCauldronStarter('mymod:custom_nightshade');
+});
+```
+
+`setCauldronStarter` 会替换原起手物。设置后，原颠茄花不再让空闲坩埚进入 `CRAFTING` 模式。
+
 #### 设置容量等级增量表
 
 容量提升由“等级增量表”驱动。等级从 1 开始，对应每次升级增加的容量值。
@@ -219,6 +230,8 @@ GoetyEvents.registerBrew(event => {
 ```
 
 **上限**：坩埚的最大总容量被限制为 32（超过的部分会被截断）。
+
+未调用 `setCapacityLevels` 时，默认使用 Goety 2.5.55 的六级增量表 `[2, 2, 2, 2, 4, 6]`。
 
 #### 注册容量剂
 
@@ -309,6 +322,8 @@ GoetyEvents.registerBrew(event => {
     event.removeAugmentation('minecraft:redstone');
 });
 ```
+
+两个移除方法均可删除 Goety 原生注册项和脚本新增项，并会按照物品当前实际对应的修改剂类型进行判断。
 
 #### 注册特殊效果配方（非药水效果）
 
@@ -460,6 +475,25 @@ ServerEvents.recipes(event => {
         .entityType('minecraft:ender_dragon');  // 需要末影龙
 });
 ```
+
+#### 坩埚合成配方（cauldron）
+
+```javascript
+ServerEvents.recipes(event => {
+    // event.recipes.goety.cauldron(result, ingredients)
+    event.recipes.goety.cauldron('minecraft:nether_star', [
+        '2x minecraft:diamond',
+        'minecraft:blaze_powder',
+        '#forge:ingots/gold'
+    ])
+        .takeWith('minecraft:glass_bottle') // 省略时为空手取出
+        .levelLeft(1)                       // 完成后剩余水位，范围 1~3
+        .soulCost(100)
+        .color(0xB1FF7F);
+});
+```
+
+材料无序匹配。带数量的输入（例如 `2x minecraft:diamond`）会展开为重复材料。进入合成模式的起手物由 `GoetyEvents.registerBrew` 中的 `setCauldronStarter()` 配置。
 
 **配置优先级说明**：
 - 使用 `event.recipes.goety.brewing` 可以添加新的催化剂配方，也可以调整现有效果的灵魂消耗（`.soulCost()`）

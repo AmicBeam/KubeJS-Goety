@@ -196,6 +196,18 @@ your_world_save/
         └── goety_brews.js
 ```
 
+#### Set the Cauldron Crafting Starter
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    // The default starter is goety:nightshade_blossom
+    event.setCauldronStarter('mymod:custom_nightshade');
+});
+```
+
+`setCauldronStarter` replaces the original starter. After it is set, the
+nightshade blossom no longer switches an idle cauldron to `CRAFTING` mode.
+
 #### Set Capacity Level Deltas
 
 Capacity upgrades are driven by a level delta table. Levels start at 1 and each entry defines how much capacity is added at that level.
@@ -209,6 +221,9 @@ GoetyEvents.registerBrew(event => {
 ```
 
 **Limit**: The cauldron's maximum total capacity is capped at 32 (values above are clamped).
+
+Without `setCapacityLevels`, the Goety 2.5.55 six-level delta table
+`[2, 2, 2, 2, 4, 6]` is used.
 
 #### Register Capacity Modifiers
 
@@ -299,6 +314,9 @@ GoetyEvents.registerBrew(event => {
     event.removeAugmentation('minecraft:redstone');
 });
 ```
+
+Both removal methods support Goety's built-in registrations and script-added
+registrations. They validate the modifier type currently mapped to the item.
 
 #### Register Special Brew Effects (Non-Potion Effects)
 
@@ -450,6 +468,28 @@ ServerEvents.recipes(event => {
         .entityType('minecraft:ender_dragon');  // Requires ender dragon
 });
 ```
+
+#### Cauldron Crafting Recipes
+
+```javascript
+ServerEvents.recipes(event => {
+    // event.recipes.goety.cauldron(result, ingredients)
+    event.recipes.goety.cauldron('minecraft:nether_star', [
+        '2x minecraft:diamond',
+        'minecraft:blaze_powder',
+        '#forge:ingots/gold'
+    ])
+        .takeWith('minecraft:glass_bottle') // Omit to collect by hand
+        .levelLeft(1)                       // Remaining water level, clamped to 1-3
+        .soulCost(100)
+        .color(0xB1FF7F);
+});
+```
+
+Ingredients are matched without ordering. Counted inputs such as
+`2x minecraft:diamond` are expanded into repeated ingredients. Configure the
+item that enters crafting mode with `setCauldronStarter()` in
+`GoetyEvents.registerBrew`.
 
 **Configuration Priority**:
 - You can use `event.recipes.goety.brewing` to add new catalyst recipes or adjust soul costs for existing effects (`.soulCost()`)

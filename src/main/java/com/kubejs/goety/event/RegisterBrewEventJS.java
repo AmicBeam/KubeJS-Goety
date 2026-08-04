@@ -89,6 +89,19 @@ public class RegisterBrewEventJS extends EventJS {
         }
     }
 
+    @Info(value = "设置进入坩埚合成模式的起手物品", params = {
+        @Param(name = "item", value = "物品ID（字符串）或物品对象")
+    })
+    public void setCauldronStarter(Object item) {
+        Item itemObj = getItem(item);
+        if (itemObj == null) {
+            return;
+        }
+
+        BrewData.setCauldronStarter(itemObj);
+        ScriptType.SERVER.console.info("✓ 已设置坩埚合成起手物品: " + itemObj);
+    }
+
     @Info(value = "设置容量等级增量表", params = {
         @Param(name = "levels", value = "等级增量数组，从1级开始，例如 [2,2,2,2,4]")
     })
@@ -618,19 +631,9 @@ public class RegisterBrewEventJS extends EventJS {
         if (itemObj == null) {
             return;
         }
-        int removed = com.kubejs.goety.brew.BrewData.removeCapacityItem(itemObj);
-        if (removed > 0) {
-            try {
-                @SuppressWarnings("unchecked")
-                java.util.Map<Item, BrewModifier> map =
-                        (java.util.Map<Item, BrewModifier>) modifiersField.get(BrewEffects.INSTANCE);
-                if (map != null) {
-                    map.remove(itemObj);
-                }
-            } catch (Exception e) {
-                ScriptType.SERVER.console.error("移除容量剂映射失败: " + e.getMessage());
-                e.printStackTrace();
-            }
+
+        BrewModifier current = BrewEffects.INSTANCE.getModifier(itemObj);
+        if (current instanceof CapacityModifier && removeModifierMapping(itemObj)) {
             ScriptType.SERVER.console.info("✓ 已移除容量剂: " + itemObj);
         } else {
             ScriptType.SERVER.console.warn("未找到容量剂: " + itemObj);
@@ -751,22 +754,31 @@ public class RegisterBrewEventJS extends EventJS {
             return;
         }
 
-        int removed = com.kubejs.goety.brew.BrewData.removeAugmentationItem(itemObj);
-        if (removed > 0) {
-            try {
-                @SuppressWarnings("unchecked")
-                java.util.Map<Item, BrewModifier> map =
-                        (java.util.Map<Item, BrewModifier>) modifiersField.get(BrewEffects.INSTANCE);
-                if (map != null) {
-                    map.remove(itemObj);
-                }
-            } catch (Exception e) {
-                ScriptType.SERVER.console.error("移除增强剂映射失败: " + e.getMessage());
-                e.printStackTrace();
-            }
+        BrewModifier current = BrewEffects.INSTANCE.getModifier(itemObj);
+        if (current != null && !(current instanceof CapacityModifier) && removeModifierMapping(itemObj)) {
             ScriptType.SERVER.console.info("✓ 已移除增强剂: " + itemObj);
         } else {
             ScriptType.SERVER.console.warn("未找到增强剂: " + itemObj);
+        }
+    }
+
+    private boolean removeModifierMapping(Item item) {
+        try {
+            BrewModifier removed;
+            if (BrewEffects.INSTANCE instanceof BrewEffectsInvoker invoker) {
+                removed = invoker.removeModifier_(item);
+            } else {
+                @SuppressWarnings("unchecked")
+                Map<Item, BrewModifier> map =
+                        (Map<Item, BrewModifier>) modifiersField.get(BrewEffects.INSTANCE);
+                removed = map != null ? map.remove(item) : null;
+                BrewData.removeModifierItem(item);
+            }
+            return removed != null;
+        } catch (Exception e) {
+            ScriptType.SERVER.console.error("移除药酿修改剂映射失败: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
     }
     

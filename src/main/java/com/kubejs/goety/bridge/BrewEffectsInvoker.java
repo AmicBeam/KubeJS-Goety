@@ -5,4 +5,6 @@ import net.minecraft.world.item.Item;
 
 public interface BrewEffectsInvoker {
     void forceModifierRegister_(BrewModifier modifier, Item ingredient);
+
+    BrewModifier removeModifier_(Item ingredient);
 }

@@ -586,6 +586,9 @@ GoetyEvents.registerBrew(event => {
 
 **Limit**: The cauldron's maximum total capacity is capped at 32 (values above are clamped).
 
+Without `setCapacityLevels`, the Goety 2.5.55 six-level delta table
+`[2, 2, 2, 2, 4, 6]` is used.
+
 ### Capacity Modifiers
 
 Capacity modifiers determine the base capacity level of brews:
@@ -672,6 +675,9 @@ GoetyEvents.registerBrew(event => {
     event.removeAugmentation('minecraft:redstone');
 });
 ```
+
+Both removal methods work with Goety's built-in registrations and script-added
+registrations, and validate the modifier type currently mapped to the item.
 
 **Available augmentation types**:
 - `'capacity'` - Capacity
@@ -922,6 +928,42 @@ ServerEvents.recipes(event => {
 - `.entityTag(tag)` - Required entity tag
 
 **Note**: The first parameter is the ingredient (catalyst), and the second is the effect ID (not an item).
+
+### Cauldron Crafting Recipes
+
+Create unordered item recipes for Goety's cauldron `CRAFTING` mode:
+
+```javascript
+ServerEvents.recipes(event => {
+    event.recipes.goety.cauldron('minecraft:nether_star', [
+        '2x minecraft:diamond',
+        'minecraft:blaze_powder',
+        '#forge:ingots/gold'
+    ])
+        .takeWith('minecraft:glass_bottle')
+        .levelLeft(1)
+        .soulCost(100)
+        .color(0xB1FF7F);
+});
+```
+
+**Available methods**:
+- `.takeWith(item)` - Item required to collect the result; omit for empty-hand collection
+- `.levelLeft(level)` - Remaining water level, clamped by Goety to 1-3
+- `.soulCost(cost)` - Soul cost
+- `.color(rgb)` - Decimal RGB cauldron color
+
+Counted inputs are expanded into repeated unordered ingredients. The item that
+switches an idle cauldron into crafting mode can be replaced separately:
+
+```javascript
+GoetyEvents.registerBrew(event => {
+    event.setCauldronStarter('mymod:custom_nightshade');
+});
+```
+
+The default starter is `goety:nightshade_blossom`, and the setter replaces it
+rather than adding another starter.
 
 ### Pulverize Recipes
 

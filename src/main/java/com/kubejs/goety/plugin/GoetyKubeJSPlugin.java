@@ -2,6 +2,7 @@ package com.kubejs.goety.plugin;
 
 import com.kubejs.goety.recipe.schema.BrazierSchema;
 import com.kubejs.goety.recipe.schema.BrewingSchema;
+import com.kubejs.goety.recipe.schema.CauldronSchema;
 import com.kubejs.goety.recipe.schema.CursedInfuserSchema;
 import com.kubejs.goety.recipe.schema.PulverizeSchema;
 import com.kubejs.goety.recipe.schema.RitualSchema;
@@ -77,10 +78,10 @@ public class GoetyKubeJSPlugin extends KubeJSPlugin {
         event.namespace("goety")
                 .register("ritual", RitualSchema.SCHEMA)
                 .register("brewing", BrewingSchema.SCHEMA)
+                .register("cauldron", CauldronSchema.SCHEMA)
                 .register("pulverize", PulverizeSchema.SCHEMA)
                 .register("cursed_infuser_recipes", CursedInfuserSchema.SCHEMA)
                 .register("brazier", BrazierSchema.SCHEMA)
                 .register("soul_absorber_recipes", SoulAbsorberSchema.SCHEMA);
     }
 }
-

@@ -27,6 +27,7 @@ rest of Goety's brewing or crafting state machine.
 | Mixin | Technique | Risk | Current decision |
 | --- | --- | --- | --- |
 | `BrewCauldronCapacityMixin` | `@Inject` at `insertItem` head and `@ModifyConstant` in the constructor | Medium | Keep the small scripted-level interception; monitor the two `32` constructor constants. |
+| `BrewCauldronCraftingStarterMixin` | `@ModifyArg` on the first `ItemStack.is(Item)` call in `insertItem` | Low | Keep. It only replaces Goety's hard-coded nightshade comparison argument. |
 | `BrewCauldronBlockEntityMixin` | Redirect `new BrewEffects()` in three methods | Medium | Keep. It is the narrowest way to make Goety use the script-populated singleton without replacing those methods. |
 | `BrewEffectInstanceMixin` | Redirect `new BrewEffects()` in `load` | Low | Keep. The target method is small and has one constructor call. |
 | `BrewingCatalystProcessorMixin` | Redirect `new BrewEffects()` in Patchouli setup/render paths | Low | Keep while Goety constructs temporary registries there. |
@@ -46,10 +47,13 @@ For a new Goety release:
 1. Compile against the new jar and run a Mixin application smoke test.
 2. Confirm `insertItem(ItemStack)` still exists. Its internal branches no
    longer need to be copied or synchronized.
-3. Confirm the redirected methods still contain `new BrewEffects()`. A missing
+3. Confirm the first `ItemStack.is(Item)` call in `insertItem` is still the
+   cauldron crafting starter comparison.
+4. Confirm the redirected methods still contain `new BrewEffects()`. A missing
    constructor target means Goety may already use a shared registry, or the
    redirect target needs updating.
-4. Confirm the cauldron constructor still uses `32` for both the brew inventory
+5. Confirm the cauldron constructor still uses `32` for both the brew inventory
    and craft inventory.
-5. Exercise nightshade cauldron crafting, one catalyst, one sacrifice, and at
+6. Exercise the configured cauldron starter, one cauldron recipe, one catalyst,
+   one sacrifice, and at
    least one scripted capacity and augmentation level in game.

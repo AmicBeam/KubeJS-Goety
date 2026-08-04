@@ -14,6 +14,9 @@
  */
 
 GoetyEvents.registerBrew(event => {
+    // 替换进入坩埚合成模式的起手物；默认是 goety:nightshade_blossom
+    // 这是替换关系，设置后原颠茄花不再切换合成模式
+    event.setCauldronStarter('mymod:custom_nightshade');
     
     // ==========================================
     // 1. 容量剂配置（Capacity Modifiers）

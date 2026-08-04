@@ -16,8 +16,9 @@ public class BrewData {
     public static final Map<String, Map<Integer, List<Item>>> TYPE_TO_LEVEL_AUGMENT_ITEMS = createAugmentMap();
     private static List<Integer> CAPACITY_LEVEL_DELTAS = new ArrayList<>();
     private static Integer INITIAL_CAPACITY_OVERRIDE;
+    private static Item CAULDRON_STARTER;
     private static final int DEFAULT_INITIAL_CAPACITY = 4;
-    private static final int[] DEFAULT_LEVEL_DELTAS = new int[]{2, 2, 2, 2, 4};
+    private static final int[] DEFAULT_LEVEL_DELTAS = new int[]{2, 2, 2, 2, 4, 6};
     private static final Map<String, List<AugmentationLevel>> DEFAULT_AUGMENT_LEVELS = createDefaultAugmentLevels();
     private static final Map<String, List<AugmentationLevel>> AUGMENT_LEVELS = new HashMap<>(DEFAULT_AUGMENT_LEVELS);
 
@@ -169,7 +170,7 @@ public class BrewData {
         if (!CAPACITY_LEVEL_DELTAS.isEmpty()) {
             return CAPACITY_LEVEL_DELTAS.size();
         }
-        return 5;
+        return DEFAULT_LEVEL_DELTAS.length;
     }
 
     public static int getMaxCapacity() {
@@ -188,6 +189,14 @@ public class BrewData {
             return;
         }
         INITIAL_CAPACITY_OVERRIDE = value;
+    }
+
+    public static void setCauldronStarter(Item item) {
+        CAULDRON_STARTER = item;
+    }
+
+    public static Item getCauldronStarter(Item fallback) {
+        return CAULDRON_STARTER != null ? CAULDRON_STARTER : fallback;
     }
 
     private static int readConfigInt(String fieldName, int fallback) {
@@ -238,6 +247,10 @@ public class BrewData {
             }
         }
         return removed;
+    }
+
+    public static int removeModifierItem(Item item) {
+        return removeCapacityItem(item) + removeAugmentationItem(item);
     }
 
     public record AugmentationLevel(float value, float cost) {

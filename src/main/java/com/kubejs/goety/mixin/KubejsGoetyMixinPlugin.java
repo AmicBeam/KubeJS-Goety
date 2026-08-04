@@ -69,7 +69,8 @@ public class KubejsGoetyMixinPlugin implements IMixinConfigPlugin {
 
     private boolean isCauldronBrewingMixin(String mixinClassName) {
         return mixinClassName.endsWith("BrewCauldronBlockEntityMixin")
-                || mixinClassName.endsWith("BrewCauldronCapacityMixin");
+                || mixinClassName.endsWith("BrewCauldronCapacityMixin")
+                || mixinClassName.endsWith("BrewCauldronCraftingStarterMixin");
     }
 
     private boolean isRevelationLoaded() {
