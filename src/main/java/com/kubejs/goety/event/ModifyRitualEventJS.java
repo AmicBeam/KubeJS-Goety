@@ -11,7 +11,6 @@ import dev.latvian.mods.kubejs.typings.Info;
 import dev.latvian.mods.kubejs.typings.Param;
 import dev.latvian.mods.kubejs.util.ListJS;
 import dev.latvian.mods.kubejs.util.UtilsJS;
-import dev.latvian.mods.kubejs.script.ScriptManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -83,36 +82,12 @@ public class ModifyRitualEventJS extends EventJS {
             }
             
             if (!conditionGroups.isEmpty()) {
-                // 使用反射访问 RitualType 的内部 Map 来注册修改后的仪式
                 IRitualType modifiedRitual = buildRitualTypeWithOR(ritualId, conditionGroups, existingRitual);
-                try {
-                    java.lang.reflect.Field field = RitualType.class.getDeclaredField("RITUAL_TYPE_LIST");
-                    field.setAccessible(true);
-                    @SuppressWarnings("unchecked")
-                    java.util.Map<String, IRitualType> ritualMap = (java.util.Map<String, IRitualType>) field.get(null);
-                    ritualMap.put(ritualId, modifiedRitual);
-                } catch (NoSuchFieldException e) {
-                    // 如果字段不存在，尝试其他可能的字段名
-                    try {
-                        java.lang.reflect.Field[] fields = RitualType.class.getDeclaredFields();
-                        for (java.lang.reflect.Field f : fields) {
-                            if (java.util.Map.class.isAssignableFrom(f.getType())) {
-                                f.setAccessible(true);
-                                @SuppressWarnings("unchecked")
-                                java.util.Map<String, IRitualType> ritualMap = (java.util.Map<String, IRitualType>) f.get(null);
-                                if (ritualMap != null) {
-                                    ritualMap.put(ritualId, modifiedRitual);
-                                    break;
-                                }
-                            }
-                        }
-                    } catch (Exception e2) {
-                        ScriptType.SERVER.console.error("Failed to modify ritual type '" + ritualId + "': " + e2.getMessage());
-                        e2.printStackTrace();
-                    }
-                } catch (Exception e) {
-                    ScriptType.SERVER.console.error("Failed to modify ritual type '" + ritualId + "': " + e.getMessage());
-                    e.printStackTrace();
+                RitualType.addRitualType(ritualId, modifiedRitual);
+                replaceBuiltinReference(existingRitual, modifiedRitual);
+
+                if (RitualType.getRitualType(ritualId) != modifiedRitual) {
+                    throw new IllegalStateException("Goety returned a different ritual instance after registration");
                 }
                 if (conditionGroups.size() == 1) {
                     ScriptType.SERVER.console.info("✓ Modified ritual type: " + ritualId);
@@ -123,6 +98,26 @@ public class ModifyRitualEventJS extends EventJS {
         } catch (Exception e) {
             ScriptType.SERVER.console.error("Error modifying ritual type '" + ritualId + "': " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Goety's own requirement checks resolve ritual types through its map, but some
+     * integrations access the public built-in fields directly. Keep both views in
+     * sync when an existing built-in ritual is replaced.
+     */
+    private void replaceBuiltinReference(IRitualType existingRitual, IRitualType modifiedRitual) {
+        try {
+            for (java.lang.reflect.Field field : RitualType.class.getDeclaredFields()) {
+                if (java.lang.reflect.Modifier.isStatic(field.getModifiers())
+                        && IRitualType.class.isAssignableFrom(field.getType())
+                        && field.get(null) == existingRitual) {
+                    field.set(null, modifiedRitual);
+                    return;
+                }
+            }
+        } catch (ReflectiveOperationException e) {
+            ScriptType.SERVER.console.warn("Modified ritual registry, but could not update Goety's built-in reference: " + e.getMessage());
         }
     }
     
@@ -196,20 +191,18 @@ public class ModifyRitualEventJS extends EventJS {
                 } else if (finalOnFinish instanceof dev.latvian.mods.rhino.BaseFunction) {
                     // 如果是 JavaScript 函数，通过 Rhino 调用
                     dev.latvian.mods.rhino.BaseFunction func = (dev.latvian.mods.rhino.BaseFunction) finalOnFinish;
-                    var cx = ScriptManager.getCurrentContext();
-                    if (cx != null) {
-                        var scope = ScriptType.SERVER.manager.get().topLevelScope;
-                        try {
-                            func.call(
-                                cx,
-                                scope,
-                                scope,
-                                new Object[]{world, darkAltarPos, tileEntity, castingPlayer, activationItem}
-                            );
-                        } catch (Exception e) {
-                            ScriptType.SERVER.console.error("Error executing onFinishRitual callback: " + e.getMessage());
-                            e.printStackTrace();
-                        }
+                    var scriptManager = ScriptType.SERVER.manager.get();
+                    var scope = scriptManager.topLevelScope;
+                    try {
+                        func.call(
+                            scriptManager.context,
+                            scope,
+                            scope,
+                            new Object[]{world, darkAltarPos, tileEntity, castingPlayer, activationItem}
+                        );
+                    } catch (Exception e) {
+                        ScriptType.SERVER.console.error("Error executing onFinishRitual callback: " + e.getMessage());
+                        e.printStackTrace();
                     }
                 } else if (originalRitual != null) {
                     // 如果没有设置自定义回调，使用原始仪式的回调
@@ -251,17 +244,15 @@ public class ModifyRitualEventJS extends EventJS {
             // 如果有自定义检查函数，优先使用
             if (group.customRequirement instanceof dev.latvian.mods.rhino.BaseFunction) {
                 dev.latvian.mods.rhino.BaseFunction func = (dev.latvian.mods.rhino.BaseFunction) group.customRequirement;
-                var cx = ScriptManager.getCurrentContext();
-                if (cx != null) {
-                    var scope = ScriptType.SERVER.manager.get().topLevelScope;
-                    Object result = func.call(
-                        cx,
-                        scope,
-                        scope,
-                        new Object[]{pTileEntity, pPos, pLevel}
-                    );
-                    return UtilsJS.cast(result);
-                }
+                var scriptManager = ScriptType.SERVER.manager.get();
+                var scope = scriptManager.topLevelScope;
+                Object result = func.call(
+                    scriptManager.context,
+                    scope,
+                    scope,
+                    new Object[]{pTileEntity, pPos, pLevel}
+                );
+                return UtilsJS.cast(result);
             }
             
             // 检查维度限制
@@ -753,8 +744,6 @@ public class ModifyRitualEventJS extends EventJS {
                 return requirements;
             }
             
-            var cx = ScriptManager.getCurrentContext();
-            
             // 如果是字符串，解析为单个需求
             if (blocksConfig instanceof CharSequence) {
                 try {
@@ -857,20 +846,18 @@ public class ModifyRitualEventJS extends EventJS {
                     } else if (finalOnFinish instanceof dev.latvian.mods.rhino.BaseFunction) {
                         // 如果是 JavaScript 函数，通过 Rhino 调用
                         dev.latvian.mods.rhino.BaseFunction func = (dev.latvian.mods.rhino.BaseFunction) finalOnFinish;
-                        var cx = ScriptManager.getCurrentContext();
-                        if (cx != null) {
-                            var scope = ScriptType.SERVER.manager.get().topLevelScope;
-                            try {
-                                func.call(
-                                    cx,
-                                    scope,
-                                    scope,
-                                    new Object[]{world, darkAltarPos, tileEntity, castingPlayer, activationItem}
-                                );
-                            } catch (Exception e) {
-                                ScriptType.SERVER.console.error("Error executing onFinishRitual callback: " + e.getMessage());
-                                e.printStackTrace();
-                            }
+                        var scriptManager = ScriptType.SERVER.manager.get();
+                        var scope = scriptManager.topLevelScope;
+                        try {
+                            func.call(
+                                scriptManager.context,
+                                scope,
+                                scope,
+                                new Object[]{world, darkAltarPos, tileEntity, castingPlayer, activationItem}
+                            );
+                        } catch (Exception e) {
+                            ScriptType.SERVER.console.error("Error executing onFinishRitual callback: " + e.getMessage());
+                            e.printStackTrace();
                         }
                     } else {
                         // 如果没有设置自定义回调，使用原始仪式的回调
@@ -894,17 +881,15 @@ public class ModifyRitualEventJS extends EventJS {
                         // 如果有自定义检查函数，优先使用
                         if (finalCustomRequirement instanceof dev.latvian.mods.rhino.BaseFunction) {
                             dev.latvian.mods.rhino.BaseFunction func = (dev.latvian.mods.rhino.BaseFunction) finalCustomRequirement;
-                            var cx = ScriptManager.getCurrentContext();
-                            if (cx != null) {
-                                var scope = ScriptType.SERVER.manager.get().topLevelScope;
-                                Object result = func.call(
-                                    cx,
-                                    scope,
-                                    scope,
-                                    new Object[]{pTileEntity, pPos, pLevel}
-                                );
-                                return UtilsJS.cast(result);
-                            }
+                            var scriptManager = ScriptType.SERVER.manager.get();
+                            var scope = scriptManager.topLevelScope;
+                            Object result = func.call(
+                                scriptManager.context,
+                                scope,
+                                scope,
+                                new Object[]{pTileEntity, pPos, pLevel}
+                            );
+                            return UtilsJS.cast(result);
                         }
                         
                         // 检查维度限制
