@@ -42,10 +42,12 @@ API or consistent use of `BrewEffects.INSTANCE`.
 
 ## Revelation Compatibility
 
-KubeJS Goety no longer skips cauldron mixins when Revelation is detected. The
-old early-loading configuration plugin and `kubejs_goety.properties` retreat
-switch have been removed. Compatibility now assumes a Revelation build that
-uses injections instead of overwriting `insertItem` and `getBrew`.
+An early Mixin plugin disables KubeJS Goety's three cauldron mixins when it
+detects RevelationFix 4.4 or older, or Goety Awaken 1.3.8 or older. Both known
+versions transform the same cauldron methods before KubeJS Goety can inject.
+The fallback prevents a hard startup failure and reports the exact conflicting
+mod/version through the log, a client toast, and a login chat message. It does
+not disable ritual, recipe, or non-cauldron brew registration features.
 
 ## Upgrade Checklist
 

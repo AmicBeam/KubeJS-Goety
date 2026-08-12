@@ -391,8 +391,9 @@ GoetyEvents.registerBrew(event => {
 - **添加催化剂（酿造配方）** → 使用 `event.recipes.goety.brewing`（见下方配方系统）
 
 **兼容说明（启示录）**：
-- 同时加载 **启示录** 时，KubeJS Goety 仍会始终应用自身的坩埚酿药 Mixin，不再提供启示录退避开关。
-- 请搭配使用基于注入实现坩埚兼容、且不再覆盖 `insertItem` 或 `getBrew` 的启示录版本。
+- 检测到 **RevelationFix 4.4 或更低版本** 时，KubeJS Goety 会自动停用自身的 3 个坩埚 Mixin，避免因覆盖 `insertItem` / `getBrew` 导致启动崩溃。
+- 检测到 **Goety Awaken 1.3.8 或更低版本** 时也会启用相同退避；其坩埚 Mixin 会改变 KubeJS Goety 所需的注入目标。
+- 退避生效后会输出启动警告，并在客户端显示 Toast 和进服聊天提示。仪式、配方和其他药酿注册仍然可用，但 KubeJS Goety 的自定义坩埚容量、起手物和坩埚内药酿替换不会生效。
 - 旧版本遗留的 `config/kubejs_goety.properties` 已不再读取，可以删除。
 
 ## 配方系统配置

@@ -711,8 +711,9 @@ GoetyEvents.registerBrew(event => {
 ⚠️ **Important**: Brew configuration changes (capacity/augmentation/special effects/removals) do not apply via `/reload`. You must **re-enter the world or restart the server**.
 
 **Compatibility (Revelation)**:
-- KubeJS Goety always applies its cauldron brewing mixins when **Revelation** is installed; there is no Revelation retreat switch.
-- Use a Revelation build whose cauldron compatibility is injection-based and does not overwrite `insertItem` or `getBrew`.
+- When **RevelationFix 4.4 or older** is detected, KubeJS Goety automatically disables its three cauldron mixins to avoid startup crashes caused by overwritten `insertItem` / `getBrew` methods.
+- The same fallback applies to **Goety Awaken 1.3.8 or older**, whose cauldron mixin changes an injection target required by KubeJS Goety.
+- The fallback emits a startup warning plus a client toast and login chat message. Rituals, recipes, and other brew registration remain available, but KubeJS Goety's custom cauldron capacity, starter, and in-cauldron brew replacement do not apply.
 - The obsolete `config/kubejs_goety.properties` file from earlier builds is no longer read and may be deleted.
 
 ### Special Brew Effects (Non-Potion Effects)
