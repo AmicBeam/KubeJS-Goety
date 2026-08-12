@@ -1,7 +1,6 @@
 package com.kubejs.goety.event;
 
 import com.Polarice3.Goety.api.ritual.RitualType;
-import com.kubejs.goety.ritual.RitualOverrides;
 import dev.latvian.mods.kubejs.event.EventJS;
 import dev.latvian.mods.kubejs.script.ScriptType;
 import dev.latvian.mods.kubejs.typings.Info;
@@ -53,7 +52,6 @@ public class RemoveRitualEventJS extends EventJS {
             return;
         }
 
-        RitualOverrides.remove(ritualId);
         
         // 使用反射访问 RitualType 的内部 Map 来移除仪式
         try {

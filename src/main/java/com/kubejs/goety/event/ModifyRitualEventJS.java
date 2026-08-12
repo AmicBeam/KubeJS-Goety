@@ -18,7 +18,6 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import com.kubejs.goety.util.BlockRequirement;
-import com.kubejs.goety.ritual.RitualOverrides;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -82,7 +81,6 @@ public class ModifyRitualEventJS extends EventJS {
             
             if (!conditionGroups.isEmpty()) {
                 IRitualType modifiedRitual = buildRitualTypeWithOR(ritualId, conditionGroups, existingRitual);
-                RitualOverrides.put(ritualId, modifiedRitual);
                 RitualType.addRitualType(ritualId, modifiedRitual);
                 replaceBuiltinReference(existingRitual, modifiedRitual);
 
@@ -229,7 +227,7 @@ public class ModifyRitualEventJS extends EventJS {
                                         Level pLevel) {
                 // 遍历所有条件组，任意一个满足即可（OR 逻辑）
                 for (RitualModifierImpl group : finalGroups) {
-                    if (checkConditionGroup(group, pTileEntity, pPos, pLevel)) {
+                    if (checkConditionGroup(group, pTileEntity, pPlayer, pPos, pLevel)) {
                         return true;
                     }
                 }
@@ -243,6 +241,7 @@ public class ModifyRitualEventJS extends EventJS {
      */
     private boolean checkConditionGroup(RitualModifierImpl group, 
                                       com.Polarice3.Goety.common.blocks.entities.RitualBlockEntity pTileEntity,
+                                      @Nullable Player pPlayer,
                                       BlockPos pPos,
                                       Level pLevel) {
         try {
@@ -318,7 +317,7 @@ public class ModifyRitualEventJS extends EventJS {
             }
             
             // 检查生物群系要求
-            if (group.biome != null || group.biomeType != null) {
+            if (group.biome != null) {
                 String type = group.biomeType != null ? group.biomeType.toLowerCase() : "id";
                 var currentBiome = pLevel.getBiome(pPos);
                 
@@ -465,7 +464,19 @@ public class ModifyRitualEventJS extends EventJS {
             List<BlockRequirement> blockRequirements = group.parsedBlockRequirements;
             if (!blockRequirements.isEmpty()) {
                 int finalRange = group.range != null ? group.range : 16;
-                if (BlockRequirement.firstMissing(blockRequirements, pLevel, pPos, finalRange) != null) {
+                BlockRequirement missing = BlockRequirement.firstMissing(blockRequirements, pLevel, pPos, finalRange);
+                if (missing != null) {
+                    if (pPlayer != null) {
+                        pPlayer.displayClientMessage(
+                                net.minecraft.network.chat.Component.translatable(
+                                        "info.goety.ritual.structure.noBlocks",
+                                        net.minecraft.network.chat.Component.literal(
+                                                String.format("%d× %s", missing.count(), missing.description())
+                                        )
+                                ),
+                                true
+                        );
+                    }
                     return false;
                 }
             }
@@ -921,7 +932,7 @@ public class ModifyRitualEventJS extends EventJS {
                         }
                         
                         // 检查生物群系要求
-                        if (finalBiome != null || finalBiomeType != null) {
+                        if (finalBiome != null) {
                             String type = finalBiomeType != null ? finalBiomeType.toLowerCase() : "id";
                             var currentBiome = pLevel.getBiome(pPos);
                             
