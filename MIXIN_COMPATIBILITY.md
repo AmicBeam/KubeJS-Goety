@@ -43,11 +43,15 @@ API or consistent use of `BrewEffects.INSTANCE`.
 ## Revelation Compatibility
 
 An early Mixin plugin disables KubeJS Goety's three cauldron mixins when it
-detects RevelationFix 4.4 or older, or Goety Awaken 1.3.8 or older. Both known
-versions transform the same cauldron methods before KubeJS Goety can inject.
+detects RevelationFix 4.4 or older. Those versions transform the same cauldron
+methods before KubeJS Goety can inject.
 The fallback prevents a hard startup failure and reports the exact conflicting
 mod/version through the log, a client toast, and a login chat message. It does
 not disable ritual, recipe, or non-cauldron brew registration features.
+
+Goety Awaken 1.3.8 does not need this fallback. Its cauldron mixin injects only
+at the tail of `tick` to accelerate `soulTime` from an accelerated soul candle;
+it does not overwrite or inject into `insertItem` or `getBrew`.
 
 ## Upgrade Checklist
 

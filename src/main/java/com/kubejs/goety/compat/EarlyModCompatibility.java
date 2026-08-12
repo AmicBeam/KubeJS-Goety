@@ -48,8 +48,6 @@ public final class EarlyModCompatibility {
         List<Conflict> conflicts = new ArrayList<>();
         findMod("revelationfix").filter(mod -> isAtMost(mod, 4, 4, 0))
                 .ifPresent(mod -> conflicts.add(new Conflict("revelationfix", "RevelationFix", versionOf(mod))));
-        findMod("goetyawaken").filter(mod -> isAtMost(mod, 1, 3, 8))
-                .ifPresent(mod -> conflicts.add(new Conflict("goetyawaken", "Goety Awaken", versionOf(mod))));
         return Collections.unmodifiableList(conflicts);
     }
 

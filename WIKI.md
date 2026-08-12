@@ -712,8 +712,8 @@ GoetyEvents.registerBrew(event => {
 
 **Compatibility (Revelation)**:
 - When **RevelationFix 4.4 or older** is detected, KubeJS Goety automatically disables its three cauldron mixins to avoid startup crashes caused by overwritten `insertItem` / `getBrew` methods.
-- The same fallback applies to **Goety Awaken 1.3.8 or older**, whose cauldron mixin changes an injection target required by KubeJS Goety.
 - The fallback emits a startup warning plus a client toast and login chat message. Rituals, recipes, and other brew registration remain available, but KubeJS Goety's custom cauldron capacity, starter, and in-cauldron brew replacement do not apply.
+- **Goety Awaken 1.3.8** only injects soul-candle acceleration at the tail of the cauldron `tick` method. It can coexist with KubeJS Goety and does not trigger this fallback.
 - The obsolete `config/kubejs_goety.properties` file from earlier builds is no longer read and may be deleted.
 
 ### Special Brew Effects (Non-Potion Effects)
