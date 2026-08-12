@@ -18,6 +18,7 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import com.kubejs.goety.util.BlockRequirement;
+import com.kubejs.goety.ritual.RitualOverrides;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -81,6 +82,7 @@ public class ModifyRitualEventJS extends EventJS {
             
             if (!conditionGroups.isEmpty()) {
                 IRitualType modifiedRitual = buildRitualTypeWithOR(ritualId, conditionGroups, existingRitual);
+                RitualOverrides.put(ritualId, modifiedRitual);
                 RitualType.addRitualType(ritualId, modifiedRitual);
                 replaceBuiltinReference(existingRitual, modifiedRitual);
 

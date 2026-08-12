@@ -12,7 +12,8 @@
     "BrewEffectsMixin",
     "BrewEffectInstanceMixin",
     "BrewingCatalystProcessorMixin",
-    "BrewingSacrificeProcessorMixin"
+    "BrewingSacrificeProcessorMixin",
+    "RitualTypeMixin"
   ],
   "injectors": {
     "defaultRequire": 1
