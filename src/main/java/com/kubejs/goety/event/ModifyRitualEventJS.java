@@ -4,7 +4,6 @@ import com.Polarice3.Goety.api.ritual.IRitualType;
 import com.Polarice3.Goety.api.ritual.RitualType;
 import dev.latvian.mods.kubejs.event.EventJS;
 import dev.latvian.mods.kubejs.item.InputItem;
-import net.minecraft.world.item.crafting.Ingredient;
 import dev.latvian.mods.kubejs.script.ScriptType;
 import dev.latvian.mods.kubejs.typings.Generics;
 import dev.latvian.mods.kubejs.typings.Info;
@@ -18,8 +17,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.state.BlockState;
-import com.kubejs.goety.util.SizedIngredient;
+import com.kubejs.goety.util.BlockRequirement;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -128,6 +126,11 @@ public class ModifyRitualEventJS extends EventJS {
     private IRitualType buildRitualTypeWithOR(String ritualId, List<RitualModifierImpl> conditionGroups, IRitualType originalRitual) {
         final List<RitualModifierImpl> finalGroups = new ArrayList<>(conditionGroups);
         final String finalRitualId = ritualId;
+
+        // Parse once while registering so invalid block selectors cannot be silently ignored.
+        for (RitualModifierImpl group : finalGroups) {
+            group.parsedBlockRequirements = group.parseBlocks(group.blocks);
+        }
         
         // 解析 JEI 图标（从第一个设置了图标的条件组中获取）
         net.minecraft.world.item.ItemStack finalJeiIcon = originalRitual != null ? originalRitual.getJeiIcon() : new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.OBSIDIAN);
@@ -457,39 +460,11 @@ public class ModifyRitualEventJS extends EventJS {
             }
             
             // 检查方块需求
-            Map<SizedIngredient, Integer> blockRequirements = group.parseBlocks(group.blocks);
+            List<BlockRequirement> blockRequirements = group.parsedBlockRequirements;
             if (!blockRequirements.isEmpty()) {
-                Map<SizedIngredient, Integer> found = new HashMap<>();
                 int finalRange = group.range != null ? group.range : 16;
-                
-                // 扫描范围内的方块
-                for (int i = -finalRange; i <= finalRange; i++) {
-                    for (int j = -finalRange; j <= finalRange; j++) {
-                        for (int k = -finalRange; k <= finalRange; k++) {
-                            BlockPos blockPos = pPos.offset(i, j, k);
-                            BlockState blockState = pLevel.getBlockState(blockPos);
-                            
-                            // 检查每个需求
-                            for (Map.Entry<SizedIngredient, Integer> entry : blockRequirements.entrySet()) {
-                                SizedIngredient sizedIngredient = entry.getKey();
-                                var item = blockState.getBlock().asItem();
-                                if (item != null && item != net.minecraft.world.item.Items.AIR) {
-                                    if (sizedIngredient.ingredient().test(item.getDefaultInstance())) {
-                                        found.put(sizedIngredient, found.getOrDefault(sizedIngredient, 0) + 1);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                // 验证是否满足所有需求
-                for (Map.Entry<SizedIngredient, Integer> entry : blockRequirements.entrySet()) {
-                    int required = entry.getValue();
-                    int actual = found.getOrDefault(entry.getKey(), 0);
-                    if (actual < required) {
-                        return false;
-                    }
+                if (BlockRequirement.firstMissing(blockRequirements, pLevel, pPos, finalRange) != null) {
+                    return false;
                 }
             }
             
@@ -527,6 +502,7 @@ public class ModifyRitualEventJS extends EventJS {
         private final String ritualId;
         private final IRitualType originalRitual;
         private final ModifyRitualEventJS event;
+        private List<BlockRequirement> parsedBlockRequirements = List.of();
         
         public RitualModifierImpl(String ritualId, IRitualType originalRitual, ModifyRitualEventJS event) {
             this.ritualId = ritualId;
@@ -729,16 +705,16 @@ public class ModifyRitualEventJS extends EventJS {
         
         /**
          * 解析方块需求配置
-         * 完全复用 KubeJS 的 SizedIngredientWrapper 来解析各种格式
+         * 按方块注册表解析 ID、方块标签、正则和模组命名空间选择器
          * 支持：
          * - 字符串：'minecraft:stone' 或 '9x minecraft:stone'
          * - ItemStack 对象：Item.of('minecraft:stone')，包括带 NBT 的
-         * - Ingredient 对象：直接使用 KubeJS 的 Ingredient
+         * - InputItem/ItemStack 对象：作为兼容格式按其对应的方块物品匹配
          * - 数组：混合使用以上格式
          * - 对象/Map：key 可以是字符串或 ItemStack，value 是数量
          */
-        private Map<SizedIngredient, Integer> parseBlocks(Object blocksConfig) {
-            Map<SizedIngredient, Integer> requirements = new LinkedHashMap<>();
+        private List<BlockRequirement> parseBlocks(Object blocksConfig) {
+            List<BlockRequirement> requirements = new ArrayList<>();
             
             if (blocksConfig == null) {
                 return requirements;
@@ -747,36 +723,27 @@ public class ModifyRitualEventJS extends EventJS {
             // 如果是字符串，解析为单个需求
             if (blocksConfig instanceof CharSequence) {
                 try {
-                    InputItem inputItem = InputItem.of(blocksConfig.toString());
-                    if (inputItem != null && !inputItem.isEmpty()) {
-                        Ingredient ingredient = inputItem.ingredient;
-                        int count = inputItem.count;
-                        SizedIngredient sizedIngredient = SizedIngredient.of(ingredient, count);
-                        requirements.put(sizedIngredient, count);
-                    }
+                    requirements.add(BlockRequirement.parse(blocksConfig));
                 } catch (Exception e) {
-                    ScriptType.SERVER.console.error("Failed to parse block requirement: " + blocksConfig + " - " + e.getMessage());
+                    throw new IllegalArgumentException("Failed to parse block requirement " + blocksConfig + ": " + e.getMessage(), e);
                 }
             }
             // 如果是数组
-            else if (blocksConfig instanceof List || blocksConfig.getClass().isArray()) {
+            else if (blocksConfig instanceof List || blocksConfig.getClass().isArray()
+                    || blocksConfig instanceof dev.latvian.mods.rhino.NativeArray) {
                 List<?> list = ListJS.of(blocksConfig);
                 if (list != null) {
                     for (Object item : list) {
                         try {
                             // 支持字符串和 ItemStack 对象（包括带 NBT 的）
-                            InputItem inputItem = InputItem.of(item);
-                            if (inputItem != null && !inputItem.isEmpty()) {
-                                Ingredient ingredient = inputItem.ingredient;
-                                int count = inputItem.count;
-                                SizedIngredient sizedIngredient = SizedIngredient.of(ingredient, count);
-                                requirements.put(sizedIngredient, count);
-                            }
+                            requirements.add(BlockRequirement.parse(item));
                         } catch (Exception e) {
-                            ScriptType.SERVER.console.error("Failed to parse block requirement: " + item + " - " + e.getMessage());
+                            throw new IllegalArgumentException("Failed to parse block requirement " + item + ": " + e.getMessage(), e);
                         }
                     }
                 }
+            } else {
+                throw new IllegalArgumentException("Unsupported blocksConfig type: " + blocksConfig.getClass().getName());
             }
             
             return requirements;
@@ -788,7 +755,7 @@ public class ModifyRitualEventJS extends EventJS {
         public IRitualType buildRitualType() {
             final String finalName = this.name != null ? this.name : ritualId;
             final int finalRange = this.range != null ? this.range : 16;
-            final Map<SizedIngredient, Integer> blockRequirements = parseBlocks(this.blocks);
+            final List<BlockRequirement> blockRequirements = parseBlocks(this.blocks);
             final String finalDimension = this.dimension;
             final Boolean finalDimensionContainsMatch = this.dimensionContainsMatch;
             final Object finalCustomRequirement = this.customRequirement;
@@ -1097,42 +1064,10 @@ public class ModifyRitualEventJS extends EventJS {
                         
                         // 如果有配置的方块需求，使用配置
                         if (!blockRequirements.isEmpty()) {
-                            Map<SizedIngredient, Integer> found = new HashMap<>();
-                            
-                            // 扫描范围内的方块
-                            for (int i = -finalRange; i <= finalRange; i++) {
-                                for (int j = -finalRange; j <= finalRange; j++) {
-                                    for (int k = -finalRange; k <= finalRange; k++) {
-                                        BlockPos blockPos = pPos.offset(i, j, k);
-                                        BlockState blockState = pLevel.getBlockState(blockPos);
-                                        
-                                        // 获取方块对应的物品栈
-                                        var item = blockState.getBlock().asItem();
-                                        if (item != null && item != net.minecraft.world.item.Items.AIR) {
-                                            net.minecraft.world.item.ItemStack itemStack = item.getDefaultInstance();
-                                            
-                                            // 检查这个方块是否匹配某个需求（只匹配第一个匹配的需求）
-                                            for (Map.Entry<SizedIngredient, Integer> entry : blockRequirements.entrySet()) {
-                                                SizedIngredient sizedIngredient = entry.getKey();
-                                                // 使用 SizedIngredient 的 ingredient 来测试
-                                                if (sizedIngredient.ingredient().test(itemStack)) {
-                                                    found.put(sizedIngredient, found.getOrDefault(sizedIngredient, 0) + 1);
-                                                    break;  // 只计数一次，匹配第一个需求后退出
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            // 验证是否满足所有需求
-                            for (Map.Entry<SizedIngredient, Integer> entry : blockRequirements.entrySet()) {
-                                int required = entry.getValue();
-                                int actual = found.getOrDefault(entry.getKey(), 0);
-                                if (actual < required) {
-                                    ScriptType.SERVER.console.debug("Ritual check failed: Required " + required + " blocks, found " + actual);
-                                    return false;
-                                }
+                            BlockRequirement missing = BlockRequirement.firstMissing(blockRequirements, pLevel, pPos, finalRange);
+                            if (missing != null) {
+                                ScriptType.SERVER.console.debug("Ritual check failed: missing " + missing.count() + "x " + missing.description());
+                                return false;
                             }
                             
                             return true;
