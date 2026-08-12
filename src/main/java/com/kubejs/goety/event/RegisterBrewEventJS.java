@@ -78,7 +78,7 @@ public class RegisterBrewEventJS extends EventJS {
         try {
             CapacityModifier modifier = new CapacityModifier(level);
             if (BrewEffects.INSTANCE instanceof BrewEffectsInvoker invoker) {
-                invoker.forceModifierRegister_(modifier, itemObj);
+                invoker.registerKubeJSGoetyModifier(modifier, itemObj);
             } else {
                 modifierRegisterMethod.invoke(BrewEffects.INSTANCE, modifier, itemObj);
             }
@@ -609,7 +609,7 @@ public class RegisterBrewEventJS extends EventJS {
                 brewModifier = new BrewModifier(modifierLower, level);
             }
             if (BrewEffects.INSTANCE instanceof BrewEffectsInvoker invoker) {
-                invoker.forceModifierRegister_(brewModifier, itemObj);
+                invoker.registerKubeJSGoetyModifier(brewModifier, itemObj);
             } else {
                 modifierRegisterMethod.invoke(BrewEffects.INSTANCE, brewModifier, itemObj);
             }
@@ -766,7 +766,7 @@ public class RegisterBrewEventJS extends EventJS {
         try {
             BrewModifier removed;
             if (BrewEffects.INSTANCE instanceof BrewEffectsInvoker invoker) {
-                removed = invoker.removeModifier_(item);
+                removed = invoker.removeKubeJSGoetyModifier(item);
             } else {
                 @SuppressWarnings("unchecked")
                 Map<Item, BrewModifier> map =

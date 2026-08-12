@@ -384,13 +384,9 @@ GoetyEvents.registerBrew(event => {
 - **Add catalysts (brewing recipes)** → Use `event.recipes.goety.brewing` (see Recipe System below)
 
 **Compatibility (Revelation)**:
-- When **Revelation (`revelationfix` or `goety_revelation`)** is present, KubeJS Goety skips its cauldron brewing mixins by default. This restores the conservative fallback and avoids fighting Revelation's own cauldron overwrites.
-- In that default mode, `setCapacityLevels` and custom capacity/augmentation cauldron logic do not affect Revelation's cauldron path.
-- The default config file is created automatically at `config/kubejs_goety.properties`. To opt in anyway for a pack that has already handled Revelation-side compatibility, edit it before launch:
-```properties
-skipCauldronBrewingMixinsWithRevelation=false
-```
-- This file is read during mixin loading, so a full restart is required. The same value can also be set with JVM property `-Dkubejs_goety.skipCauldronBrewingMixinsWithRevelation=false`.
+- KubeJS Goety always applies its cauldron brewing mixins when **Revelation** is installed; there is no Revelation retreat switch.
+- Use a Revelation build whose cauldron compatibility is injection-based and does not overwrite `insertItem` or `getBrew`.
+- The obsolete `config/kubejs_goety.properties` file from earlier builds is no longer read and may be deleted.
 
 ## Recipe System Configuration
 
@@ -600,8 +596,8 @@ kubejs-goety/
 
 ## Acknowledgements and Third-Party Attribution
 
-Limited early implementation details—the name/signature of the
-`forceModifierRegister_` bridge and the initial organization of the two
+Limited early implementation details—the initial bridge approach for direct
+modifier registration and the initial organization of the two
 capacity/augmentation item index tables—were developed with reference to the
 corresponding implementation in **RevelationFix**. This attribution does not
 cover KubeJS Goety's brew system as a whole; its scripting APIs, dynamic level

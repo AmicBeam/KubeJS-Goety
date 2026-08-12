@@ -40,6 +40,13 @@ Replacing them with head injections would duplicate the target methods and
 would be more fragile. The clean long-term solution is an upstream registry
 API or consistent use of `BrewEffects.INSTANCE`.
 
+## Revelation Compatibility
+
+KubeJS Goety no longer skips cauldron mixins when Revelation is detected. The
+old early-loading configuration plugin and `kubejs_goety.properties` retreat
+switch have been removed. Compatibility now assumes a Revelation build that
+uses injections instead of overwriting `insertItem` and `getBrew`.
+
 ## Upgrade Checklist
 
 For a new Goety release:

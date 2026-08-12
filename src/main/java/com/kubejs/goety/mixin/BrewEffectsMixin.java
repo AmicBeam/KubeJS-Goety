@@ -9,6 +9,7 @@ import net.minecraft.world.item.Item;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 
 import java.util.Map;
 
@@ -18,9 +19,9 @@ public abstract class BrewEffectsMixin implements BrewEffectsInvoker {
     @Final
     private Map<Item, BrewModifier> modifiers;
 
-    // The initial bridge shape referenced RevelationFix; current behavior is KubeJS Goety's.
+    @Unique
     @Override
-    public void forceModifierRegister_(BrewModifier modifier, Item ingredient) {
+    public void registerKubeJSGoetyModifier(BrewModifier modifier, Item ingredient) {
         BrewData.removeModifierItem(ingredient);
         this.modifiers.put(ingredient, modifier);
         if (modifier instanceof CapacityModifier) {
@@ -30,8 +31,9 @@ public abstract class BrewEffectsMixin implements BrewEffectsInvoker {
         }
     }
 
+    @Unique
     @Override
-    public BrewModifier removeModifier_(Item ingredient) {
+    public BrewModifier removeKubeJSGoetyModifier(Item ingredient) {
         BrewData.removeModifierItem(ingredient);
         return this.modifiers.remove(ingredient);
     }

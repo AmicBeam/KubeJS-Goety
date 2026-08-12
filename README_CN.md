@@ -391,13 +391,9 @@ GoetyEvents.registerBrew(event => {
 - **添加催化剂（酿造配方）** → 使用 `event.recipes.goety.brewing`（见下方配方系统）
 
 **兼容说明（启示录）**：
-- 若同时加载 **启示录（`revelationfix` 或 `goety_revelation`）**，本模组默认跳过自身的坩埚酿药 mixin，恢复保守退避策略，避免和启示录的坩埚覆盖逻辑争抢。
-- 默认模式下，`setCapacityLevels` 以及自定义容量/增强剂的坩埚逻辑不会作用到启示录的坩埚流程。
-- 默认配置文件会自动创建在 `config/kubejs_goety.properties`。如整合包已自行处理启示录侧兼容，可在启动前修改它：
-```properties
-skipCauldronBrewingMixinsWithRevelation=false
-```
-- 该文件会在 mixin 加载阶段读取，因此必须完整重启。也可以通过 JVM 参数 `-Dkubejs_goety.skipCauldronBrewingMixinsWithRevelation=false` 设置同一开关。
+- 同时加载 **启示录** 时，KubeJS Goety 仍会始终应用自身的坩埚酿药 Mixin，不再提供启示录退避开关。
+- 请搭配使用基于注入实现坩埚兼容、且不再覆盖 `insertItem` 或 `getBrew` 的启示录版本。
+- 旧版本遗留的 `config/kubejs_goety.properties` 已不再读取，可以删除。
 
 ## 配方系统配置
 
@@ -604,7 +600,7 @@ kubejs-goety/
 
 ## 致谢与第三方来源声明
 
-来源声明仅限两个早期实现细节：`forceModifierRegister_` 桥接方法的名称/签名，
+来源声明仅限两个早期实现细节：直接注册修饰剂的初始桥接思路，
 以及容量剂与增强剂两张物品索引表的初始组织方式；这些部分参考了
 **RevelationFix** 中的对应实现。本声明不涵盖 KubeJS Goety 的整个药酿体系：脚本
 API、动态等级配置、坩埚处理、配方、修饰剂移除/替换及后续扩展均为 KubeJS Goety
