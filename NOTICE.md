@@ -6,8 +6,8 @@
 
 本声明仅适用于以下两个参考了 **RevelationFix** 对应药酿实现的早期实现细节：
 
-- `BrewEffectsInvoker` 暴露的 `forceModifierRegister_` 桥接方法的名称与签名，
-  以及其早期小型 `BrewEffectsMixin` 实现的基本形态；
+- `BrewEffectsInvoker` 直接注册修饰剂的初始桥接思路，以及其早期小型
+  `BrewEffectsMixin` 实现的基本形态；
 - `BrewData` 中容量剂与增强剂两张物品索引表的初始组织方式。
 
 本声明**不适用于 KubeJS Goety 的整个药酿体系**。尤其是 KubeJS 事件与配方
@@ -36,7 +36,7 @@ This attribution is limited to two early implementation details that were
 developed with reference to the corresponding brew implementation in
 **RevelationFix**:
 
-- the name and signature of the `forceModifierRegister_` bridge exposed by
+- the initial direct modifier-registration bridge approach exposed by
   `BrewEffectsInvoker`, together with the initial shape of its small
   `BrewEffectsMixin` implementation; and
 - the initial organization of the two item index tables for capacity and

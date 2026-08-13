@@ -51,6 +51,7 @@ public class RemoveRitualEventJS extends EventJS {
             ScriptType.SERVER.console.warn("Cannot remove built-in ritual type '" + ritualId + "'. If you need to disable it, use modifyRitual to return false");
             return;
         }
+
         
         // 使用反射访问 RitualType 的内部 Map 来移除仪式
         try {
@@ -105,4 +106,3 @@ public class RemoveRitualEventJS extends EventJS {
         }
     }
 }
-

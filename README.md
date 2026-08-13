@@ -384,13 +384,10 @@ GoetyEvents.registerBrew(event => {
 - **Add catalysts (brewing recipes)** → Use `event.recipes.goety.brewing` (see Recipe System below)
 
 **Compatibility (Revelation)**:
-- When **Revelation (`revelationfix` or `goety_revelation`)** is present, KubeJS Goety skips its cauldron brewing mixins by default. This restores the conservative fallback and avoids fighting Revelation's own cauldron overwrites.
-- In that default mode, `setCapacityLevels` and custom capacity/augmentation cauldron logic do not affect Revelation's cauldron path.
-- The default config file is created automatically at `config/kubejs_goety.properties`. To opt in anyway for a pack that has already handled Revelation-side compatibility, edit it before launch:
-```properties
-skipCauldronBrewingMixinsWithRevelation=false
-```
-- This file is read during mixin loading, so a full restart is required. The same value can also be set with JVM property `-Dkubejs_goety.skipCauldronBrewingMixinsWithRevelation=false`.
+- When **RevelationFix 4.4 or older** is detected, KubeJS Goety automatically disables its three cauldron mixins to avoid startup crashes caused by overwritten `insertItem` / `getBrew` methods.
+- The fallback emits a startup warning plus a client toast and login chat message. Rituals, recipes, and other brew registration remain available, but KubeJS Goety's custom cauldron capacity, starter, and in-cauldron brew replacement do not apply.
+- **Goety Awaken 1.3.8** only injects soul-candle acceleration at the tail of the cauldron `tick` method. It can coexist with KubeJS Goety and does not trigger this fallback.
+- The obsolete `config/kubejs_goety.properties` file from earlier builds is no longer read and may be deleted.
 
 ## Recipe System Configuration
 
@@ -600,8 +597,8 @@ kubejs-goety/
 
 ## Acknowledgements and Third-Party Attribution
 
-Limited early implementation details—the name/signature of the
-`forceModifierRegister_` bridge and the initial organization of the two
+Limited early implementation details—the initial bridge approach for direct
+modifier registration and the initial organization of the two
 capacity/augmentation item index tables—were developed with reference to the
 corresponding implementation in **RevelationFix**. This attribution does not
 cover KubeJS Goety's brew system as a whole; its scripting APIs, dynamic level

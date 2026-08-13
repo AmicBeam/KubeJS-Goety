@@ -18,9 +18,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.item.crafting.Ingredient;
-import com.kubejs.goety.util.SizedIngredient;
+import com.kubejs.goety.util.BlockRequirement;
 import dev.latvian.mods.kubejs.script.ScriptType;
 import org.jetbrains.annotations.Nullable;
 
@@ -383,8 +381,8 @@ public class RegisterRitualEventJS extends EventJS {
          * - ItemStack 对象：Item.of('minecraft:stone')，包括带 NBT 的
          * - 数组：混合使用以上格式
          */
-        private Map<SizedIngredient, Integer> parseBlocks(Object blocksConfig) {
-            Map<SizedIngredient, Integer> requirements = new LinkedHashMap<>();
+        private List<BlockRequirement> parseBlocks(Object blocksConfig) {
+            List<BlockRequirement> requirements = new ArrayList<>();
             
             if (blocksConfig == null) {
                 return requirements;
@@ -393,18 +391,9 @@ public class RegisterRitualEventJS extends EventJS {
             // 如果是字符串，解析为单个需求
             if (blocksConfig instanceof CharSequence) {
                 try {
-                    InputItem inputItem = InputItem.of(blocksConfig.toString());
-                    if (inputItem != null && !inputItem.isEmpty()) {
-                        Ingredient ingredient = inputItem.ingredient;
-                        int count = inputItem.count;
-                        SizedIngredient sizedIngredient = SizedIngredient.of(ingredient, count);
-                        requirements.put(sizedIngredient, count);
-                    } else {
-                        ScriptType.SERVER.console.warn("Failed to parse block requirement: " + blocksConfig);
-                    }
+                    requirements.add(BlockRequirement.parse(blocksConfig));
                 } catch (Exception e) {
-                            ScriptType.SERVER.console.error("Failed to parse block requirement: " + blocksConfig + " - " + e.getMessage());
-                    e.printStackTrace();
+                    throw new IllegalArgumentException("Failed to parse block requirement " + blocksConfig + ": " + e.getMessage(), e);
                 }
             }
             // 如果是数组或 List
@@ -414,18 +403,9 @@ public class RegisterRitualEventJS extends EventJS {
                     for (Object item : list) {
                         try {
                             // 支持字符串和 ItemStack 对象（包括带 NBT 的）
-                            InputItem inputItem = InputItem.of(item);
-                            if (inputItem != null && !inputItem.isEmpty()) {
-                                Ingredient ingredient = inputItem.ingredient;
-                                int count = inputItem.count;
-                                SizedIngredient sizedIngredient = SizedIngredient.of(ingredient, count);
-                                requirements.put(sizedIngredient, count);
-                            } else {
-                                ScriptType.SERVER.console.warn("Failed to parse block requirement: " + item);
-                            }
+                            requirements.add(BlockRequirement.parse(item));
                         } catch (Exception e) {
-                            ScriptType.SERVER.console.error("Failed to parse block requirement: " + item + " - " + e.getMessage());
-                            e.printStackTrace();
+                            throw new IllegalArgumentException("Failed to parse block requirement " + item + ": " + e.getMessage(), e);
                         }
                     }
                 }
@@ -441,7 +421,7 @@ public class RegisterRitualEventJS extends EventJS {
         public IRitualType buildRitualType() {
             final String finalName = this.name != null ? this.name : ritualId;
             final int finalRange = this.range != null ? this.range : 16;
-            final Map<SizedIngredient, Integer> blockRequirements = parseBlocks(this.blocks);
+            final List<BlockRequirement> blockRequirements = parseBlocks(this.blocks);
             final String finalDimension = this.dimension;
             final Boolean finalDimensionContainsMatch = this.dimensionContainsMatch;
             final Object finalCustomRequirement = this.customRequirement;
@@ -811,48 +791,13 @@ public class RegisterRitualEventJS extends EventJS {
                             return true;  // 没有方块需求，默认通过
                         }
                         
-                        Map<SizedIngredient, Integer> found = new HashMap<>();
-                        
-                        // 扫描范围内的方块
-                        for (int i = -finalRange; i <= finalRange; i++) {
-                            for (int j = -finalRange; j <= finalRange; j++) {
-                                for (int k = -finalRange; k <= finalRange; k++) {
-                                    BlockPos blockPos = pPos.offset(i, j, k);
-                                    BlockState blockState = pLevel.getBlockState(blockPos);
-                                    
-                                        // 获取方块对应的物品栈
-                                        var item = blockState.getBlock().asItem();
-                                        if (item != null && item != net.minecraft.world.item.Items.AIR) {
-                                        net.minecraft.world.item.ItemStack itemStack = item.getDefaultInstance();
-                                        
-                                        // 检查这个方块是否匹配某个需求（只匹配第一个匹配的需求）
-                                        for (Map.Entry<SizedIngredient, Integer> entry : blockRequirements.entrySet()) {
-                                            SizedIngredient sizedIngredient = entry.getKey();
-                                            // 使用 SizedIngredient 的 ingredient 来测试
-                                            if (sizedIngredient.ingredient().test(itemStack)) {
-                                                found.put(sizedIngredient, found.getOrDefault(sizedIngredient, 0) + 1);
-                                                break;  // 只计数一次，匹配第一个需求后退出
-                                            }
-                                        }
-                                    }
-                                }
+                        BlockRequirement missing = BlockRequirement.firstMissing(blockRequirements, pLevel, pPos, finalRange);
+                        if (missing != null) {
+                            if (pPlayer != null) {
+                                pPlayer.displayClientMessage(Component.translatable("info.goety.ritual.structure.noBlocks",
+                                    Component.literal(String.format("%d× %s", missing.count(), missing.description()))), true);
                             }
-                        }
-                        
-                        // 验证是否满足所有需求
-                        for (Map.Entry<SizedIngredient, Integer> entry : blockRequirements.entrySet()) {
-                            int required = entry.getValue();
-                            int actual = found.getOrDefault(entry.getKey(), 0);
-                            if (actual < required) {
-                                if (pPlayer != null) {
-                                    // 尝试获取物品名称用于提示
-                                    net.minecraft.world.item.ItemStack[] items = entry.getKey().ingredient().getItems();
-                                    String itemName = items.length > 0 ? items[0].getDisplayName().getString() : "blocks";
-                                    pPlayer.displayClientMessage(Component.translatable("info.goety.ritual.structure.noBlocks", 
-                                        Component.literal(String.format("%d× %s", required, itemName))), true);
-                                }
-                                return false;
-                            }
+                            return false;
                         }
                         
                         return true;
