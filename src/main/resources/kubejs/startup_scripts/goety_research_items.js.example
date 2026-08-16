@@ -1,0 +1,16 @@
+/**
+ * Custom Research scroll items must be registered in startup_scripts.
+ * Restart Minecraft after changing this file.
+ */
+StartupEvents.registry('item', event => {
+    // 必须使用 goety_research_scroll 类型。这样物品会真实继承 Goety 的
+    // ResearchScroll，并能被 Goety 的仪式 JEI 页面识别。
+    event.create('ancient_magic_scroll', 'goety_research_scroll')
+        // 对应的 Research ID，不带命名空间；必须与 server_scripts 中一致。
+        .research('ancient_magic')
+        .displayName('远古魔法卷轴')
+
+    event.create('advanced_ancient_magic_scroll', 'goety_research_scroll')
+        .research('advanced_ancient_magic')
+        .displayName('高等远古魔法卷轴')
+})

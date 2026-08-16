@@ -1,0 +1,65 @@
+/**
+ * Complete custom Goety Research example.
+ * Put Research definitions in server_scripts. Definitions are rebuilt on
+ * recipe reload and synchronized to connected clients automatically.
+ */
+GoetyEvents.registerResearch(event => {
+    event.create('ancient_magic', research => {
+        research.setScroll('kubejs:ancient_magic_scroll')
+        research.setDisplayName('远古魔法')
+        research.setConsumeScroll(true)
+        research.setLearnMessage('§d你掌握了远古魔法！')
+        research.setAlreadyLearnedMessage('§e你已经掌握了远古魔法。')
+    })
+
+    // 创建 ID 为 advanced_ancient_magic 的 Research。
+    // Research ID 不带命名空间；仪式配方使用
+    // .research('advanced_ancient_magic') 引用它。
+    event.create('advanced_ancient_magic', research => {
+        // 绑定用于解锁该 Research 的卷轴物品。该物品必须在 startup_scripts
+        // 中以 goety_research_scroll 类型注册，并声明相同的 Research ID。
+        research.setScroll('kubejs:advanced_ancient_magic_scroll')
+
+        // 设置 tooltip 和默认提示中使用的 Research 显示名称。
+        research.setDisplayName('高等远古魔法')
+
+        // true：学习成功后，生存模式消耗一个卷轴；创造模式不消耗。
+        // false：学习成功后也不消耗卷轴。
+        research.setConsumeScroll(true)
+
+        // 设置多个前置 Research，数组中的条件必须全部满足。
+        // 可填写 Goety 内置 Research 或其他自定义 Research 的 ID。
+        research.setPrerequisites([
+            'haunting',
+            'ancient_magic'
+        ])
+
+        // 学习成功时显示的自定义消息；不设置则使用默认本地化消息。
+        // 支持 Minecraft 的 § 格式代码。
+        research.setLearnMessage('§d你掌握了高等远古魔法！')
+
+        // 可选：已经掌握该 Research 时显示的自定义消息。
+        // research.setAlreadyLearnedMessage('§e你已经掌握了高等远古魔法。')
+
+        // 可选：缺少任意前置 Research 时显示的自定义消息。
+        // research.setMissingPrerequisiteMessage('§c你尚未掌握所需的前置研究。')
+    })
+})
+
+ServerEvents.recipes(event => {
+    event.recipes.goety.ritual('minecraft:diamond', 'goety:craft', [
+        'minecraft:amethyst_shard',
+        'minecraft:ender_pearl'
+    ])
+        .activationItem('minecraft:book')
+        .craftType('magic')
+        .research('ancient_magic')
+        .soulCost(100)
+        .duration(30)
+})
+
+// Administrative/script API examples:
+// GoetyResearch.has(player, 'ancient_magic')
+// GoetyResearch.grant(player, 'ancient_magic')
+// GoetyResearch.revoke(player, 'ancient_magic')
+// GoetyResearch.getAll(player)

@@ -1,4 +1,11 @@
 {
+  "message.kubejs_goety.research.learned": "你掌握了%s研究！",
+  "message.kubejs_goety.research.already": "你已经掌握了%s。",
+  "message.kubejs_goety.research.missing": "缺少前置研究：%s",
+  "tooltip.kubejs_goety.research_scroll": "研究：%s",
+  "tooltip.kubejs_goety.research.learned": "已掌握",
+  "tooltip.kubejs_goety.research.requires": "需要前置研究：%s",
+  "tooltip.kubejs_goety.research.read": "右键研读",
   "info.kubejs_goety.ritual.dimension.required": "仪式必须在维度 %s 中进行！",
   "info.kubejs_goety.ritual.weather.rain.required": "仪式需要雨天！",
   "info.kubejs_goety.ritual.weather.clear.required": "仪式需要晴天！",

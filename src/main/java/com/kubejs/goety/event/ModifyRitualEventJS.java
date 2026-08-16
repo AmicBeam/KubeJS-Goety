@@ -164,10 +164,15 @@ public class ModifyRitualEventJS extends EventJS {
             .findFirst()
             .map(group -> group.onFinish)
             .orElse(null);
+        final Object finalOnStart = conditionGroups.stream()
+            .filter(group -> group.onStart != null)
+            .findFirst()
+            .map(group -> group.onStart)
+            .orElse(null);
         
         final net.minecraft.world.item.ItemStack finalJeiIconFinal = finalJeiIcon;
         
-        return new IRitualType() {
+        return new StartAwareRitualType() {
             @Override
             public String getName() {
                 return finalRitualId;  // 使用ritualId作为名称，不再使用条件组内部的name
@@ -176,6 +181,18 @@ public class ModifyRitualEventJS extends EventJS {
             @Override
             public net.minecraft.world.item.ItemStack getJeiIcon() {
                 return finalJeiIconFinal;
+            }
+
+            @Override
+            public void onStartRitual(Level world, BlockPos darkAltarPos,
+                                      com.Polarice3.Goety.common.blocks.entities.DarkAltarBlockEntity tileEntity,
+                                      Player castingPlayer, net.minecraft.world.item.ItemStack activationItem) {
+                if (finalOnStart != null) {
+                    RegisterRitualEventJS.invokeStartCallback(finalOnStart, world, darkAltarPos, tileEntity,
+                            castingPlayer, activationItem);
+                } else if (originalRitual instanceof StartAwareRitualType startAware) {
+                    startAware.onStartRitual(world, darkAltarPos, tileEntity, castingPlayer, activationItem);
+                }
             }
             
             @Override
@@ -500,6 +517,7 @@ public class ModifyRitualEventJS extends EventJS {
         public Boolean dimensionContainsMatch;  // 可选：维度匹配模式，false（精确匹配，默认）或 true（模糊匹配）
         public Object customRequirement;  // 可选：自定义检查函数
         public Object jeiIcon;  // JEI 图标物品
+        public Object onStart;  // 仪式开始时的回调函数
         public Object onFinish;  // 仪式完成时的回调函数
         
         // 新增配置选项
@@ -528,6 +546,7 @@ public class ModifyRitualEventJS extends EventJS {
             this.dimensionContainsMatch = false;  // 默认精确匹配
             this.customRequirement = null;
             this.jeiIcon = null;  // 默认使用原始仪式的图标
+            this.onStart = null;  // 默认使用原始仪式的回调
             this.onFinish = null;  // 默认使用原始仪式的回调
             this.weather = null;
             this.timeOfDay = null;
@@ -700,6 +719,20 @@ public class ModifyRitualEventJS extends EventJS {
             this.jeiIcon = icon;
             return this;
         }
+
+        /**
+         * 设置仪式真正开始时的回调函数。仅在配方和所有条件通过后触发一次。
+         */
+        @dev.latvian.mods.kubejs.typings.Info(value = "设置仪式开始时的回调函数", params = {
+            @dev.latvian.mods.kubejs.typings.Param(name = "callback", value = "回调函数，接收参数：(world, darkAltarPos, tileEntity, castingPlayer, activationItem)")
+        })
+        @Generics({net.minecraft.world.level.Level.class, net.minecraft.core.BlockPos.class,
+                   com.Polarice3.Goety.common.blocks.entities.DarkAltarBlockEntity.class,
+                   net.minecraft.world.entity.player.Player.class, net.minecraft.world.item.ItemStack.class})
+        public RitualModifierImpl setOnStart(RegisterRitualEventJS.OnStartCallback callback) {
+            this.onStart = callback;
+            return this;
+        }
         
         /**
          * 设置仪式完成时的回调函数
@@ -780,6 +813,7 @@ public class ModifyRitualEventJS extends EventJS {
             final Integer finalMaxY = this.maxY;
             final Boolean finalRequireSkyVisible = this.requireSkyVisible;
             final Boolean finalRequireAltarWaterlogged = this.requireAltarWaterlogged;
+            final Object finalOnStart = this.onStart;
             final Object finalOnFinish = this.onFinish;
             
             // 解析 JEI 图标
@@ -799,7 +833,7 @@ public class ModifyRitualEventJS extends EventJS {
             }
             final net.minecraft.world.item.ItemStack finalJeiIcon = tempJeiIcon;
             
-            return new IRitualType() {
+            return new StartAwareRitualType() {
                 @Override
                 public String getName() {
                     return finalName;
@@ -808,6 +842,18 @@ public class ModifyRitualEventJS extends EventJS {
                 @Override
                 public net.minecraft.world.item.ItemStack getJeiIcon() {
                     return finalJeiIcon;
+                }
+
+                @Override
+                public void onStartRitual(Level world, BlockPos darkAltarPos,
+                                          com.Polarice3.Goety.common.blocks.entities.DarkAltarBlockEntity tileEntity,
+                                          Player castingPlayer, net.minecraft.world.item.ItemStack activationItem) {
+                    if (finalOnStart != null) {
+                        RegisterRitualEventJS.invokeStartCallback(finalOnStart, world, darkAltarPos, tileEntity,
+                                castingPlayer, activationItem);
+                    } else if (originalRitual instanceof StartAwareRitualType startAware) {
+                        startAware.onStartRitual(world, darkAltarPos, tileEntity, castingPlayer, activationItem);
+                    }
                 }
                 
                 @Override

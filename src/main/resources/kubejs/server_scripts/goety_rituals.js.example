@@ -538,7 +538,12 @@ GoetyEvents.registerRitual(event => {
  *       - ritual.setJeiIcon('minecraft:diamond')           // 使用物品ID
  *       - ritual.setJeiIcon('minecraft:enchanted_book')    // 使用物品ID
  *       - ritual.setJeiIcon(Item.of('minecraft:diamond_sword'))  // 使用物品对象
- * 13. ritual.setOnFinish(callback) - 仪式完成时的回调函数（可选）
+ * 13. ritual.setOnStart(callback) - 仪式真正开始时触发一次的回调（可选），适合生成开始粒子或播放音效
+ *     示例：
+ *       ritual.setOnStart((world, pos, tile, player, item) => {
+ *           world.getServer().runCommandSilent(`particle minecraft:witch ${pos.getX() + 0.5} ${pos.getY() + 1} ${pos.getZ() + 0.5} 1 1 1 0.05 40`);
+ *       })
+ * 14. ritual.setOnFinish(callback) - 仪式完成时的回调函数（可选）
  *     注意：此回调在配方完成时触发，即仪式成功执行并产生结果后
  *     回调函数接收参数：(world, darkAltarPos, tileEntity, castingPlayer, activationItem)
  *     参数说明：
@@ -577,7 +582,7 @@ GoetyEvents.registerRitual(event => {
  *         * 给玩家物品：player.give('minecraft:diamond')
  *         * 修改方块：world.setBlock(pos, 'minecraft:air')
  *         * 访问仪式数据：tile.consumedIngredients, tile.currentTime 等
- * 14. ritual.setRequirement(function) - 自定义检查函数（可选），如果设置了会完全覆盖所有配置检查
+ * 15. ritual.setRequirement(function) - 自定义检查函数（可选），如果设置了会完全覆盖所有配置检查
  * 
  * 
  * ==========================================

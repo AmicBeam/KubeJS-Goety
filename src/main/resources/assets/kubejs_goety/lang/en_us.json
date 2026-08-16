@@ -1,4 +1,11 @@
 {
+  "message.kubejs_goety.research.learned": "You learned the %s research!",
+  "message.kubejs_goety.research.already": "You have already learned %s.",
+  "message.kubejs_goety.research.missing": "Missing prerequisite research: %s",
+  "tooltip.kubejs_goety.research_scroll": "Research: %s",
+  "tooltip.kubejs_goety.research.learned": "Learned",
+  "tooltip.kubejs_goety.research.requires": "Requires: %s",
+  "tooltip.kubejs_goety.research.read": "Right-click to study",
   "info.kubejs_goety.ritual.dimension.required": "Ritual must be performed in dimension: %s",
   "info.kubejs_goety.ritual.weather.rain.required": "Ritual requires rainy weather!",
   "info.kubejs_goety.ritual.weather.clear.required": "Ritual requires clear weather!",

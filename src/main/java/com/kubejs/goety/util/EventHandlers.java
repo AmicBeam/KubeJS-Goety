@@ -4,6 +4,7 @@ import com.kubejs.goety.event.RegisterRitualEventJS;
 import com.kubejs.goety.event.ModifyRitualEventJS;
 import com.kubejs.goety.event.RemoveRitualEventJS;
 import com.kubejs.goety.event.RegisterBrewEventJS;
+import com.kubejs.goety.event.RegisterResearchEventJS;
 import dev.latvian.mods.kubejs.event.EventGroup;
 import dev.latvian.mods.kubejs.event.EventHandler;
 import dev.latvian.mods.kubejs.typings.Info;
@@ -27,6 +28,12 @@ public class EventHandlers {
      * 在 server_scripts 中使用：GoetyEvents.registerRitual(event => { ... })
      */
     public static final EventHandler registerRitual = GoetyEvents.server("registerRitual", () -> RegisterRitualEventJS.class);
+
+    /**
+     * 注册自定义 Research 及其卷轴绑定。
+     * 在 server_scripts 中使用：GoetyEvents.registerResearch(event => { ... })
+     */
+    public static final EventHandler registerResearch = GoetyEvents.server("registerResearch", () -> RegisterResearchEventJS.class);
     
     /**
      * 修改现有仪式条件的事件
@@ -54,4 +61,3 @@ public class EventHandlers {
         // 通过 ServerEvents.LOADED 事件来触发我们的自定义事件
     }
 }
-

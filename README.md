@@ -1,5 +1,7 @@
 # KubeJS Goety
 
+Current version: **1.1.1**
+
 **Read this in other languages: [简体中文](README_CN.md)**
 
 KubeJS integration for Goety mod. Allows customizing Goety ritual requirements, brew system, and recipe system via JavaScript scripts.
@@ -8,6 +10,8 @@ KubeJS integration for Goety mod. Allows customizing Goety ritual requirements, 
 
 - ✅ Uses GoetyEvents event system
 - ✅ Create and modify ritual types with fully customizable ritual condition checking logic
+- ✅ Ritual start and completion callbacks (`setOnStart` / `setOnFinish`)
+- ✅ Custom Research registration, bound scrolls, prerequisites, and player research management
 - ✅ Brew system configuration (capacity modifiers, catalysts, augmentations)
 - ✅ Recipe system configuration (ritual recipes, brewing recipes, pulverize recipes, etc.)
 - ✅ Server-side script support (server_scripts)
@@ -88,6 +92,11 @@ GoetyEvents.registerRitual(event => {
         ritual.setWeather('thunder');         // Requires thunder weather
         ritual.setRequireSkyVisible(true);    // Requires sky visibility
         ritual.setJeiIcon('minecraft:lightning_rod');  // Set JEI display icon (optional)
+
+        // Fires once after every recipe and condition check passes and the ritual actually starts
+        ritual.setOnStart((world, pos, tile, player, activationItem) => {
+            world.getServer().runCommandSilent(`particle minecraft:electric_spark ${pos.getX() + 0.5} ${pos.getY() + 1} ${pos.getZ() + 0.5} 1 1 1 0.05 40`);
+        });
         
         // Set callback when ritual completes (optional)
         // Note: This callback is triggered when the recipe completes, i.e., after the ritual successfully executes and produces results
@@ -142,10 +151,61 @@ The `ritual` object supports the following configuration options:
 - `ritual.setRequireSkyVisible(boolean)` (boolean): Whether sky visibility is required
 - `ritual.setRequireAltarWaterlogged(boolean)` (boolean): Whether altar must be waterlogged
 - `ritual.setJeiIcon(item)` (string/object): JEI display icon (item ID or item object, optional, defaults to obsidian)
+- `ritual.setOnStart(callback)` (function): Called once when the ritual actually starts, with (world, darkAltarPos, tileEntity, castingPlayer, activationItem)
 - `ritual.setOnFinish(callback)` (function): Callback function triggered when the recipe completes (i.e., after the ritual successfully executes and produces results), receives (world, darkAltarPos, tileEntity, castingPlayer, activationItem)
 - `ritual.setRequirement(function)` (function): Custom check function (overrides all configurations)
 
 **See example**: [goety_rituals.js.example](src/main/resources/kubejs/server_scripts/goety_rituals.js.example)
+
+#### Custom Research and Scrolls
+
+Create scroll items in `startup_scripts` (a game restart is required after changing them):
+
+```javascript
+StartupEvents.registry('item', event => {
+    event.create('ancient_magic_scroll', 'goety_research_scroll')
+        .research('ancient_magic')
+        .displayName('Ancient Magic Scroll')
+
+    event.create('advanced_ancient_magic_scroll', 'goety_research_scroll')
+        .research('advanced_ancient_magic')
+        .displayName('Advanced Ancient Magic Scroll')
+})
+```
+
+Register the Research and bind the scroll in `server_scripts`:
+
+```javascript
+GoetyEvents.registerResearch(event => {
+    event.create('ancient_magic', research => {
+        research.setScroll('kubejs:ancient_magic_scroll')
+        research.setDisplayName('Ancient Magic')
+        research.setConsumeScroll(true)
+    })
+
+    event.create('advanced_ancient_magic', research => {
+        research.setScroll('kubejs:advanced_ancient_magic_scroll')
+        research.requireResearch('ancient_magic')
+    })
+})
+```
+
+The item type must be `goety_research_scroll`, and its startup `.research(id)` must match the ID passed to `event.create`. These items are real subclasses of Goety's `ResearchScroll`, so Goety and JEI discover them in ritual recipe pages. The bound item automatically receives a Research tooltip. Right-clicking checks prerequisites, learns and synchronizes the Research, and optionally consumes the scroll. Success, already-learned, and missing-prerequisite messages use the Action Bar, matching Goety's native scrolls. Definitions are rebuilt on recipe reload and synchronized to connected clients.
+
+Builder methods: `setScroll`, `setDisplayName`, `setConsumeScroll`, `requireResearch`, `setPrerequisites`, `setLearnMessage`, `setAlreadyLearnedMessage`, and `setMissingPrerequisiteMessage`.
+
+Player API:
+
+```javascript
+GoetyResearch.has(player, 'ancient_magic')
+GoetyResearch.grant(player, 'ancient_magic')
+GoetyResearch.revoke(player, 'ancient_magic')
+GoetyResearch.getAll(player)
+```
+
+Research IDs have no namespace and use lowercase path characters. Existing IDs registered by Goety or another mod cannot be replaced. `setScroll` rejects ordinary items and scrolls whose startup Research ID does not match the definition.
+
+**Complete examples**: [goety_research_items.js.example](src/main/resources/kubejs/startup_scripts/goety_research_items.js.example) and [goety_research.js.example](src/main/resources/kubejs/server_scripts/goety_research.js.example)
 
 #### Localization (Optional)
 
@@ -589,8 +649,11 @@ kubejs-goety/
 │       │   └── mods.toml               # Mod metadata
 │       ├── kubejs.plugins.txt         # Plugin registration file
 │       └── kubejs/
+│           ├── startup_scripts/
+│           │   └── goety_research_items.js.example # Custom Research scroll items
 │           └── server_scripts/
 │               ├── goety_rituals.js.example  # Ritual configuration example script
+│               ├── goety_research.js.example # Custom Research example script
 │               ├── goety_recipes.js.example   # Recipe configuration example script
 │               └── goety_brews.js.example    # Brew configuration example script
 ```

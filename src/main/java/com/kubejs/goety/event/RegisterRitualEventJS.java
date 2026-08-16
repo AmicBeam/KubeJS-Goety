@@ -40,6 +40,29 @@ import java.util.function.Consumer;
  */
 @Info("用于注册新的仪式类型")
 public class RegisterRitualEventJS extends EventJS {
+
+    static void invokeStartCallback(Object callback, Level world, BlockPos darkAltarPos,
+                                    com.Polarice3.Goety.common.blocks.entities.DarkAltarBlockEntity tileEntity,
+                                    Player castingPlayer, net.minecraft.world.item.ItemStack activationItem) {
+        if (callback == null) {
+            return;
+        }
+        try {
+            if (callback instanceof OnStartCallback onStartCallback) {
+                onStartCallback.accept(world, darkAltarPos, tileEntity, castingPlayer, activationItem);
+            } else if (callback instanceof dev.latvian.mods.rhino.BaseFunction function) {
+                var scriptManager = ScriptType.SERVER.manager.get();
+                var scope = scriptManager.topLevelScope;
+                function.call(scriptManager.context, scope, scope,
+                        new Object[]{world, darkAltarPos, tileEntity, castingPlayer, activationItem});
+            } else {
+                ScriptType.SERVER.console.warn("onStartRitual callback is not a function: " + callback.getClass().getName());
+            }
+        } catch (Exception e) {
+            ScriptType.SERVER.console.error("Error executing onStartRitual callback: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
     
     /**
      * 仪式完成回调函数接口
@@ -51,6 +74,15 @@ public class RegisterRitualEventJS extends EventJS {
         void accept(Level world, BlockPos darkAltarPos, 
                     com.Polarice3.Goety.common.blocks.entities.DarkAltarBlockEntity tileEntity,
                     net.minecraft.world.entity.player.Player castingPlayer, 
+                    net.minecraft.world.item.ItemStack activationItem);
+    }
+
+    @FunctionalInterface
+    @Info("仪式开始时的回调函数，接收参数：(world, darkAltarPos, tileEntity, castingPlayer, activationItem)")
+    public interface OnStartCallback {
+        void accept(Level world, BlockPos darkAltarPos,
+                    com.Polarice3.Goety.common.blocks.entities.DarkAltarBlockEntity tileEntity,
+                    net.minecraft.world.entity.player.Player castingPlayer,
                     net.minecraft.world.item.ItemStack activationItem);
     }
     
@@ -161,6 +193,7 @@ public class RegisterRitualEventJS extends EventJS {
         public Boolean dimensionContainsMatch;  // 可选：维度匹配模式，false（精确匹配，默认）或 true（模糊匹配）
         public Object customRequirement;  // 可选：自定义检查函数
         public Object jeiIcon;  // JEI 图标物品
+        public Object onStart;  // 仪式开始时的回调函数
         public Object onFinish;  // 仪式完成时的回调函数
         
         // 新增配置选项
@@ -186,6 +219,7 @@ public class RegisterRitualEventJS extends EventJS {
             this.dimensionContainsMatch = false;  // 默认精确匹配
             this.customRequirement = null;
             this.jeiIcon = null;  // 默认使用黑曜石
+            this.onStart = null;  // 默认无回调
             this.onFinish = null;  // 默认无回调
             this.weather = null;
             this.timeOfDay = null;
@@ -357,6 +391,19 @@ public class RegisterRitualEventJS extends EventJS {
             this.jeiIcon = icon;
             return this;
         }
+
+        /**
+         * 设置仪式真正开始时的回调函数。仅在配方和所有条件通过后触发一次。
+         */
+        @dev.latvian.mods.kubejs.typings.Info(value = "设置仪式开始时的回调函数", params = {
+            @dev.latvian.mods.kubejs.typings.Param(name = "callback", value = "回调函数，接收参数：(world, darkAltarPos, tileEntity, castingPlayer, activationItem)")
+        })
+        @Generics({Level.class, BlockPos.class, com.Polarice3.Goety.common.blocks.entities.DarkAltarBlockEntity.class,
+                   net.minecraft.world.entity.player.Player.class, net.minecraft.world.item.ItemStack.class})
+        public RitualBuilderImpl setOnStart(OnStartCallback callback) {
+            this.onStart = callback;
+            return this;
+        }
         
         /**
          * 设置仪式完成时的回调函数
@@ -433,6 +480,7 @@ public class RegisterRitualEventJS extends EventJS {
             final Integer finalMaxY = this.maxY;
             final Boolean finalRequireSkyVisible = this.requireSkyVisible;
             final Boolean finalRequireAltarWaterlogged = this.requireAltarWaterlogged;
+            final Object finalOnStart = this.onStart;
             final Object finalOnFinish = this.onFinish;
             ScriptType.SERVER.console.info("buildRitualType: finalOnFinish = " + (finalOnFinish != null ? finalOnFinish.getClass().getName() : "null"));
             
@@ -458,7 +506,7 @@ public class RegisterRitualEventJS extends EventJS {
             }
             final net.minecraft.world.item.ItemStack finalJeiIcon = tempJeiIcon;
             
-            return new IRitualType() {
+            return new StartAwareRitualType() {
                 @Override
                 public String getName() {
                     return finalName;
@@ -467,6 +515,13 @@ public class RegisterRitualEventJS extends EventJS {
                 @Override
                 public net.minecraft.world.item.ItemStack getJeiIcon() {
                     return finalJeiIcon;
+                }
+
+                @Override
+                public void onStartRitual(Level world, BlockPos darkAltarPos,
+                                          com.Polarice3.Goety.common.blocks.entities.DarkAltarBlockEntity tileEntity,
+                                          Player castingPlayer, net.minecraft.world.item.ItemStack activationItem) {
+                    invokeStartCallback(finalOnStart, world, darkAltarPos, tileEntity, castingPlayer, activationItem);
                 }
                 
                 @Override

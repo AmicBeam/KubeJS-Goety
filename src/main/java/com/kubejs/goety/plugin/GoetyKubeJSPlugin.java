@@ -8,16 +8,27 @@ import com.kubejs.goety.recipe.schema.PulverizeSchema;
 import com.kubejs.goety.recipe.schema.RitualSchema;
 import com.kubejs.goety.recipe.schema.SoulAbsorberSchema;
 import com.kubejs.goety.util.EventHandlers;
+import com.kubejs.goety.research.GoetyResearchScriptAPI;
+import com.kubejs.goety.research.CustomResearchScrollItem;
+import com.kubejs.goety.research.ResearchData;
+import com.kubejs.goety.research.ResearchNetwork;
 import dev.latvian.mods.kubejs.KubeJSPlugin;
 import dev.latvian.mods.kubejs.recipe.schema.RegisterRecipeSchemasEvent;
 import dev.latvian.mods.kubejs.script.ScriptType;
 import dev.latvian.mods.kubejs.util.ClassFilter;
+import dev.latvian.mods.kubejs.registry.RegistryInfo;
 
 /**
  * KubeJS Goety 插件
  * 允许 KubeJS 脚本访问 Goety 的仪式 API 和配方系统
  */
 public class GoetyKubeJSPlugin extends KubeJSPlugin {
+
+    @Override
+    public void init() {
+        RegistryInfo.ITEM.addType("goety_research_scroll", CustomResearchScrollItem.Builder.class,
+                CustomResearchScrollItem.Builder::new);
+    }
     
     @Override
     public void registerClasses(ScriptType type, ClassFilter filter) {
@@ -46,6 +57,20 @@ public class GoetyKubeJSPlugin extends KubeJSPlugin {
         // 在 SERVER 脚本类型的 registerBindings 阶段注册事件监听器
         // 此时 ScriptManager 已经初始化，可以安全调用
         if (event.getType() == ScriptType.SERVER) {
+            event.add("GoetyResearch", GoetyResearchScriptAPI.INSTANCE);
+
+            // Recipe loading also runs on /reload. Register Research before user
+            // recipe callbacks resolve their .research(...) string IDs.
+            dev.latvian.mods.kubejs.bindings.event.ServerEvents.RECIPES.listenJava(ScriptType.SERVER, null, e -> {
+                ResearchData.beginRegistration();
+                if (EventHandlers.registerResearch.hasListeners()) {
+                    EventHandlers.registerResearch.post(new com.kubejs.goety.event.RegisterResearchEventJS());
+                }
+                ResearchData.validateDefinitions();
+                ResearchNetwork.syncAllPlayers();
+                return null;
+            });
+
             dev.latvian.mods.kubejs.bindings.event.ServerEvents.LOADED.listenJava(ScriptType.SERVER, null, e -> {
                 // 触发注册仪式事件
                 if (EventHandlers.registerRitual.hasListeners()) {

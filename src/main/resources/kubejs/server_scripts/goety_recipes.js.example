@@ -44,7 +44,7 @@ ServerEvents.recipes(event => {
     // - .entityToConvertInto(entityId) - 设置转换后的生物类型ID（可选）
     // - .enchantment(enchantmentId) - 设置附魔ID（可选）
     // - .xpLevelCost(levels) - 设置经验等级消耗（可选，默认0）
-    // - .research(researchId) - 设置研究ID（可选，如 'forbidden'、'haunting' 等）
+    // - .research(researchId) - 设置卷轴解锁的研究ID（可选，如 'forbidden'、'haunting' 等；不是卷轴物品ID）
     //
     // 创建一个简单的仪式配方
     event.recipes.goety.ritual('minecraft:emerald', 'goety:craft', [

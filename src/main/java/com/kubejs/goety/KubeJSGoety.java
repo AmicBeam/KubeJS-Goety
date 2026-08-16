@@ -1,5 +1,8 @@
 package com.kubejs.goety;
 
+import com.kubejs.goety.research.ResearchGameplayEvents;
+import com.kubejs.goety.research.ResearchNetwork;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 
 /**
@@ -16,7 +19,7 @@ public class KubeJSGoety {
     public static final String MOD_ID = "kubejs_goety";
     
     public KubeJSGoety() {
-        // 主类保持简单，事件注册在 KubeJSPlugin 中完成
+        ResearchNetwork.init();
+        MinecraftForge.EVENT_BUS.register(ResearchGameplayEvents.class);
     }
 }
-
