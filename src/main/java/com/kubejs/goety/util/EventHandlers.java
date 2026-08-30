@@ -45,7 +45,7 @@ public class EventHandlers {
      * 在 server_scripts 中使用：GoetyEvents.registerBrew(event => { ... })
      */
     public static final EventHandler registerBrew = GoetyEvents.server("registerBrew", () -> RegisterBrewEventJS.class);
-    
+
     /**
      * 初始化事件处理器
      */

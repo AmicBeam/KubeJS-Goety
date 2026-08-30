@@ -8,6 +8,11 @@
   "info.kubejs_goety.ritual.height.max.required": "Ritual must be performed at Y level %d or lower!",
   "info.kubejs_goety.ritual.sky.blocked.required": "Ritual must be performed without sky visibility!",
   "info.kubejs_goety.ritual.waterlogged.not_required": "Altar must not be waterlogged!",
+  "info.kubejs_goety.scroll.granted": "You learned new knowledge from the scroll...",
+  "info.kubejs_goety.scroll.learned": "You have already learned this scroll",
+  "info.kubejs_goety.scroll.requirement": "You lack the prerequisite knowledge to understand this scroll",
+  // Shared tooltip hint for custom scroll items (kubejs_goety:scroll type)
+  "info.goety.items.scroll": "§7Right-click to read and learn the research",
   "warning.kubejs_goety.cauldron_compat.title": "KubeJS Goety compatibility fallback",
   "warning.kubejs_goety.cauldron_compat.message": "Conflicting mod %s was detected. KubeJS Goety cauldron integration was disabled to prevent a crash; rituals, recipes, and other brew registration remain available."
 }
