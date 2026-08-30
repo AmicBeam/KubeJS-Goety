@@ -1,0 +1,90 @@
+/**
+ * Goety 自定义研究卷轴脚本（自包含写法）
+ *
+ * 此脚本演示如何注册自定义研究（Research）以及配套的研究卷轴物品。
+ * 整个文件应放在 kubejs/startup_scripts/ 目录（去掉 .example 后缀）。
+ *
+ * 机制说明：
+ * - Goety 的研究(Research)只是一个 ID 字符串，注册进 ResearchList 静态列表
+ * - 玩家存档只保存研究 ID，读档时通过 ResearchList.getResearch(id) 反查，
+ *   因此自定义研究必须在玩家读档前注册——startup 顶层时机满足此要求
+ * - 物品类型 'kubejs_goety:scroll' 创建的是真正的 Goety Scroll 类物品：
+ *   · 右键学习研究、消耗物品由 Goety 原生实现（use()），无需脚本处理
+ *   · tooltip 原生显示研究介绍（info.goety.items.<id>）与提示（info.goety.items.scroll）
+ *   · JEI 仪式配方页会显示所需卷轴（Goety 只展示 ResearchScroll 子类物品，
+ *     普通 KubeJS Item 永远无法显示——这是使用本类型而非普通物品的根本原因）
+ * - 语言键由模组自动添加（按当前语言提供中/英默认文案），脚本无需写任何 lang
+ * - 研究授予/查询通过全局绑定 goetyResearch 完成（对应 Java 的 ResearchHelper）
+ */
+
+// ==========================================
+// 1. 注册自定义研究（startup 顶层，先于物品创建与玩家读档执行）
+// ==========================================
+goetyResearch.registerResearch('kubejs:my_research');
+
+// 可以注册多个，注意使用带命名空间的 ID，避免与 Goety 内置研究
+// （forbidden、ravaging、warred、buried、haunting、front、mistral、floral、bygone、terminus）冲突
+goetyResearch.registerResearch('kubejs:my_research_2');
+
+// ==========================================
+// 2. 注册卷轴物品（类型 kubejs_goety:scroll）
+// ==========================================
+StartupEvents.registry('item', event => {
+    // 纹理可直接复用 Goety 的卷轴贴图（research_scroll / old_research_scroll /
+    // mossy_research_scroll / nether_research_scroll / sky_research_scroll / end_research_scroll）
+    event.create('kubejs:my_research_scroll', 'kubejs_goety:scroll')
+        .research('kubejs:my_research')   // 绑定研究，必须在步骤 1 之后（引用同一 Research 实例）
+        .maxStackSize(1)                  // 不可堆叠（与原版卷轴一致）
+        .rarity('epic')                   // 史诗稀有度
+        // .consumable(false)             // 可选：习得后不消耗，卷轴可反复使用（默认 true 与原版一致）
+        .texture('goety:item/old_research_scroll');
+
+    event.create('kubejs:my_research_scroll_2', 'kubejs_goety:scroll')
+        .research('kubejs:my_research_2')
+        .maxStackSize(1)
+        .rarity('epic')
+        .texture('goety:item/mossy_research_scroll');
+});
+
+// ==========================================
+// 3. 语言键（模组自动添加，可选覆盖）
+// ==========================================
+// 每个注册的卷轴研究都会自动添加以下键（按客户端语言取中/英默认文案）：
+//   info.goety.research.<id>   右键习得时的消息
+//   info.goety.items.<id>      卷轴 tooltip 研究介绍（金色）
+// 固定键 info.goety.items.scroll（tooltip 使用提示）由模组的 zh_cn / en_us lang 文件提供。
+//
+// 需要自定义文案时，在自己的 lang 文件中写同名键即可覆盖，例如
+// kubejs/assets/kubejs/lang/zh_cn.json：
+// {
+//   "item.kubejs.my_research_scroll": "研究卷轴",
+//   "info.goety.research.kubejs:my_research": "你从卷轴中习得了新的知识……",
+//   "info.goety.items.kubejs:my_research": "一段被遗忘的记载……"
+// }
+
+// ==========================================
+// 4. 运行时查询（可选，server_scripts）
+// ==========================================
+// 绑定 goetyResearch 提供三个方法：
+//   goetyResearch.hasResearch(player, researchId)   // 查询玩家是否已习得
+//   goetyResearch.grantResearch(player, researchId) // 授予玩家研究（一般不需要，右键卷轴即原生学习）
+//   goetyResearch.getResearch(researchId)           // 获取研究对象
+//
+// 前置研究示例：my_research_2 需要先习得 my_research 才能学习。
+// 原生 use() 没有前置检查，可在 server_scripts 中拦截：
+// ItemEvents.rightClicked(event => {
+//     const { player, item } = event;
+//     // 注意：此事件的 player 直接就是 MC 的 Player 对象，直接传给 goetyResearch 即可
+//     if (item.id === 'kubejs:my_research_scroll_2' && !goetyResearch.hasResearch(player, 'kubejs:my_research')) {
+//         item.shrink(1); // 阻止原生 use 学习：先拿走物品（请谨慎，也可在别的时机归还）
+//     }
+// });
+//
+// 注意：不要拦截后重复 grantResearch —— 原生 use 已处理学习与消耗。
+
+// ==========================================
+// 5. 仪式配方前置
+// ==========================================
+// 在 goety 仪式配方 JSON 的 "research" 字段填 'kubejs:my_research'：
+// - 未习得该研究时，祭坛仪式无法生效（gate 在 DarkAltarBlockEntity 中检查）
+// - JEI 仪式配方页会显示所需的这张卷轴

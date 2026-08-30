@@ -8,6 +8,11 @@
   "info.kubejs_goety.ritual.height.max.required": "仪式必须在 Y 坐标 %d 或更低处进行！",
   "info.kubejs_goety.ritual.sky.blocked.required": "仪式必须在看不到天空的地方进行！",
   "info.kubejs_goety.ritual.waterlogged.not_required": "祭坛不能含水！",
+  "info.kubejs_goety.scroll.granted": "你从卷轴中习得了新的知识……",
+  "info.kubejs_goety.scroll.learned": "你已习得这份卷轴中的知识",
+  "info.kubejs_goety.scroll.requirement": "你缺少前置知识，无法理解这份卷轴",
+  // 自定义卷轴物品（kubejs_goety:scroll 类型）的通用 tooltip 提示（Goety 原版同键，此处补充中文）
+  "info.goety.items.scroll": "§7右键阅读以学习其中的研究",
   "warning.kubejs_goety.cauldron_compat.title": "KubeJS Goety 兼容退避",
   "warning.kubejs_goety.cauldron_compat.message": "检测到冲突模组 %s，已停用 KubeJS Goety 的坩埚联动以避免崩溃；仪式、配方和其他药酿注册仍可使用。"
 }

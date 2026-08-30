@@ -11,6 +11,7 @@ KubeJS integration for Goety mod. Allows customizing Goety ritual requirements, 
 - ✅ Brew system configuration (capacity modifiers, catalysts, augmentations)
 - ✅ Recipe system configuration (ritual recipes, brewing recipes, pulverize recipes, etc.)
 - ✅ Server-side script support (server_scripts)
+- ✅ Register custom researches and research scroll items (kubejs_goety:scroll item type)
 - ✅ No need to modify the Goety mod itself
 
 ## Requirements
@@ -388,6 +389,82 @@ GoetyEvents.registerBrew(event => {
 - The fallback emits a startup warning plus a client toast and login chat message. Rituals, recipes, and other brew registration remain available, but KubeJS Goety's custom cauldron capacity, starter, and in-cauldron brew replacement do not apply.
 - **Goety Awaken 1.3.8** only injects soul-candle acceleration at the tail of the cauldron `tick` method. It can coexist with KubeJS Goety and does not trigger this fallback.
 - The obsolete `config/kubejs_goety.properties` file from earlier builds is no longer read and may be deleted.
+
+## Custom Research Scrolls
+
+Register custom Goety researches and matching scroll items, e.g. as gate requirements for ritual recipes.
+
+### Create Script File
+
+Item and research registration happen at startup, so put the script in `startup_scripts`:
+
+```
+your_world_save/
+└── kubejs/
+    └── startup_scripts/
+        └── goety_scrolls.js
+```
+
+### Register a Research
+
+The research must be registered before the item is created (top-level code runs before the registry event) and before players load their save (the save only stores the research ID, resolved back through `ResearchList` on load):
+
+```javascript
+// 1. Register the research (top-level code)
+goetyResearch.registerResearch('kubejs:my_research');
+
+// 2. Register the scroll item (type kubejs_goety:scroll)
+StartupEvents.registry('item', event => {
+    event.create('kubejs:my_research_scroll', 'kubejs_goety:scroll')
+        .research('kubejs:my_research')        // bind the research (required)
+        .maxStackSize(1)
+        .rarity('epic')
+        // .consumable(false)                   // optional: keep the item after learning (default true, vanilla-like)
+        .texture('goety:item/old_research_scroll');  // textures of Goety scrolls can be reused
+});
+```
+
+### Options
+
+- `.research(id)` (required): research ID to bind; must be registered first via `goetyResearch.registerResearch`
+- `.consumable(boolean)` (optional): whether the item is consumed on learning; default `true` (same as Goety), `false` keeps the scroll reusable
+
+### Language Keys (Auto-Added)
+
+For every registered scroll research the mod auto-registers the following keys (zh_cn / en_us defaults depending on the client language) — no lang setup needed in scripts:
+
+| Key | Purpose |
+|---|---|
+| `info.goety.research.<id>` | message shown when learning by right-click |
+| `info.goety.items.<id>` | scroll tooltip description (gold) |
+| `info.goety.items.scroll` | scroll tooltip hint (provided by the mod's lang files) |
+
+To customize the text, just write the same key in your own lang file, e.g. `kubejs/assets/kubejs/lang/zh_cn.json`:
+
+```json
+{
+  "item.kubejs.my_research_scroll": "研究卷轴",
+  "info.goety.research.kubejs:my_research": "你从卷轴中习得了新的知识……",
+  "info.goety.items.kubejs:my_research": "一段被遗忘的记载……"
+}
+```
+
+### Ritual Recipe Gate
+
+Put the research ID in the `"research"` field of a ritual recipe JSON:
+
+- Without the research learned, the altar ritual will not start (gate checked in `DarkAltarBlockEntity`)
+- JEI shows the required scroll on the ritual recipe page
+
+### Runtime Queries (optional, server_scripts)
+
+```javascript
+goetyResearch.hasResearch(player, 'kubejs:my_research');    // check whether the player learned it
+goetyResearch.grantResearch(player, 'kubejs:my_research');  // grant it (usually not needed — right-clicking the scroll already does)
+goetyResearch.getResearch('kubejs:my_research');            // get the Research object
+```
+
+**Reference example**: [goety_scrolls.js.example](src/main/resources/kubejs/startup_scripts/goety_scrolls.js.example)
 
 ## Recipe System Configuration
 

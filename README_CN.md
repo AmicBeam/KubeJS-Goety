@@ -10,6 +10,7 @@ KubeJS 与 Goety 模组的集成，允许通过 JavaScript 脚本自定义 Goety
 - ✅ 支持创建和修改仪式类型，完全自定义仪式条件检查逻辑
 - ✅ 支持配置药酿系统（容量剂、催化剂、增强剂）
 - ✅ 支持配置配方系统（仪式配方、酿造配方、粉碎配方等）
+- ✅ 支持注册自定义研究（Research）与配套卷轴物品（kubejs_goety:scroll 类型）
 - ✅ 服务器端脚本支持（server_scripts）
 - ✅ 无需修改 Goety 模组本身
 
@@ -395,6 +396,85 @@ GoetyEvents.registerBrew(event => {
 - 退避生效后会输出启动警告，并在客户端显示 Toast 和进服聊天提示。仪式、配方和其他药酿注册仍然可用，但 KubeJS Goety 的自定义坩埚容量、起手物和坩埚内药酿替换不会生效。
 - **Goety Awaken 1.3.8** 的坩埚 Mixin 只在 `tick` 尾部追加灵魂蜡烛加速，不覆盖 KubeJS Goety 的注入目标，可正常共存，不触发退避。
 - 旧版本遗留的 `config/kubejs_goety.properties` 已不再读取，可以删除。
+
+## 自定义研究卷轴
+
+自定义 Goety 研究（Research）与配套卷轴物品，可用于仪式配方的前置解锁。
+
+### 创建脚本文件
+
+物品注册与研究注册都发生在启动阶段，脚本放在 startup_scripts 目录：
+
+```
+你的世界存档/
+└── kubejs/
+    └── startup_scripts/
+        └── goety_scrolls.js
+```
+
+### 注册研究
+
+研究必须在物品创建之前注册（startup 脚本顶层代码先于 registry 事件执行），
+也先于玩家读档（存档只存研究 ID，读档时按 ID 反查）：
+
+```javascript
+// 1. 注册研究（顶层代码）
+goetyResearch.registerResearch('kubejs:my_research');
+
+// 2. 注册卷轴物品（类型 kubejs_goety:scroll）
+StartupEvents.registry('item', event => {
+    event.create('kubejs:my_research_scroll', 'kubejs_goety:scroll')
+        .research('kubejs:my_research')        // 绑定研究（必填）
+        .maxStackSize(1)
+        .rarity('epic')
+        // .consumable(false)                   // 可选：习得后不消耗，卷轴可反复使用
+        .texture('goety:item/old_research_scroll');  // 纹理可复用 Goety 的卷轴贴图
+});
+```
+
+### 选项
+
+- `.research(id)`（必填）：绑定研究 ID，需先通过 `goetyResearch.registerResearch` 注册
+- `.consumable(boolean)`（可选）：习得成功后是否消耗物品，默认 `true`（与 Goety 原版一致）；
+  `false` 时卷轴可反复使用
+
+### 语言键（模组自动添加）
+
+每个注册的卷轴研究都会自动添加以下语言键（按客户端语言提供中/英默认文案），脚本无需写任何 lang：
+
+| 键 | 用途 |
+|---|---|
+| `info.goety.research.<id>` | 右键习得时的消息 |
+| `info.goety.items.<id>` | 卷轴 tooltip 研究介绍（金色） |
+| `info.goety.items.scroll` | 卷轴 tooltip 使用提示（模组 lang 自带） |
+
+需要自定义文案时，在自己的 lang 文件中写同名键即可覆盖，例如
+`kubejs/assets/kubejs/lang/zh_cn.json`：
+
+```json
+{
+  "item.kubejs.my_research_scroll": "研究卷轴",
+  "info.goety.research.kubejs:my_research": "你从卷轴中习得了新的知识……",
+  "info.goety.items.kubejs:my_research": "一段被遗忘的记载……"
+}
+```
+
+### 仪式配方前置
+
+在仪式配方 JSON 的 `"research"` 字段填研究 ID：
+
+- 未习得该研究时，祭坛仪式无法生效（gate 在 DarkAltarBlockEntity 中检查）
+- JEI 仪式配方页会显示所需的这张卷轴
+
+### 运行时查询（可选，server_scripts）
+
+```javascript
+goetyResearch.hasResearch(player, 'kubejs:my_research');    // 查询玩家是否已习得
+goetyResearch.grantResearch(player, 'kubejs:my_research');  // 授予玩家研究（右键卷轴已原生学习，一般不需要）
+goetyResearch.getResearch('kubejs:my_research');            // 获取研究对象
+```
+
+**参考示例**：[goety_scrolls.js.example](src/main/resources/kubejs/startup_scripts/goety_scrolls.js.example)
 
 ## 配方系统配置
 
