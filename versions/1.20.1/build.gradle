@@ -7,14 +7,24 @@ plugins {
     id 'org.spongepowered.mixin' version '0.7.+'
 }
 
-version = mod_version
+version = "${mod_version}+${minecraft_version}"
 group = mod_group_id
 
 base {
     archivesName = mod_id
 }
 
+def repoRoot = rootProject.projectDir.parentFile.parentFile
+
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+sourceSets {
+    main {
+        resources {
+            srcDir new File(repoRoot, 'common/src/main/resources')
+        }
+    }
+}
 
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
 
@@ -131,7 +141,7 @@ jar.finalizedBy('reobfJar')
 
 tasks.named('processResources', ProcessResources).configure {
     var replaceProperties = [
-            mod_version: project.version,
+            mod_version: mod_version,
             forge_version_range: forge_version_range,
             minecraft_version_range: minecraft_version_range
     ]
@@ -141,7 +151,10 @@ tasks.named('processResources', ProcessResources).configure {
         expand replaceProperties
     }
 
-    from(rootProject.file('NOTICE.md')) {
+    from(new File(repoRoot, 'NOTICE.md')) {
+        into ''
+    }
+    from(new File(repoRoot, 'LICENSE.txt')) {
         into ''
     }
 }

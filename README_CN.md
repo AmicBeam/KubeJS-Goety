@@ -4,6 +4,13 @@
 
 **其他语言: [English](README.md)**
 
+开发按版本目录拆分，仓库根目录**没有** Gradle 工程，也没有隐式默认的 `./gradlew`。
+
+- 当前受支持的 Forge 实现：[`versions/1.20.1`](versions/1.20.1/README.md)
+- NeoForge 1.21.1 开发脚手架，功能移植待进行：[`versions/1.21.1`](versions/1.21.1/README.md)
+- 仅共享 logo 与语言文件：[`common`](common/README.md)
+- 双版本开发约定：[`AGENTS.md`](AGENTS.md)
+
 KubeJS 与 Goety 模组的集成，允许通过 JavaScript 脚本自定义 Goety 的仪式构建条件、药酿系统和配方系统。
 
 ## 功能特性
@@ -19,10 +26,14 @@ KubeJS 与 Goety 模组的集成，允许通过 JavaScript 脚本自定义 Goety
 
 ## 前置要求
 
+当前受支持实现（Minecraft 1.20.1）：
+
 - Minecraft 1.20.1
 - Forge 47.1.65+
 - KubeJS 2001.6+
 - Goety 2.5.55.0+
+
+Minecraft 1.21.1 是独立的 NeoForge 开发脚手架，功能移植尚未开始，不是受支持实现。见 [versions/1.21.1/README.md](versions/1.21.1/README.md)。
 
 ## 安装
 
@@ -155,7 +166,7 @@ GoetyEvents.modifyRitual(event => {
 - `ritual.setOnFinish(callback)` (function): 仪式完成时的回调函数，在配方完成时触发（即仪式成功执行并产生结果后），接收参数 (world, darkAltarPos, tileEntity, castingPlayer, activationItem)
 - `ritual.setRequirement(function)` (function): 自定义检查函数（覆盖所有配置）
 
-**参考示例**：[goety_rituals.js.example](src/main/resources/kubejs/server_scripts/goety_rituals.js.example)
+**参考示例**：[goety_rituals.js.example](versions/1.20.1/src/main/resources/kubejs/server_scripts/goety_rituals.js.example)
 
 #### 用卷轴研究解锁特定仪式配方
 
@@ -231,7 +242,7 @@ GoetyResearch.getAll(player)
 
 注册 ID 不带命名空间，只允许小写路径字符。不能覆盖 Goety 或其他模组已经注册的 Research ID。卷轴物品类型默认最大堆叠为 1、稀有度为史诗级，仍可在 startup builder 中继续配置显示名称、贴图等普通物品属性。
 
-**完整示例**：[goety_research_items.js.example](src/main/resources/kubejs/startup_scripts/goety_research_items.js.example) 和 [goety_research.js.example](src/main/resources/kubejs/server_scripts/goety_research.js.example)
+**完整示例**：[goety_research_items.js.example](versions/1.20.1/src/main/resources/kubejs/startup_scripts/goety_research_items.js.example) 和 [goety_research.js.example](versions/1.20.1/src/main/resources/kubejs/server_scripts/goety_research.js.example)
 
 #### 本地化（可选）
 
@@ -469,7 +480,7 @@ GoetyEvents.registerBrew(event => {
 });
 ```
 
-**参考示例**：[goety_brews.js.example](src/main/resources/kubejs/server_scripts/goety_brews.js.example)
+**参考示例**：[goety_brews.js.example](versions/1.20.1/src/main/resources/kubejs/server_scripts/goety_brews.js.example)
 
 **注意**：
 - **添加容量剂和增强剂** → 使用 `GoetyEvents.registerBrew`
@@ -650,42 +661,61 @@ ServerEvents.recipes(event => {
 });
 ```
 
-**参考示例**：[goety_recipes.js.example](src/main/resources/kubejs/server_scripts/goety_recipes.js.example)
+**参考示例**：[goety_recipes.js.example](versions/1.20.1/src/main/resources/kubejs/server_scripts/goety_recipes.js.example)
 
 ## 开发
 
+本仓库**没有根目录 Gradle 工程**，也没有隐式默认的 Minecraft 版本。每个加载器都在独立的版本目录中，必须进入对应目录再构建。
+
+- [versions/1.20.1](versions/1.20.1/README.md) — 当前 Forge 实现（功能完整）
+- [versions/1.21.1](versions/1.21.1/README.md) — 独立 NeoForge 开发脚手架；**功能移植待进行**
+- [common](common/README.md) — 仅真正跨版本共享的资源（logo 与语言文件）
+- 根目录 `NOTICE.md` / `LICENSE.txt` 会打进各版本 jar
+
+两套版本并行开发的约定见 [AGENTS.md](AGENTS.md)。
+
 ### 构建
 
+Minecraft 1.20.1（Forge）：
+
 ```bash
+cd versions/1.20.1
 ./gradlew build
 ```
+
+Minecraft 1.21.1（仅 NeoForge 脚手架）：
+
+```bash
+cd versions/1.21.1
+./gradlew build
+```
+
+不要在仓库根目录执行 `./gradlew`；根目录没有默认构建。
 
 ### 项目结构
 
 ```
 kubejs-goety/
-├── src/main/
-│   ├── java/com/kubejs/goety/
-│   │   ├── KubeJSGoety.java          # 模组主类
-│   │   ├── util/
-│   │   │   └── EventHandlers.java    # 事件处理器
-│   │   ├── event/
-│   │   │   ├── RegisterRitualEventJS.java    # 注册仪式事件
-│   │   │   └── ModifyRitualEventJS.java      # 修改仪式事件
-│   │   └── plugin/
-│   │       └── GoetyKubeJSPlugin.java # KubeJS 插件
-│   └── resources/
-│       ├── META-INF/
-│       │   └── mods.toml               # 模组元数据
-│       ├── kubejs.plugins.txt         # 插件注册文件
-│       └── kubejs/
-│           ├── startup_scripts/
-│           │   └── goety_research_items.js.example # 自定义研究卷轴物品
-│           └── server_scripts/
-│               ├── goety_rituals.js.example  # 仪式配置示例脚本
-│               ├── goety_research.js.example # 自定义 Research 示例脚本
-│               ├── goety_recipes.js.example   # 配方配置示例脚本
-│               └── goety_brews.js.example    # 药酿配置示例脚本
+├── AGENTS.md
+├── NOTICE.md
+├── LICENSE.txt
+├── common/src/main/resources/          # 仅共享 logo + 语言文件
+├── versions/1.20.1/                    # Forge 1.20.1 Gradle 工程
+│   ├── build.gradle
+│   ├── gradle.properties
+│   └── src/main/
+│       ├── java/com/kubejs/goety/
+│       │   ├── KubeJSGoety.java
+│       │   ├── util/EventHandlers.java
+│       │   ├── event/
+│       │   └── plugin/GoetyKubeJSPlugin.java
+│       └── resources/
+│           ├── META-INF/mods.toml
+│           ├── kubejs.plugins.txt
+│           └── kubejs/                 # 示例脚本
+└── versions/1.21.1/                    # NeoForge 1.21.1 脚手架（功能移植待进行）
+    ├── build.gradle
+    └── src/main/java/com/kubejs/goety/KubeJSGoety.java
 ```
 
 ## 致谢与第三方来源声明

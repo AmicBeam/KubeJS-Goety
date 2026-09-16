@@ -4,6 +4,8 @@ Current version: **1.1.1**
 
 Complete guide for customizing Goety mod features using KubeJS scripts.
 
+Scripting examples below match the supported Minecraft 1.20.1 Forge implementation in [`versions/1.20.1`](versions/1.20.1/README.md). Minecraft 1.21.1 is an independent NeoForge development scaffold; its feature port is pending ([`versions/1.21.1`](versions/1.21.1/README.md)). Shared logo/lang files live in [`common`](common/README.md). There is no repository-root Gradle build.
+
 ## Table of Contents
 
 - [Ritual System](#ritual-system)
@@ -650,7 +652,7 @@ GoetyResearch.getAll(player)
 
 `grant` and `revoke` are administrative operations and do not enforce prerequisites or consume a scroll. Research IDs do not include a namespace and cannot replace IDs owned by Goety or another mod.
 
-See [goety_research_items.js.example](src/main/resources/kubejs/startup_scripts/goety_research_items.js.example) and [goety_research.js.example](src/main/resources/kubejs/server_scripts/goety_research.js.example).
+See [goety_research_items.js.example](versions/1.20.1/src/main/resources/kubejs/startup_scripts/goety_research_items.js.example) and [goety_research.js.example](versions/1.20.1/src/main/resources/kubejs/server_scripts/goety_research.js.example).
 
 ## Brew System
 
@@ -1391,7 +1393,11 @@ logic, recipes, modifier removal/replacement, or later brew extensions. See
 
 - [KubeJS Documentation](https://kubejs.com/)
 - [Goety Mod](https://github.com/Polarice3/Goety-2)
-- [Example Scripts](src/main/resources/kubejs/server_scripts/)
+- [Example Scripts (1.20.1)](versions/1.20.1/src/main/resources/kubejs/server_scripts/)
+- [1.20.1 implementation](versions/1.20.1/README.md)
+- [1.21.1 NeoForge scaffold (feature port pending)](versions/1.21.1/README.md)
+- [Shared resources](common/README.md)
+- [Two-version development rules](AGENTS.md)
 
 ---
 
