@@ -1,6 +1,10 @@
 # KubeJS Goety Wiki
 
+Current version: **1.1.1**
+
 Complete guide for customizing Goety mod features using KubeJS scripts.
+
+Scripting examples below match the supported Minecraft 1.20.1 Forge implementation in [`versions/1.20.1`](versions/1.20.1/README.md). Minecraft 1.21.1 is an independent NeoForge development scaffold; its feature port is pending ([`versions/1.21.1`](versions/1.21.1/README.md)). Shared logo/lang files live in [`common`](common/README.md). There is no repository-root Gradle build.
 
 ## Table of Contents
 
@@ -9,6 +13,7 @@ Complete guide for customizing Goety mod features using KubeJS scripts.
   - [Creating New Rituals](#creating-new-rituals)
   - [Configuration Options](#configuration-options)
   - [Built-in Rituals Reference](#built-in-rituals-reference)
+- [Custom Research](#custom-research)
 - [Brew System](#brew-system)
   - [Capacity Level Deltas](#capacity-level-deltas)
   - [Capacity Modifiers](#capacity-modifiers)
@@ -149,6 +154,14 @@ ritual.setRequireAltarWaterlogged(true);  // Requires altar to be waterlogged
 ```javascript
 // JEI icon (optional, defaults to obsidian)
 ritual.setJeiIcon('minecraft:diamond');
+
+// Start callback (optional). Runs once after all recipe, research, and
+// structure checks pass and the ritual actually starts.
+ritual.setOnStart((world, darkAltarPos, tileEntity, castingPlayer, activationItem) => {
+    world.getServer().runCommandSilent(
+        `particle minecraft:witch ${darkAltarPos.getX() + 0.5} ${darkAltarPos.getY() + 1} ${darkAltarPos.getZ() + 0.5} 1 1 1 0.05 40`
+    );
+});
 
 // Completion callback (optional)
 // Note: This callback is triggered when the recipe completes, i.e., after the ritual successfully executes and produces results
@@ -568,6 +581,79 @@ GoetyEvents.modifyRitual(event => {
 
 ---
 
+## Custom Research
+
+KubeJS Goety can register real Goety `Research` objects and real `ResearchScroll` item subclasses, enforce prerequisites, and use the resulting ID in ritual recipes. Because the item is a genuine Goety scroll, it is also discovered by Goety's ritual JEI pages.
+
+Create the items in `startup_scripts`:
+
+```javascript
+StartupEvents.registry('item', event => {
+    event.create('ancient_magic_scroll', 'goety_research_scroll')
+        .research('ancient_magic')
+        .displayName('Ancient Magic Scroll')
+    event.create('advanced_ancient_magic_scroll', 'goety_research_scroll')
+        .research('advanced_ancient_magic')
+        .displayName('Advanced Ancient Magic Scroll')
+})
+```
+
+Register definitions in `server_scripts`:
+
+```javascript
+GoetyEvents.registerResearch(event => {
+    event.create('ancient_magic', research => {
+        research.setScroll('kubejs:ancient_magic_scroll')
+        research.setDisplayName('Ancient Magic')
+        research.setConsumeScroll(true)
+        research.setLearnMessage('You mastered ancient magic!')
+    })
+
+    event.create('advanced_ancient_magic', research => {
+        research.setScroll('kubejs:advanced_ancient_magic_scroll')
+        research.setDisplayName('Advanced Ancient Magic')
+        research.requireResearch('ancient_magic')
+    })
+})
+```
+
+Use it in a recipe exactly like built-in Goety research:
+
+```javascript
+ServerEvents.recipes(event => {
+    event.recipes.goety.ritual('minecraft:diamond', 'goety:craft', ['minecraft:amethyst_shard'])
+        .activationItem('minecraft:book')
+        .craftType('magic')
+        .research('ancient_magic')
+})
+```
+
+### Research Builder Methods
+
+- `setScroll(itemId)` binds a scroll registered with the `goety_research_scroll` item type. Ordinary items and scrolls with a different startup Research ID are rejected.
+- `setDisplayName(name)` sets the name used in generated messages and tooltips.
+- `setConsumeScroll(boolean)` controls consumption after successful learning; default is `true`.
+- `requireResearch(id)` adds one prerequisite.
+- `setPrerequisites(ids)` replaces the prerequisites; all are required.
+- `setLearnMessage(text)` overrides the successful-learning message.
+- `setAlreadyLearnedMessage(text)` overrides the duplicate-learning message.
+- `setMissingPrerequisiteMessage(text)` overrides the prerequisite failure message.
+
+In the startup item builder, `.research(id)` selects the namespace-free Goety Research ID and must match the ID passed to `GoetyEvents.registerResearch(... event.create(id, ...))`. The scroll defaults to a stack size of one and EPIC rarity. Its tooltip indicates whether it can be read, has already been learned, or is missing prerequisites. All learning feedback uses the Action Bar, matching Goety's native Research scrolls. Definitions synchronize to clients on login and recipe reload. Player progress is stored and synchronized through Goety's existing Soul Energy capability.
+
+### Player Research API
+
+```javascript
+GoetyResearch.has(player, 'ancient_magic')
+GoetyResearch.grant(player, 'ancient_magic')
+GoetyResearch.revoke(player, 'ancient_magic')
+GoetyResearch.getAll(player)
+```
+
+`grant` and `revoke` are administrative operations and do not enforce prerequisites or consume a scroll. Research IDs do not include a namespace and cannot replace IDs owned by Goety or another mod.
+
+See [goety_research_items.js.example](versions/1.20.1/src/main/resources/kubejs/startup_scripts/goety_research_items.js.example) and [goety_research.js.example](versions/1.20.1/src/main/resources/kubejs/server_scripts/goety_research.js.example).
+
 ## Brew System
 
 Configure Goety's brewing system with capacity modifiers, augmentations, and special brew effects.
@@ -584,10 +670,9 @@ GoetyEvents.registerBrew(event => {
 });
 ```
 
-**Limit**: The cauldron's maximum total capacity is capped at 32 (values above are clamped).
+**Dynamic storage**: With `setCapacityLevels`, brewing storage grows to the initial capacity plus the level increments, up to **256 slots**. Values above 256 are clamped. Existing and saved cauldrons expand while preserving ingredients; larger addon storage is not shrunk. Unconfigured capacity follows Goety/addon rules.
 
-Without `setCapacityLevels`, the Goety 2.5.55 six-level delta table
-`[2, 2, 2, 2, 4, 6]` is used.
+Without `setCapacityLevels`, capacity activation and upgrades follow Goety/addon logic. Registering items alone does not take over level rules. An explicit empty table disables capacity upgrades.
 
 ### Capacity Modifiers
 
@@ -607,7 +692,7 @@ GoetyEvents.registerBrew(event => {
 
 **Notes**:
 - Level 0 activates the initial capacity
-- Levels 1~N must be defined in `setCapacityLevels`
+- With a scripted table, levels 1~N must be defined in `setCapacityLevels`; otherwise Goety/addon rules apply
 - Multiple items can share the same level; the delta comes from the level table
 
 ### Augmentation Level Tables
@@ -640,7 +725,7 @@ GoetyEvents.registerBrew(event => {
 - `addAugmentation(item, modifier, level)` uses the matching entry in the modifier's level table
 - `duration`, `amplifier`, `aoe`, and `quaff` values must be whole numbers
 - `linger` and `velocity` may use decimal values
-- Existing Goety level tables are used unless overridden with `setAugmentationLevels`
+- Only types explicitly configured with `setAugmentationLevels` are intercepted; other types follow Goety/addon logic, including addon levels above 2
 
 ### Augmentation Modifiers
 
@@ -661,7 +746,7 @@ GoetyEvents.registerBrew(event => {
 ```
 
 **Notes**:
-- Levelable modifier levels must exist in that modifier's `setAugmentationLevels` table
+- With a scripted table, the level must exist in that modifier's `setAugmentationLevels` table; otherwise Goety/addon rules apply
 - Multiple items can share the same modifier level; the value and cost come from the level table
 
 ### Remove Capacity Modifiers and Augmentations
@@ -887,7 +972,7 @@ The second parameter (`ritualType`) determines the ritual's behavior:
 - `.entityToConvertInto(entityId)` - Entity to convert into
 - `.enchantment(enchantmentId)` - Enchantment to apply
 - `.xpLevelCost(levels)` - XP level cost
-- `.research(researchId)` - Required research (e.g., 'forbidden', 'haunting')
+- `.research(researchId)` - Required learned scroll research (e.g., `forbidden`, `haunting`). Use the research ID, not the scroll item ID.
 
 ### Brewing Recipes
 
@@ -1307,7 +1392,11 @@ logic, recipes, modifier removal/replacement, or later brew extensions. See
 
 - [KubeJS Documentation](https://kubejs.com/)
 - [Goety Mod](https://github.com/Polarice3/Goety-2)
-- [Example Scripts](src/main/resources/kubejs/server_scripts/)
+- [Example Scripts (1.20.1)](versions/1.20.1/src/main/resources/kubejs/server_scripts/)
+- [1.20.1 implementation](versions/1.20.1/README.md)
+- [1.21.1 NeoForge scaffold (feature port pending)](versions/1.21.1/README.md)
+- [Shared resources](common/README.md)
+- [Two-version development rules](AGENTS.md)
 
 ---
 

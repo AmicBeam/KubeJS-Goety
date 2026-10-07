@@ -1,0 +1,171 @@
+/**
+ * Goety 药酿配置示例脚本
+ * 
+ * 本脚本展示了如何使用 GoetyEvents.registerBrew() 来配置药酿系统：
+ * - 容量剂（Capacity Modifiers）
+ * - 增强剂（Augmentation Modifiers）
+ * 
+ * 注意：添加催化剂（酿造配方）请使用 event.recipes.goety.brewing
+ * 
+ * 使用方法：
+ * 1. 将此文件放在世界存档的 kubejs/server_scripts/ 目录中
+ * 2. 根据需要修改配置
+ * 3. 重新进入世界或重启服务器
+ */
+
+GoetyEvents.registerBrew(event => {
+    // 替换进入坩埚合成模式的起手物；默认是 goety:nightshade_blossom
+    // 这是替换关系，设置后原颠茄花不再切换合成模式
+    event.setCauldronStarter('mymod:custom_nightshade');
+    
+    // ==========================================
+    // 1. 容量剂配置（Capacity Modifiers）
+    // ==========================================
+    // event.setCapacityLevels([level1, level2, ...])
+    // - 传入等级增量数组，从 1 级开始
+    // - 按初始容量 + 各级增量之和动态扩容，最多 256 格；超出按 256 截断
+    // - 不调用时沿用 Goety／附属原有容量逻辑；仅 addCapacity 不接管规则
+    event.setCapacityLevels([2, 2, 2, 2, 4, 6, 8, 16, 32, 64]);
+    
+    // event.addCapacity(item, level)
+    // - item: 物品ID（字符串）或物品对象
+    // - level: 等级（>=0）
+    
+    // 添加自定义容量剂
+    event.addCapacity('mymod:magic_crystal', 6);
+    event.addCapacity('mymod:soul_crystal', 7);
+    
+    // 说明：同等级可注册多个物品，容量增量由等级表决定
+    
+    
+    // ==========================================
+    // 2. 增强剂配置（Augmentation Modifiers）
+    // ==========================================
+    // event.addAugmentation(item, modifier, level)
+    // - item: 物品ID（字符串）或物品对象
+    // - modifier: 增强类型（字符串）
+    //   - 'capacity' - 容量
+    //   - 'duration' - 持续时间
+    //   - 'amplifier' - 效果放大
+    //   - 'aoe' - 范围效果
+    //   - 'linger' - 持续效果
+    //   - 'quaff' - 饮用效果
+    //   - 'velocity' - 速度
+    //   - 'aquatic' - 水生
+    //   - 'fire_proof' - 防火
+    // - level: 等级（整数）
+    //
+    // 等级型增强剂可通过等级表扩展上限。等级从 0 开始：
+    // 只接管显式配置的类型，其他类型（含附属高阶增强剂）继续沿用原有逻辑。
+    event.setAugmentationLevels('duration', [1, 1, 1, 1]);
+    event.setAugmentationLevels('amplifier', [
+        { value: 1, cost: 2.0 },
+        { value: 1, cost: 2.5 },
+        { value: 1, cost: 3.0 },
+        { value: 1, cost: 3.5 }
+    ]);
+    
+    // 添加自定义增强剂
+    event.addAugmentation('mymod:time_crystal', 'duration', 3);
+    event.addAugmentation('mymod:power_crystal', 'amplifier', 2);
+    event.addAugmentation('mymod:greater_power_crystal', 'amplifier', 3);
+    event.addAugmentation('mymod:range_crystal', 'aoe', 1);
+    
+    // 修改原版增强剂（直接覆盖）
+    event.addAugmentation('minecraft:redstone', 'duration', 1);  // 提升等级
+    
+    // ==========================================
+    // 3. 特殊效果配方（非药水效果）
+    // ==========================================
+    // 
+    // event.addSpecialBrewEffect(item, effectType)
+    //     .soulCost(cost)        // 可选，设置灵魂消耗
+    //     .capacityExtra(extra)  // 可选，设置额外容量
+    // 
+    // - item: 物品ID（字符串）或物品对象
+    // - effectType: 效果类型（字符串），如 'bats', 'bees', 'grow', 'explode' 等
+    //
+    // 注意：这些效果不是通过 event.recipes.goety.brewing() 添加的，
+    // 因为它们不是药水效果，而是即时效果或方块效果
+    
+    // 添加生长效果配方（需要 soulCost）
+    event.addSpecialBrewEffect('minecraft:bone_meal', 'grow')
+        .soulCost(10);
+    
+    // 添加爆炸效果配方（需要 soulCost 和 capacityExtra）
+    event.addSpecialBrewEffect('minecraft:tnt', 'explode')
+        .soulCost(50)
+        .capacityExtra(2);
+    
+    // 添加繁殖效果配方（不需要参数，使用默认配置）
+    event.addSpecialBrewEffect('minecraft:egg', 'fertility');
+    
+    
+    // 支持的其他效果类型（通过反射自动发现，Goety 更新新效果时无需修改代码）：
+    // - 'bees' - 召唤蜜蜂
+    // - 'blind_jump' - 盲跳效果
+    // - 'chop_tree' - 砍树效果
+    // - 'combust' - 燃烧方块
+    // - 'corrosion' - 腐蚀方块
+    // - 'drought' - 干旱效果
+    // - 'extinguish' - 灭火效果
+    // - 'flaying' - 剥皮效果
+    // - 'flood' - 洪水效果
+    // - 'freeze' - 冰冻效果
+    // - 'grow_cactus' - 仙人掌生长
+    // - 'grow_cave_vines' - 洞穴藤蔓生长
+    // - 'harvest' - 收获效果
+    // - 'launch' - 发射效果
+    // - 'leaf_shell' - 叶壳效果
+    // - 'love' - 爱情效果
+    // - 'mossify' - 苔藓化效果
+    // - 'part_lava' - 部分熔岩效果
+    // - 'part_water' - 部分水效果
+    // - 'pulverize' - 粉碎效果
+    // - 'pruning' - 修剪效果
+    // - 'raise_dead' - 复活效果
+    // - 'saturation' - 饱食效果
+    // - 'shear' - 剪毛效果
+    // - 'snow' - 雪效果
+    // - 'strip' - 剥离效果
+    // - 'sweet_berried' - 甜浆果效果
+    // - 'thorn_trap' - 荆棘陷阱
+    // - 'webbed' - 蛛网效果
+    
+    
+    // ==========================================
+    // 4. 移除配置（可选）
+    // ==========================================
+    // event.removeCapacity('minecraft:nether_wart');
+    // event.removeAugmentation('minecraft:redstone');
+    // 移除内置催化剂，内置催化剂无法通过recipe删除
+    // event.removeCatalyst('minecraft:grass');
+    // 
+    // ⚠️ 重要提示：药酿配置变更需要重进世界或重启服务器
+    
+    
+    // ==========================================
+    // 完整示例：自定义药酿套装
+    // ==========================================
+    
+    // 自定义容量剂套装
+    event.addCapacity('mymod:magic_crystal_tier1', 1);
+    event.addCapacity('mymod:magic_crystal_tier2', 2);
+    event.addCapacity('mymod:magic_crystal_tier3', 3);
+    
+    // 自定义增强剂套装
+    event.setAugmentationLevels('duration', [1, 1, 1, 1]);
+    event.addAugmentation('mymod:duration_crystal', 'duration', 2);
+    event.addAugmentation('mymod:amplifier_crystal', 'amplifier', 2);
+    event.addAugmentation('mymod:range_crystal', 'aoe', 2);
+});
+
+// ==========================================
+// 添加催化剂请使用 event.recipes.goety.brewing
+// ==========================================
+// 示例：
+// ServerEvents.recipes(event => {
+//     event.recipes.goety.brewing('mymod:fire_essence', 'minecraft:fire_resistance')
+//         .soulCost(50)
+//         .duration(3600);
+// });

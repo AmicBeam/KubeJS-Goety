@@ -1,6 +1,15 @@
 # KubeJS Goety
 
+当前版本：**1.1.1**
+
 **其他语言: [English](README.md)**
+
+开发按版本目录拆分，仓库根目录**没有** Gradle 工程，也没有隐式默认的 `./gradlew`。
+
+- 当前受支持的 Forge 实现：[`versions/1.20.1`](versions/1.20.1/README.md)
+- NeoForge 1.21.1 开发脚手架，功能移植待进行：[`versions/1.21.1`](versions/1.21.1/README.md)
+- 仅共享 logo 与语言文件：[`common`](common/README.md)
+- 双版本开发约定：[`AGENTS.md`](AGENTS.md)
 
 KubeJS 与 Goety 模组的集成，允许通过 JavaScript 脚本自定义 Goety 的仪式构建条件、药酿系统和配方系统。
 
@@ -8,6 +17,8 @@ KubeJS 与 Goety 模组的集成，允许通过 JavaScript 脚本自定义 Goety
 
 - ✅ 使用 GoetyEvents 事件系统
 - ✅ 支持创建和修改仪式类型，完全自定义仪式条件检查逻辑
+- ✅ 支持仪式开始与完成回调（`setOnStart` / `setOnFinish`）
+- ✅ 支持注册自定义 Research、绑定卷轴、前置研究及玩家研究管理
 - ✅ 支持配置药酿系统（容量剂、催化剂、增强剂）
 - ✅ 支持配置配方系统（仪式配方、酿造配方、粉碎配方等）
 - ✅ 服务器端脚本支持（server_scripts）
@@ -15,10 +26,14 @@ KubeJS 与 Goety 模组的集成，允许通过 JavaScript 脚本自定义 Goety
 
 ## 前置要求
 
+当前受支持实现（Minecraft 1.20.1）：
+
 - Minecraft 1.20.1
 - Forge 47.1.65+
 - KubeJS 2001.6+
 - Goety 2.5.55.0+
+
+Minecraft 1.21.1 是独立的 NeoForge 开发脚手架，功能移植尚未开始，不是受支持实现。见 [versions/1.21.1/README.md](versions/1.21.1/README.md)。
 
 ## 安装
 
@@ -88,6 +103,11 @@ GoetyEvents.registerRitual(event => {
         ritual.setWeather('thunder');         // 需要雷雨天气
         ritual.setRequireSkyVisible(true);    // 需要能看到天空
         ritual.setJeiIcon('minecraft:lightning_rod');  // 设置 JEI 显示图标（可选）
+
+        // 配方通过全部校验并真正开始时触发一次，可用于开始粒子/音效
+        ritual.setOnStart((world, pos, tile, player, activationItem) => {
+            world.getServer().runCommandSilent(`particle minecraft:electric_spark ${pos.getX() + 0.5} ${pos.getY() + 1} ${pos.getZ() + 0.5} 1 1 1 0.05 40`);
+        });
         
         // 设置仪式完成时的回调（可选）
         // 注意：此回调在配方完成时触发，即仪式成功执行并产生结果后
@@ -142,10 +162,87 @@ GoetyEvents.modifyRitual(event => {
 - `ritual.setRequireSkyVisible(boolean)` (boolean): 是否需要看到天空
 - `ritual.setRequireAltarWaterlogged(boolean)` (boolean): 是否需要祭坛含水
 - `ritual.setJeiIcon(item)` (string/object): JEI 显示图标（物品ID或物品对象，可选，默认为黑曜石）
+- `ritual.setOnStart(callback)` (function): 仪式真正开始时触发一次，接收参数 (world, darkAltarPos, tileEntity, castingPlayer, activationItem)
 - `ritual.setOnFinish(callback)` (function): 仪式完成时的回调函数，在配方完成时触发（即仪式成功执行并产生结果后），接收参数 (world, darkAltarPos, tileEntity, castingPlayer, activationItem)
 - `ritual.setRequirement(function)` (function): 自定义检查函数（覆盖所有配置）
 
-**参考示例**：[goety_rituals.js.example](src/main/resources/kubejs/server_scripts/goety_rituals.js.example)
+**参考示例**：[goety_rituals.js.example](versions/1.20.1/src/main/resources/kubejs/server_scripts/goety_rituals.js.example)
+
+#### 用卷轴研究解锁特定仪式配方
+
+卷轴解锁属于“仪式配方”条件，不是仪式结构条件。在配方上设置 Goety 研究 ID：
+
+```javascript
+ServerEvents.recipes(event => {
+    event.recipes.goety.ritual('minecraft:diamond', 'goety:craft', ['minecraft:coal_block'])
+        .activationItem('minecraft:emerald')
+        .craftType('magic')
+        .research('forbidden'); // 玩家学习对应研究卷轴后才能开始
+});
+```
+
+这里填写的是研究 ID（例如 `forbidden`、`haunting`），不是卷轴物品 ID。Goety 会在黑暗祭坛启动配方时检查施法玩家的研究状态。
+
+#### 创建自定义 Research 和卷轴
+
+卷轴物品需要在 `startup_scripts` 中创建，修改后须重启游戏：
+
+```javascript
+StartupEvents.registry('item', event => {
+    event.create('ancient_magic_scroll', 'goety_research_scroll')
+        .research('ancient_magic')
+        .displayName('远古魔法卷轴')
+
+    event.create('advanced_ancient_magic_scroll', 'goety_research_scroll')
+        .research('advanced_ancient_magic')
+        .displayName('高等远古魔法卷轴')
+})
+```
+
+然后在 `server_scripts` 中注册 Research 并绑定卷轴：
+
+```javascript
+GoetyEvents.registerResearch(event => {
+    event.create('ancient_magic', research => {
+        research.setScroll('kubejs:ancient_magic_scroll')
+        research.setDisplayName('远古魔法')
+        research.setConsumeScroll(true)
+        research.setLearnMessage('§d你掌握了远古魔法！')
+    })
+
+    event.create('advanced_ancient_magic', research => {
+        research.setScroll('kubejs:advanced_ancient_magic_scroll')
+        research.setDisplayName('高等远古魔法')
+        research.requireResearch('ancient_magic')
+        // 也可设置多个前置：
+        // research.setPrerequisites(['ancient_magic', 'haunting'])
+    })
+})
+```
+
+卷轴必须使用 `goety_research_scroll` 物品类型注册，并且 startup 中的 `.research(id)` 必须与 `event.create` 的 Research ID 相同。该物品真实继承 Goety 的 `ResearchScroll`，所以 Goety 和 JEI 能在仪式配方页识别它。绑定的物品会自动获得研究 tooltip；右键时检查前置、学习 Research、同步玩家能力，并按配置消耗一张卷轴。学习成功、已学习和缺少前置的提示统一显示在物品栏上方的 Action Bar，与 Goety 原版卷轴一致。Research 定义会在配方重载时重建并同步给在线客户端。
+
+构建器方法：
+
+- `setScroll(itemId)`：绑定使用 `goety_research_scroll` 类型注册的卷轴物品；普通物品或 Research ID 不一致的卷轴会被拒绝。
+- `setDisplayName(name)`：tooltip 和默认提示使用的名称。
+- `setConsumeScroll(boolean)`：学习成功后是否消耗，默认 `true`。
+- `requireResearch(id)`：添加一个必须掌握的前置 Research。
+- `setPrerequisites(ids)`：一次设置多个前置，全部满足才能学习。
+- `setLearnMessage(text)`、`setAlreadyLearnedMessage(text)`、`setMissingPrerequisiteMessage(text)`：覆盖默认提示。
+
+玩家脚本 API：
+
+```javascript
+GoetyResearch.has(player, 'ancient_magic')
+GoetyResearch.grant(player, 'ancient_magic')
+GoetyResearch.revoke(player, 'ancient_magic')
+GoetyResearch.getAll(player)
+```
+
+注册 ID 不带命名空间，只允许小写路径字符。不能覆盖 Goety 或其他模组已经注册的 Research ID。卷轴物品类型默认最大堆叠为 1、稀有度为史诗级，仍可在 startup builder 中继续配置显示名称、贴图等普通物品属性。
+
+**完整示例**：[goety_research_items.js.example](versions/1.20.1/src/main/resources/kubejs/startup_scripts/goety_research_items.js.example) 和 [goety_research.js.example](versions/1.20.1/src/main/resources/kubejs/server_scripts/goety_research.js.example)
 
 #### 本地化（可选）
 
@@ -229,9 +326,9 @@ GoetyEvents.registerBrew(event => {
 });
 ```
 
-**上限**：坩埚的最大总容量被限制为 32（超过的部分会被截断）。
+**动态扩容**：配置 `setCapacityLevels` 后，药酿容器按“初始容量＋各级增量之和”扩容，最多 **256 格**，超出按 256 截断。已有坩埚和读档后的坩埚也会扩容并保留材料；不会缩小附属模组已经扩大的容器。未配置时沿用 Goety／附属模组原有规则。
 
-未调用 `setCapacityLevels` 时，默认使用 Goety 2.5.55 的六级增量表 `[2, 2, 2, 2, 4, 6]`。
+未调用 `setCapacityLevels` 时，容量激活和升级直接沿用 Goety／附属模组的原有逻辑；仅调用 `addCapacity` 注册物品不会接管等级规则。显式传入空数组会禁用容量升级。
 
 #### 注册容量剂
 
@@ -248,7 +345,7 @@ GoetyEvents.registerBrew(event => {
 
 **说明**：
 - level 0 用于激活初始容量
-- level 1~N 必须在 `setCapacityLevels` 中定义对应增量
+- 配置了脚本等级表时，level 1~N 必须在 `setCapacityLevels` 中定义对应增量；否则沿用 Goety／附属规则
 - 同一等级可以注册多个物品，容量增量由等级表统一决定
 
 #### 设置增强剂等级表
@@ -281,7 +378,7 @@ GoetyEvents.registerBrew(event => {
 - `addAugmentation(item, modifier, level)` 会使用对应增强类型等级表中的该 level 项
 - `duration`、`amplifier`、`aoe`、`quaff` 的 value 必须是整数
 - `linger`、`velocity` 的 value 可以是小数
-- 未通过 `setAugmentationLevels` 覆盖时，会继续使用 Goety 原有等级表
+- 只接管通过 `setAugmentationLevels` 显式配置的增强类型；其他类型沿用 Goety／附属模组原有逻辑，包括附属添加的 level 3 及以上等级。仅注册增强剂物品不会接管等级规则
 
 #### 注册增强剂
 
@@ -308,7 +405,7 @@ GoetyEvents.registerBrew(event => {
 ```
 
 **说明**：
-- 等级型增强剂的 level 必须在该类型的 `setAugmentationLevels` 等级表中存在
+- 配置了该类型的脚本等级表时，level 必须在其 `setAugmentationLevels` 表中存在；否则沿用 Goety／附属规则
 - 同一个增强类型的同一等级可以注册多个物品，增加值和消耗倍率由等级表统一决定
 
 #### 移除容量剂与增强剂
@@ -383,7 +480,7 @@ GoetyEvents.registerBrew(event => {
 });
 ```
 
-**参考示例**：[goety_brews.js.example](src/main/resources/kubejs/server_scripts/goety_brews.js.example)
+**参考示例**：[goety_brews.js.example](versions/1.20.1/src/main/resources/kubejs/server_scripts/goety_brews.js.example)
 
 **注意**：
 - **添加容量剂和增强剂** → 使用 `GoetyEvents.registerBrew`
@@ -564,39 +661,61 @@ ServerEvents.recipes(event => {
 });
 ```
 
-**参考示例**：[goety_recipes.js.example](src/main/resources/kubejs/server_scripts/goety_recipes.js.example)
+**参考示例**：[goety_recipes.js.example](versions/1.20.1/src/main/resources/kubejs/server_scripts/goety_recipes.js.example)
 
 ## 开发
 
+本仓库**没有根目录 Gradle 工程**，也没有隐式默认的 Minecraft 版本。每个加载器都在独立的版本目录中，必须进入对应目录再构建。
+
+- [versions/1.20.1](versions/1.20.1/README.md) — 当前 Forge 实现（功能完整）
+- [versions/1.21.1](versions/1.21.1/README.md) — 独立 NeoForge 开发脚手架；**功能移植待进行**
+- [common](common/README.md) — 仅真正跨版本共享的资源（logo 与语言文件）
+- 根目录 `NOTICE.md` / `LICENSE.txt` 会打进各版本 jar
+
+两套版本并行开发的约定见 [AGENTS.md](AGENTS.md)。
+
 ### 构建
 
+Minecraft 1.20.1（Forge）：
+
 ```bash
+cd versions/1.20.1
 ./gradlew build
 ```
+
+Minecraft 1.21.1（仅 NeoForge 脚手架）：
+
+```bash
+cd versions/1.21.1
+./gradlew build
+```
+
+不要在仓库根目录执行 `./gradlew`；根目录没有默认构建。
 
 ### 项目结构
 
 ```
 kubejs-goety/
-├── src/main/
-│   ├── java/com/kubejs/goety/
-│   │   ├── KubeJSGoety.java          # 模组主类
-│   │   ├── util/
-│   │   │   └── EventHandlers.java    # 事件处理器
-│   │   ├── event/
-│   │   │   ├── RegisterRitualEventJS.java    # 注册仪式事件
-│   │   │   └── ModifyRitualEventJS.java      # 修改仪式事件
-│   │   └── plugin/
-│   │       └── GoetyKubeJSPlugin.java # KubeJS 插件
-│   └── resources/
-│       ├── META-INF/
-│       │   └── mods.toml               # 模组元数据
-│       ├── kubejs.plugins.txt         # 插件注册文件
-│       └── kubejs/
-│           └── server_scripts/
-│               ├── goety_rituals.js.example  # 仪式配置示例脚本
-│               ├── goety_recipes.js.example   # 配方配置示例脚本
-│               └── goety_brews.js.example    # 药酿配置示例脚本
+├── AGENTS.md
+├── NOTICE.md
+├── LICENSE.txt
+├── common/src/main/resources/          # 仅共享 logo + 语言文件
+├── versions/1.20.1/                    # Forge 1.20.1 Gradle 工程
+│   ├── build.gradle
+│   ├── gradle.properties
+│   └── src/main/
+│       ├── java/com/kubejs/goety/
+│       │   ├── KubeJSGoety.java
+│       │   ├── util/EventHandlers.java
+│       │   ├── event/
+│       │   └── plugin/GoetyKubeJSPlugin.java
+│       └── resources/
+│           ├── META-INF/mods.toml
+│           ├── kubejs.plugins.txt
+│           └── kubejs/                 # 示例脚本
+└── versions/1.21.1/                    # NeoForge 1.21.1 脚手架（功能移植待进行）
+    ├── build.gradle
+    └── src/main/java/com/kubejs/goety/KubeJSGoety.java
 ```
 
 ## 致谢与第三方来源声明

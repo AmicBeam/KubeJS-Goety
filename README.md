@@ -1,6 +1,15 @@
 # KubeJS Goety
 
+Current version: **1.1.1**
+
 **Read this in other languages: [简体中文](README_CN.md)**
+
+Development uses version directories, not a root Gradle project. There is no implicit default `./gradlew` at the repository root.
+
+- Supported Forge implementation: [`versions/1.20.1`](versions/1.20.1/README.md)
+- NeoForge 1.21.1 development scaffold, feature port pending: [`versions/1.21.1`](versions/1.21.1/README.md)
+- Shared logo and lang files only: [`common`](common/README.md)
+- Two-version contributor rules: [`AGENTS.md`](AGENTS.md)
 
 KubeJS integration for Goety mod. Allows customizing Goety ritual requirements, brew system, and recipe system via JavaScript scripts.
 
@@ -8,6 +17,8 @@ KubeJS integration for Goety mod. Allows customizing Goety ritual requirements, 
 
 - ✅ Uses GoetyEvents event system
 - ✅ Create and modify ritual types with fully customizable ritual condition checking logic
+- ✅ Ritual start and completion callbacks (`setOnStart` / `setOnFinish`)
+- ✅ Custom Research registration, bound scrolls, prerequisites, and player research management
 - ✅ Brew system configuration (capacity modifiers, catalysts, augmentations)
 - ✅ Recipe system configuration (ritual recipes, brewing recipes, pulverize recipes, etc.)
 - ✅ Server-side script support (server_scripts)
@@ -15,10 +26,14 @@ KubeJS integration for Goety mod. Allows customizing Goety ritual requirements, 
 
 ## Requirements
 
+Supported implementation (Minecraft 1.20.1):
+
 - Minecraft 1.20.1
 - Forge 47.1.65+
 - KubeJS 2001.6+
 - Goety 2.5.55.0+
+
+Minecraft 1.21.1 is a separate NeoForge development scaffold only. Its feature port is pending and is not a supported implementation yet. See [versions/1.21.1/README.md](versions/1.21.1/README.md).
 
 ## Installation
 
@@ -88,6 +103,11 @@ GoetyEvents.registerRitual(event => {
         ritual.setWeather('thunder');         // Requires thunder weather
         ritual.setRequireSkyVisible(true);    // Requires sky visibility
         ritual.setJeiIcon('minecraft:lightning_rod');  // Set JEI display icon (optional)
+
+        // Fires once after every recipe and condition check passes and the ritual actually starts
+        ritual.setOnStart((world, pos, tile, player, activationItem) => {
+            world.getServer().runCommandSilent(`particle minecraft:electric_spark ${pos.getX() + 0.5} ${pos.getY() + 1} ${pos.getZ() + 0.5} 1 1 1 0.05 40`);
+        });
         
         // Set callback when ritual completes (optional)
         // Note: This callback is triggered when the recipe completes, i.e., after the ritual successfully executes and produces results
@@ -142,10 +162,61 @@ The `ritual` object supports the following configuration options:
 - `ritual.setRequireSkyVisible(boolean)` (boolean): Whether sky visibility is required
 - `ritual.setRequireAltarWaterlogged(boolean)` (boolean): Whether altar must be waterlogged
 - `ritual.setJeiIcon(item)` (string/object): JEI display icon (item ID or item object, optional, defaults to obsidian)
+- `ritual.setOnStart(callback)` (function): Called once when the ritual actually starts, with (world, darkAltarPos, tileEntity, castingPlayer, activationItem)
 - `ritual.setOnFinish(callback)` (function): Callback function triggered when the recipe completes (i.e., after the ritual successfully executes and produces results), receives (world, darkAltarPos, tileEntity, castingPlayer, activationItem)
 - `ritual.setRequirement(function)` (function): Custom check function (overrides all configurations)
 
-**See example**: [goety_rituals.js.example](src/main/resources/kubejs/server_scripts/goety_rituals.js.example)
+**See example**: [goety_rituals.js.example](versions/1.20.1/src/main/resources/kubejs/server_scripts/goety_rituals.js.example)
+
+#### Custom Research and Scrolls
+
+Create scroll items in `startup_scripts` (a game restart is required after changing them):
+
+```javascript
+StartupEvents.registry('item', event => {
+    event.create('ancient_magic_scroll', 'goety_research_scroll')
+        .research('ancient_magic')
+        .displayName('Ancient Magic Scroll')
+
+    event.create('advanced_ancient_magic_scroll', 'goety_research_scroll')
+        .research('advanced_ancient_magic')
+        .displayName('Advanced Ancient Magic Scroll')
+})
+```
+
+Register the Research and bind the scroll in `server_scripts`:
+
+```javascript
+GoetyEvents.registerResearch(event => {
+    event.create('ancient_magic', research => {
+        research.setScroll('kubejs:ancient_magic_scroll')
+        research.setDisplayName('Ancient Magic')
+        research.setConsumeScroll(true)
+    })
+
+    event.create('advanced_ancient_magic', research => {
+        research.setScroll('kubejs:advanced_ancient_magic_scroll')
+        research.requireResearch('ancient_magic')
+    })
+})
+```
+
+The item type must be `goety_research_scroll`, and its startup `.research(id)` must match the ID passed to `event.create`. These items are real subclasses of Goety's `ResearchScroll`, so Goety and JEI discover them in ritual recipe pages. The bound item automatically receives a Research tooltip. Right-clicking checks prerequisites, learns and synchronizes the Research, and optionally consumes the scroll. Success, already-learned, and missing-prerequisite messages use the Action Bar, matching Goety's native scrolls. Definitions are rebuilt on recipe reload and synchronized to connected clients.
+
+Builder methods: `setScroll`, `setDisplayName`, `setConsumeScroll`, `requireResearch`, `setPrerequisites`, `setLearnMessage`, `setAlreadyLearnedMessage`, and `setMissingPrerequisiteMessage`.
+
+Player API:
+
+```javascript
+GoetyResearch.has(player, 'ancient_magic')
+GoetyResearch.grant(player, 'ancient_magic')
+GoetyResearch.revoke(player, 'ancient_magic')
+GoetyResearch.getAll(player)
+```
+
+Research IDs have no namespace and use lowercase path characters. Existing IDs registered by Goety or another mod cannot be replaced. `setScroll` rejects ordinary items and scrolls whose startup Research ID does not match the definition.
+
+**Complete examples**: [goety_research_items.js.example](versions/1.20.1/src/main/resources/kubejs/startup_scripts/goety_research_items.js.example) and [goety_research.js.example](versions/1.20.1/src/main/resources/kubejs/server_scripts/goety_research.js.example)
 
 #### Localization (Optional)
 
@@ -220,10 +291,9 @@ GoetyEvents.registerBrew(event => {
 });
 ```
 
-**Limit**: The cauldron's maximum total capacity is capped at 32 (values above are clamped).
+**Dynamic storage**: With `setCapacityLevels`, brewing storage grows to the initial capacity plus the level increments, up to **256 slots**. Values above 256 are clamped. Existing and saved cauldrons expand while preserving ingredients; larger addon storage is not shrunk. Unconfigured capacity follows Goety/addon rules.
 
-Without `setCapacityLevels`, the Goety 2.5.55 six-level delta table
-`[2, 2, 2, 2, 4, 6]` is used.
+Without `setCapacityLevels`, KubeJS Goety leaves capacity activation and upgrades to Goety and installed addons. Calling `addCapacity` alone does not take over the level rules. An explicit empty table disables capacity upgrades.
 
 #### Register Capacity Modifiers
 
@@ -240,7 +310,7 @@ GoetyEvents.registerBrew(event => {
 
 **Notes**:
 - Level 0 activates the initial capacity
-- Levels 1~N must be defined in `setCapacityLevels`
+- With a scripted table, levels 1~N must be defined in `setCapacityLevels`; otherwise Goety/addon rules apply
 - Multiple items can share the same level; the delta comes from the level table
 
 #### Set Augmentation Level Tables
@@ -273,7 +343,7 @@ GoetyEvents.registerBrew(event => {
 - `addAugmentation(item, modifier, level)` uses the matching entry in the modifier's level table
 - `duration`, `amplifier`, `aoe`, and `quaff` values must be whole numbers
 - `linger` and `velocity` may use decimal values
-- Existing Goety level tables are used unless overridden with `setAugmentationLevels`
+- Only types explicitly configured with `setAugmentationLevels` are intercepted. Other types follow Goety/addon rules, including addon levels above 2. Registering an item alone does not take over its level rules.
 
 #### Register Augmentations
 
@@ -300,7 +370,7 @@ GoetyEvents.registerBrew(event => {
 ```
 
 **Notes**:
-- Levelable modifier levels must exist in that modifier's `setAugmentationLevels` table
+- If that modifier has a scripted `setAugmentationLevels` table, its level must exist in that table; otherwise Goety/addon rules apply
 - Multiple items can share the same modifier level; the value and cost come from the level table
 
 #### Remove Capacity Modifiers and Augmentations
@@ -376,7 +446,7 @@ GoetyEvents.registerBrew(event => {
 });
 ```
 
-**See example**: [goety_brews.js.example](src/main/resources/kubejs/server_scripts/goety_brews.js.example)
+**See example**: [goety_brews.js.example](versions/1.20.1/src/main/resources/kubejs/server_scripts/goety_brews.js.example)
 
 **Note**:
 - **Add capacity modifiers and augmentations** → Use `GoetyEvents.registerBrew`
@@ -560,39 +630,61 @@ ServerEvents.recipes(event => {
 });
 ```
 
-**See example**: [goety_recipes.js.example](src/main/resources/kubejs/server_scripts/goety_recipes.js.example)
+**See example**: [goety_recipes.js.example](versions/1.20.1/src/main/resources/kubejs/server_scripts/goety_recipes.js.example)
 
 ## Development
 
+This repository has **no root Gradle project** and no implicit default Minecraft version. Each supported loader lives in its own version directory and must be built from that directory.
+
+- [versions/1.20.1](versions/1.20.1/README.md) — current Forge implementation (feature-complete)
+- [versions/1.21.1](versions/1.21.1/README.md) — independent NeoForge development scaffold; **feature port pending**
+- [common](common/README.md) — only truly shared resources (logo and lang files)
+- Root `NOTICE.md` / `LICENSE.txt` are packaged into each version jar
+
+Agent/contributor rules for keeping the two trees independent: [AGENTS.md](AGENTS.md).
+
 ### Build
 
+Minecraft 1.20.1 (Forge):
+
 ```bash
+cd versions/1.20.1
 ./gradlew build
 ```
+
+Minecraft 1.21.1 (NeoForge scaffold only):
+
+```bash
+cd versions/1.21.1
+./gradlew build
+```
+
+Do not run `./gradlew` from the repository root; there is no default build there.
 
 ### Project Structure
 
 ```
 kubejs-goety/
-├── src/main/
-│   ├── java/com/kubejs/goety/
-│   │   ├── KubeJSGoety.java          # Main mod class
-│   │   ├── util/
-│   │   │   └── EventHandlers.java    # Event handlers
-│   │   ├── event/
-│   │   │   ├── RegisterRitualEventJS.java    # Register ritual event
-│   │   │   └── ModifyRitualEventJS.java      # Modify ritual event
-│   │   └── plugin/
-│   │       └── GoetyKubeJSPlugin.java # KubeJS plugin
-│   └── resources/
-│       ├── META-INF/
-│       │   └── mods.toml               # Mod metadata
-│       ├── kubejs.plugins.txt         # Plugin registration file
-│       └── kubejs/
-│           └── server_scripts/
-│               ├── goety_rituals.js.example  # Ritual configuration example script
-│               ├── goety_recipes.js.example   # Recipe configuration example script
-│               └── goety_brews.js.example    # Brew configuration example script
+├── AGENTS.md
+├── NOTICE.md
+├── LICENSE.txt
+├── common/src/main/resources/          # shared logo + lang only
+├── versions/1.20.1/                    # Forge 1.20.1 Gradle project
+│   ├── build.gradle
+│   ├── gradle.properties
+│   └── src/main/
+│       ├── java/com/kubejs/goety/
+│       │   ├── KubeJSGoety.java
+│       │   ├── util/EventHandlers.java
+│       │   ├── event/
+│       │   └── plugin/GoetyKubeJSPlugin.java
+│       └── resources/
+│           ├── META-INF/mods.toml
+│           ├── kubejs.plugins.txt
+│           └── kubejs/                 # example scripts
+└── versions/1.21.1/                    # NeoForge 1.21.1 scaffold (port pending)
+    ├── build.gradle
+    └── src/main/java/com/kubejs/goety/KubeJSGoety.java
 ```
 
 ## Acknowledgements and Third-Party Attribution
