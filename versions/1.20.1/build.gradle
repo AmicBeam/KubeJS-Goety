@@ -104,6 +104,13 @@ repositories {
     }
 }
 
+configurations {
+    goetyProduction {
+        canBeConsumed = false
+        transitive = false
+    }
+}
+
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
@@ -119,6 +126,7 @@ dependencies {
     // Goety
     // Use compileOnly for library mods - Goety will be provided at runtime
     compileOnly fg.deobf("curse.maven:goety-${goety_curse_id}:${goety_file_id}")
+    goetyProduction "curse.maven:goety-${goety_curse_id}:${goety_file_id}"
 }
 
 tasks.named('jar', Jar).configure {
@@ -186,8 +194,19 @@ tasks.register('testBrewLevelOwnership', JavaExec) {
 tasks.named('test', Test) {
     // Executed by testBrewLevelOwnership; it is not a JUnit test class.
     exclude '**/BrewLevelOwnershipTest.class'
+    exclude '**/BrewMixinMappingTest.class'
+}
+
+tasks.register('testBrewMixinMapping', JavaExec) {
+    dependsOn tasks.named('testClasses'), tasks.named('reobfJar')
+    classpath = sourceSets.test.output + sourceSets.main.output + sourceSets.main.compileClasspath
+    mainClass = 'com.kubejs.goety.brew.BrewMixinMappingTest'
+    doFirst {
+        args tasks.named('jar', Jar).get().archiveFile.get().asFile.absolutePath,
+                providers.gradleProperty('goetyProductionJar').getOrElse(configurations.goetyProduction.singleFile.absolutePath)
+    }
 }
 
 tasks.named('check') {
-    dependsOn tasks.named('testBrewLevelOwnership')
+    dependsOn tasks.named('testBrewLevelOwnership'), tasks.named('testBrewMixinMapping')
 }

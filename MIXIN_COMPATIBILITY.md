@@ -37,6 +37,21 @@ discards ingredients. Goety/addons retain ownership of the crafting inventory.
 Unconfigured upgrades retain upstream limits. The 256-slot cap preserves
 vanilla's unsigned-byte slot indices (0-255) without a new NBT format.
 
+The cauldron `load(CompoundTag)` override is a Minecraft method: its production
+SRG name is `m_142466_`. Its injection explicitly enables remapping even though
+the mixin's Goety-specific targets use `remap = false`. Leaving this selector
+unmapped caused the reported 1.1.1 startup failure on Goety 2.5.58.4.
+
+`build` now runs `testBrewMixinMapping` after reobfuscation. It reads the packaged
+Mixin annotations and refmap and resolves all six injection targets against
+the unmodified production Goety jar. This catches the missing `load` mapping
+without starting Minecraft. Use `-PgoetyProductionJar=/path/to/goety.jar` to
+check a different production release; this is not an in-game coexistence test.
+The check passed against the cached Goety 2.5.55.4 release and the cauldron
+class extracted from the official Goety 2.5.58.4 release with its ZIP CRC
+verified. The original crash was a target-resolution failure, not a level-table
+or capacity calculation failure.
+
 The injected branch is cancellable because a scripted level must replace
 Goety's hard-coded level table after it accepts the item. It does not copy the
 rest of Goety's brewing or crafting state machine.

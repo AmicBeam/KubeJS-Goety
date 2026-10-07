@@ -110,7 +110,8 @@ public abstract class BrewCauldronCapacityMixin extends BlockEntity implements W
         this.kubejs_goety$ensureStorage(this.capacity);
     }
 
-    @Inject(method = "load", at = @At("HEAD"))
+    // This overrides BlockEntity.load, so production uses its Minecraft SRG name.
+    @Inject(method = "load(Lnet/minecraft/nbt/CompoundTag;)V", at = @At("HEAD"), remap = true)
     private void kubejs_goety$prepareLoadedStorage(CompoundTag tag, CallbackInfo callback) {
         this.kubejs_goety$ensureStorage(tag.getInt("Capacity"));
     }
