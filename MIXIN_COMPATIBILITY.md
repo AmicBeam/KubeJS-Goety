@@ -28,9 +28,14 @@ or failure, allowing newer Goety/addon branches to run. An explicit empty
 capacity table disables upgrades rather than falling back to six levels.
 
 Goety 2.5.58.4 still allocates 32 slots; RevelationFix 4.7 expands those
-containers to 128 and adds capacity levels 7-9. The KubeJS 32-capacity clamp
-applies only to scripted capacity tables. Unconfigured paths retain upstream
-limits.
+containers to 128 and adds capacity levels 7-9. Scripted capacity tables grow
+the brewing inventory to initial capacity plus the level increments, capped
+at 256. Constructor-tail and pre-scan hooks cover new and already constructed
+cauldrons. A load-head hook grows storage before Goety restores items, including
+on clients receiving saved capacity. Growth never shrinks addon storage or
+discards ingredients. Goety/addons retain ownership of the crafting inventory.
+Unconfigured upgrades retain upstream limits. The 256-slot cap preserves
+vanilla's unsigned-byte slot indices (0-255) without a new NBT format.
 
 The injected branch is cancellable because a scripted level must replace
 Goety's hard-coded level table after it accepts the item. It does not copy the
@@ -40,7 +45,7 @@ rest of Goety's brewing or crafting state machine.
 
 | Mixin | Technique | Risk | Current decision |
 | --- | --- | --- | --- |
-| `BrewCauldronCapacityMixin` | `@Inject` at `insertItem` head and `@ModifyConstant` in the constructor | Medium | Keep the small scripted-level interception; monitor the two `32` constructor constants. |
+| `BrewCauldronCapacityMixin` | `@Inject` at `insertItem` head, constructor tail, scan heads, and load head | Medium | Keep selective scripted-level interception and grow-only brewing storage; monitor method names and load ordering. |
 | `BrewCauldronCraftingStarterMixin` | `@ModifyArg` on the first `ItemStack.is(Item)` call in `insertItem` | Low | Keep. It only replaces Goety's hard-coded nightshade comparison argument. |
 | `BrewCauldronBlockEntityMixin` | Redirect `new BrewEffects()` in three methods | Medium | Keep. It is the narrowest way to make Goety use the script-populated singleton without replacing those methods. |
 | `BrewEffectInstanceMixin` | Redirect `new BrewEffects()` in `load` | Low | Keep. The target method is small and has one constructor call. |
@@ -79,8 +84,9 @@ For a new Goety release:
 4. Confirm the redirected methods still contain `new BrewEffects()`. A missing
    constructor target means Goety may already use a shared registry, or the
    redirect target needs updating.
-5. Confirm the cauldron constructor still uses `32` for both the brew inventory
-   and craft inventory.
+5. Confirm `container` is still a mutable `NonNullList<ItemStack>`, scan methods
+   remain `getBrew`, `getOccupiedSlots`, and `getFirstEmptySlot`, and `load`
+   allocates the brew inventory using `getContainerSize()` before loading items.
 6. Exercise the configured cauldron starter, one cauldron recipe, one catalyst,
    one sacrifice, and at
    least one scripted capacity and augmentation level in game.

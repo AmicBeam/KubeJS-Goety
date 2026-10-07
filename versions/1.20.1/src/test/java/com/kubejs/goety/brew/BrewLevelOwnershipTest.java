@@ -1,11 +1,14 @@
 package com.kubejs.goety.brew;
 
+import net.minecraft.core.NonNullList;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /** Regression checks for selective ownership, runnable without starting Minecraft. */
 public final class BrewLevelOwnershipTest {
     public static void main(String[] args) {
+        BrewData.setInitialCapacity(4);
         List<String> types = List.of("duration", "amplifier", "aoe", "linger", "quaff", "velocity");
         require(!BrewData.hasScriptedCapacityLevels(), "Capacity must initially use upstream rules");
         for (String type : types) {
@@ -57,6 +60,38 @@ public final class BrewLevelOwnershipTest {
         for (String type : types) {
             require(!BrewData.hasScriptedAugmentationLevels(type), "A new registration cycle must release " + type);
         }
+
+        BrewData.setCapacityLevelDeltas(List.of(32, 32));
+        require(BrewData.getMaxCapacity() == 68, "Capacity must expand beyond the old 32-slot limit");
+        BrewData.setInitialCapacity(64);
+        require(BrewData.getInitialCapacity() == 64, "Initial capacity must not be truncated to 32");
+        BrewData.setCapacityLevelDeltas(List.of(128));
+        require(BrewData.getMaxCapacity() == 192, "Capacity must expand beyond addon-sized storage");
+        BrewData.setCapacityLevelDeltas(List.of(128, 128));
+        require(BrewData.getMaxCapacity() == 256, "Scripted capacity must stop at 256");
+        try {
+            BrewData.setCapacityLevelDeltas(List.of(Integer.MAX_VALUE));
+            throw new AssertionError("Overflowing capacity tables must not wrap around");
+        } catch (IllegalArgumentException expected) {
+            require(BrewData.getMaxCapacityLevel() == 2, "Rejected tables must preserve the previous configuration");
+        }
+
+        NonNullList<String> inventory = NonNullList.withSize(32, "");
+        inventory.set(0, "first");
+        inventory.set(31, "last original");
+        inventory = BrewInventory.grow(inventory, 192, "");
+        require(inventory.size() == 192, "An already constructed cauldron must grow");
+        require(inventory.get(0).equals("first") && inventory.get(31).equals("last original"),
+                "Growing storage must preserve ingredients");
+        inventory = BrewInventory.grow(inventory, BrewData.getMaxCapacity(), "");
+        inventory.set(255, "last expanded");
+        require(inventory.get(255).equals("last expanded"), "Slot 255 must be usable");
+        require(BrewInventory.grow(inventory, 32, "") == inventory, "Smaller configurations must not shrink storage");
+        inventory.clear();
+        require(inventory.size() == 256 && inventory.get(255).isEmpty(),
+                "Clearing a brew must retain the expanded storage size");
+        BrewData.setInitialCapacity(4);
+        BrewData.resetScriptedLevelTables();
         System.out.println("Brew level ownership regression checks passed");
     }
 

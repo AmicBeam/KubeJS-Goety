@@ -120,7 +120,12 @@ public class RegisterBrewEventJS extends EventJS {
             }
             deltas.add(value);
         }
-        com.kubejs.goety.brew.BrewData.setCapacityLevelDeltas(deltas);
+        try {
+            BrewData.setCapacityLevelDeltas(deltas);
+        } catch (IllegalArgumentException exception) {
+            ScriptType.SERVER.console.error("容量等级表无效: " + exception.getMessage());
+            return;
+        }
         ScriptType.SERVER.console.info("✓ 已设置容量等级增量表: " + deltas);
     }
 

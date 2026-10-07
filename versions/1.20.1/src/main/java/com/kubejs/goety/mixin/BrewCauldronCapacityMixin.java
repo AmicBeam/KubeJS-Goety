@@ -6,8 +6,11 @@ import com.Polarice3.Goety.common.effects.brew.modifiers.BrewModifier;
 import com.Polarice3.Goety.common.effects.brew.modifiers.CapacityModifier;
 import com.Polarice3.Goety.utils.BrewUtils;
 import com.kubejs.goety.brew.BrewData;
+import com.kubejs.goety.brew.BrewInventory;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.NonNullList;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.WorldlyContainer;
@@ -19,9 +22,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyConstant;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = BrewCauldronBlockEntity.class, remap = false, priority = 500)
@@ -30,6 +32,8 @@ public abstract class BrewCauldronCapacityMixin extends BlockEntity implements W
     public BrewCauldronBlockEntity.Mode mode;
     @Shadow(remap = false)
     public int capacity;
+    @Shadow(remap = false)
+    public NonNullList<ItemStack> container;
     @Shadow(remap = false)
     public int duration;
     @Shadow(remap = false)
@@ -96,9 +100,27 @@ public abstract class BrewCauldronCapacityMixin extends BlockEntity implements W
     @Shadow(remap = false)
     public abstract void clearContent();
 
-    @ModifyConstant(method = "<init>", constant = @Constant(intValue = 32))
-    private int kubejs_goety$expandContainerSize(int original) {
-        return BrewData.hasScriptedCapacityLevels() ? Math.max(original, BrewData.getMaxCapacity()) : original;
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void kubejs_goety$initializeStorage(CallbackInfo callback) {
+        this.kubejs_goety$ensureStorage(this.capacity);
+    }
+
+    @Inject(method = {"getBrew", "getOccupiedSlots", "getFirstEmptySlot"}, at = @At("HEAD"))
+    private void kubejs_goety$ensureStorageBeforeScan(CallbackInfoReturnable<?> callback) {
+        this.kubejs_goety$ensureStorage(this.capacity);
+    }
+
+    @Inject(method = "load", at = @At("HEAD"))
+    private void kubejs_goety$prepareLoadedStorage(CompoundTag tag, CallbackInfo callback) {
+        this.kubejs_goety$ensureStorage(tag.getInt("Capacity"));
+    }
+
+    @Unique
+    private void kubejs_goety$ensureStorage(int requiredSize) {
+        if (BrewData.hasScriptedCapacityLevels()) {
+            requiredSize = Math.max(requiredSize, BrewData.getMaxCapacity());
+        }
+        this.container = BrewInventory.grow(this.container, requiredSize, ItemStack.EMPTY);
     }
 
     @Inject(method = "insertItem", at = @At("HEAD"), cancellable = true)
@@ -186,10 +208,9 @@ public abstract class BrewCauldronCapacityMixin extends BlockEntity implements W
             return false;
         }
 
-        this.capacity = Math.min(
-                BrewData.MAX_CAULDRON_CAPACITY,
-                this.capacity + BrewData.getCapacityDelta(targetLevel)
-        );
+        this.capacity = Math.min(BrewData.MAX_CAULDRON_CAPACITY,
+                Math.addExact(this.capacity, BrewData.getCapacityDelta(targetLevel)));
+        this.kubejs_goety$ensureStorage(this.capacity);
         this.clearContent();
         return true;
     }

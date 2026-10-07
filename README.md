@@ -291,7 +291,7 @@ GoetyEvents.registerBrew(event => {
 });
 ```
 
-**Scripted limit**: When `setCapacityLevels` is configured, total capacity is capped at 32 (values above are clamped). Unconfigured capacity follows Goety and installed addons, including their capacity limits.
+**Dynamic storage**: With `setCapacityLevels`, brewing storage grows to the initial capacity plus the level increments, up to **256 slots**. Values above 256 are clamped. Existing and saved cauldrons expand while preserving ingredients; larger addon storage is not shrunk. Unconfigured capacity follows Goety/addon rules.
 
 Without `setCapacityLevels`, KubeJS Goety leaves capacity activation and upgrades to Goety and installed addons. Calling `addCapacity` alone does not take over the level rules. An explicit empty table disables capacity upgrades.
 

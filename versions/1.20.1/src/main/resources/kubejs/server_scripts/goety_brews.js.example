@@ -23,9 +23,9 @@ GoetyEvents.registerBrew(event => {
     // ==========================================
     // event.setCapacityLevels([level1, level2, ...])
     // - 传入等级增量数组，从 1 级开始
-    // - 配置后脚本控制的总容量上限为 32，超过会被截断
+    // - 按初始容量 + 各级增量之和动态扩容，最多 256 格；超出按 256 截断
     // - 不调用时沿用 Goety／附属原有容量逻辑；仅 addCapacity 不接管规则
-    event.setCapacityLevels([2, 2, 2, 2, 4, 6, 8]);
+    event.setCapacityLevels([2, 2, 2, 2, 4, 6, 8, 16, 32, 64]);
     
     // event.addCapacity(item, level)
     // - item: 物品ID（字符串）或物品对象

@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 public class BrewData {
-    public static final int MAX_CAULDRON_CAPACITY = 32;
+    public static final int MAX_CAULDRON_CAPACITY = 256;
     public static final int MAX_CAPACITY_LEVEL = 7;
     // The initial two-index layout referenced RevelationFix's BrewData; see NOTICE.md.
     public static final Map<Integer, List<Item>> LEVEL_TO_CAPACITY_ITEMS = createLevelMap(MAX_CAPACITY_LEVEL);
@@ -90,6 +90,19 @@ public class BrewData {
     }
 
     public static void setCapacityLevelDeltas(List<Integer> deltas) {
+        if (deltas != null) {
+            try {
+                int total = getInitialCapacity();
+                for (Integer delta : deltas) {
+                    if (delta == null || delta < 0) {
+                        throw new IllegalArgumentException("Capacity increments must be non-negative integers");
+                    }
+                    total = Math.addExact(total, delta);
+                }
+            } catch (ArithmeticException exception) {
+                throw new IllegalArgumentException("Total capacity exceeds the integer range", exception);
+            }
+        }
         CAPACITY_LEVEL_DELTAS = deltas == null ? null : new ArrayList<>(deltas);
     }
 
@@ -171,7 +184,7 @@ public class BrewData {
     public static int getCapacityPrefixSum(int level) {
         int sum = 0;
         for (int i = 1; i <= level; i++) {
-            sum += getCapacityDelta(i);
+            sum = Math.addExact(sum, getCapacityDelta(i));
         }
         return sum;
     }
@@ -184,7 +197,8 @@ public class BrewData {
     }
 
     public static int getMaxCapacity() {
-        return Math.min(MAX_CAULDRON_CAPACITY, getInitialCapacity() + getCapacityPrefixSum(getMaxCapacityLevel()));
+        return Math.min(MAX_CAULDRON_CAPACITY,
+                Math.addExact(getInitialCapacity(), getCapacityPrefixSum(getMaxCapacityLevel())));
     }
 
     public static int getInitialCapacity() {
