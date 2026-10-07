@@ -7,7 +7,7 @@
 开发按版本目录拆分，仓库根目录**没有** Gradle 工程，也没有隐式默认的 `./gradlew`。
 
 - 当前受支持的 Forge 实现：[`versions/1.20.1`](versions/1.20.1/README.md)
-- NeoForge 1.21.1 开发脚手架，功能移植待进行：[`versions/1.21.1`](versions/1.21.1/README.md)
+- NeoForge 1.21.1 Beta 移植，服务端验证已通过：[`versions/1.21.1`](versions/1.21.1/README.md)
 - 仅共享 logo 与语言文件：[`common`](common/README.md)
 - 双版本开发约定：[`AGENTS.md`](AGENTS.md)
 
@@ -33,7 +33,7 @@ KubeJS 与 Goety 模组的集成，允许通过 JavaScript 脚本自定义 Goety
 - KubeJS 2001.6+
 - Goety 2.5.55.0+
 
-Minecraft 1.21.1 是独立的 NeoForge 开发脚手架，功能移植尚未开始，不是受支持实现。见 [versions/1.21.1/README.md](versions/1.21.1/README.md)。
+Minecraft 1.21.1 已提供独立的 NeoForge Beta 移植，脚本 API 已实现并通过服务端验证；客户端界面与多人联机同步仍待实测。见 [versions/1.21.1/README.md](versions/1.21.1/README.md)。
 
 ## 安装
 
@@ -668,7 +668,7 @@ ServerEvents.recipes(event => {
 本仓库**没有根目录 Gradle 工程**，也没有隐式默认的 Minecraft 版本。每个加载器都在独立的版本目录中，必须进入对应目录再构建。
 
 - [versions/1.20.1](versions/1.20.1/README.md) — 当前 Forge 实现（功能完整）
-- [versions/1.21.1](versions/1.21.1/README.md) — 独立 NeoForge 开发脚手架；**功能移植待进行**
+- [versions/1.21.1](versions/1.21.1/README.md) — 独立 NeoForge Beta 移植；**服务端验证已通过**
 - [common](common/README.md) — 仅真正跨版本共享的资源（logo 与语言文件）
 - 根目录 `NOTICE.md` / `LICENSE.txt` 会打进各版本 jar
 
@@ -683,7 +683,7 @@ cd versions/1.20.1
 ./gradlew build
 ```
 
-Minecraft 1.21.1（仅 NeoForge 脚手架）：
+Minecraft 1.21.1（NeoForge，Java 21）：
 
 ```bash
 cd versions/1.21.1
@@ -713,9 +713,10 @@ kubejs-goety/
 │           ├── META-INF/mods.toml
 │           ├── kubejs.plugins.txt
 │           └── kubejs/                 # 示例脚本
-└── versions/1.21.1/                    # NeoForge 1.21.1 脚手架（功能移植待进行）
+└── versions/1.21.1/                    # NeoForge 1.21.1 Beta 移植
     ├── build.gradle
-    └── src/main/java/com/kubejs/goety/KubeJSGoety.java
+    ├── src/main/                      # 插件、事件、配方、研究、药酿、Mixin
+    └── src/test/                      # 回归检查与服务端测试脚本
 ```
 
 ## 致谢与第三方来源声明
