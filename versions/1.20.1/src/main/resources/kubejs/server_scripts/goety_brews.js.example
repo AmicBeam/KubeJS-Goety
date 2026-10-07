@@ -23,7 +23,8 @@ GoetyEvents.registerBrew(event => {
     // ==========================================
     // event.setCapacityLevels([level1, level2, ...])
     // - 传入等级增量数组，从 1 级开始
-    // - 注意：坩埚最大总容量上限为 32，超过会被截断
+    // - 配置后脚本控制的总容量上限为 32，超过会被截断
+    // - 不调用时沿用 Goety／附属原有容量逻辑；仅 addCapacity 不接管规则
     event.setCapacityLevels([2, 2, 2, 2, 4, 6, 8]);
     
     // event.addCapacity(item, level)
@@ -55,6 +56,7 @@ GoetyEvents.registerBrew(event => {
     // - level: 等级（整数）
     //
     // 等级型增强剂可通过等级表扩展上限。等级从 0 开始：
+    // 只接管显式配置的类型，其他类型（含附属高阶增强剂）继续沿用原有逻辑。
     event.setAugmentationLevels('duration', [1, 1, 1, 1]);
     event.setAugmentationLevels('amplifier', [
         { value: 1, cost: 2.0 },

@@ -15,13 +15,13 @@ public class BrewData {
     // The initial two-index layout referenced RevelationFix's BrewData; see NOTICE.md.
     public static final Map<Integer, List<Item>> LEVEL_TO_CAPACITY_ITEMS = createLevelMap(MAX_CAPACITY_LEVEL);
     public static final Map<String, Map<Integer, List<Item>>> TYPE_TO_LEVEL_AUGMENT_ITEMS = createAugmentMap();
-    private static List<Integer> CAPACITY_LEVEL_DELTAS = new ArrayList<>();
+    private static List<Integer> CAPACITY_LEVEL_DELTAS;
     private static Integer INITIAL_CAPACITY_OVERRIDE;
     private static Item CAULDRON_STARTER;
     private static final int DEFAULT_INITIAL_CAPACITY = 4;
     private static final int[] DEFAULT_LEVEL_DELTAS = new int[]{2, 2, 2, 2, 4, 6};
     private static final Map<String, List<AugmentationLevel>> DEFAULT_AUGMENT_LEVELS = createDefaultAugmentLevels();
-    private static final Map<String, List<AugmentationLevel>> AUGMENT_LEVELS = new HashMap<>(DEFAULT_AUGMENT_LEVELS);
+    private static final Map<String, List<AugmentationLevel>> AUGMENT_LEVELS = new HashMap<>();
 
     private static Map<Integer, List<Item>> createLevelMap(int maxLevel) {
         Map<Integer, List<Item>> map = new HashMap<>();
@@ -90,11 +90,20 @@ public class BrewData {
     }
 
     public static void setCapacityLevelDeltas(List<Integer> deltas) {
-        if (deltas == null) {
-            CAPACITY_LEVEL_DELTAS = new ArrayList<>();
-            return;
-        }
-        CAPACITY_LEVEL_DELTAS = new ArrayList<>(deltas);
+        CAPACITY_LEVEL_DELTAS = deltas == null ? null : new ArrayList<>(deltas);
+    }
+
+    public static boolean hasScriptedCapacityLevels() {
+        return CAPACITY_LEVEL_DELTAS != null;
+    }
+
+    public static boolean hasScriptedAugmentationLevels(String type) {
+        return AUGMENT_LEVELS.containsKey(type);
+    }
+
+    public static void resetScriptedLevelTables() {
+        CAPACITY_LEVEL_DELTAS = null;
+        AUGMENT_LEVELS.clear();
     }
 
     public static void setAugmentationLevels(String type, List<AugmentationLevel> levels) {
@@ -150,8 +159,8 @@ public class BrewData {
         if (level <= 0) {
             return 0;
         }
-        if (level <= CAPACITY_LEVEL_DELTAS.size()) {
-            return CAPACITY_LEVEL_DELTAS.get(level - 1);
+        if (hasScriptedCapacityLevels()) {
+            return level <= CAPACITY_LEVEL_DELTAS.size() ? CAPACITY_LEVEL_DELTAS.get(level - 1) : 0;
         }
         if (level >= 1 && level <= DEFAULT_LEVEL_DELTAS.length) {
             return readConfigInt("Level" + level + "Capacity", DEFAULT_LEVEL_DELTAS[level - 1]);
@@ -168,7 +177,7 @@ public class BrewData {
     }
 
     public static int getMaxCapacityLevel() {
-        if (!CAPACITY_LEVEL_DELTAS.isEmpty()) {
+        if (hasScriptedCapacityLevels()) {
             return CAPACITY_LEVEL_DELTAS.size();
         }
         return DEFAULT_LEVEL_DELTAS.length;

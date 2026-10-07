@@ -1,6 +1,8 @@
 # Mixin Compatibility Notes
 
-Target reviewed: Goety 2.5.55.4 for Minecraft 1.20.1.
+Compile target: Goety 2.5.55.4 for Minecraft 1.20.1.
+Additional static review: Goety 2.5.58.4 and Goety Revelation 2.3.4fix2
+(embedded RevelationFix 4.7). Runtime coexistence remains to be verified.
 
 ## Overwrite Removal
 
@@ -17,6 +19,18 @@ KubeJS Goety:
 Every other item path continues through Goety's original method. This includes
 cauldron crafting, recipe lookup, catalysts, non-levelled modifiers, and any
 future branches Goety adds before returning.
+
+Capacity activation/upgrades are intercepted only after `setCapacityLevels`.
+Augmentations are intercepted independently per type only after that type is
+configured with `setAugmentationLevels`. Registering items does not claim their
+level rules. An unconfigured type returns from the hook before any item insertion
+or failure, allowing newer Goety/addon branches to run. An explicit empty
+capacity table disables upgrades rather than falling back to six levels.
+
+Goety 2.5.58.4 still allocates 32 slots; RevelationFix 4.7 expands those
+containers to 128 and adds capacity levels 7-9. The KubeJS 32-capacity clamp
+applies only to scripted capacity tables. Unconfigured paths retain upstream
+limits.
 
 The injected branch is cancellable because a scripted level must replace
 Goety's hard-coded level table after it accepts the item. It does not copy the

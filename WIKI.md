@@ -670,10 +670,9 @@ GoetyEvents.registerBrew(event => {
 });
 ```
 
-**Limit**: The cauldron's maximum total capacity is capped at 32 (values above are clamped).
+**Scripted limit**: When `setCapacityLevels` is configured, total capacity is capped at 32 (values above are clamped). Unconfigured capacity follows Goety and installed addons, including their capacity limits.
 
-Without `setCapacityLevels`, the Goety 2.5.55 six-level delta table
-`[2, 2, 2, 2, 4, 6]` is used.
+Without `setCapacityLevels`, capacity activation and upgrades follow Goety/addon logic. Registering items alone does not take over level rules. An explicit empty table disables capacity upgrades.
 
 ### Capacity Modifiers
 
@@ -693,7 +692,7 @@ GoetyEvents.registerBrew(event => {
 
 **Notes**:
 - Level 0 activates the initial capacity
-- Levels 1~N must be defined in `setCapacityLevels`
+- With a scripted table, levels 1~N must be defined in `setCapacityLevels`; otherwise Goety/addon rules apply
 - Multiple items can share the same level; the delta comes from the level table
 
 ### Augmentation Level Tables
@@ -726,7 +725,7 @@ GoetyEvents.registerBrew(event => {
 - `addAugmentation(item, modifier, level)` uses the matching entry in the modifier's level table
 - `duration`, `amplifier`, `aoe`, and `quaff` values must be whole numbers
 - `linger` and `velocity` may use decimal values
-- Existing Goety level tables are used unless overridden with `setAugmentationLevels`
+- Only types explicitly configured with `setAugmentationLevels` are intercepted; other types follow Goety/addon logic, including addon levels above 2
 
 ### Augmentation Modifiers
 
@@ -747,7 +746,7 @@ GoetyEvents.registerBrew(event => {
 ```
 
 **Notes**:
-- Levelable modifier levels must exist in that modifier's `setAugmentationLevels` table
+- With a scripted table, the level must exist in that modifier's `setAugmentationLevels` table; otherwise Goety/addon rules apply
 - Multiple items can share the same modifier level; the value and cost come from the level table
 
 ### Remove Capacity Modifiers and Augmentations

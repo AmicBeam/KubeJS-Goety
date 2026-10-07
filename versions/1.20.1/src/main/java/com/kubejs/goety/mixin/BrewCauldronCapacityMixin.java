@@ -98,7 +98,7 @@ public abstract class BrewCauldronCapacityMixin extends BlockEntity implements W
 
     @ModifyConstant(method = "<init>", constant = @Constant(intValue = 32))
     private int kubejs_goety$expandContainerSize(int original) {
-        return Math.max(original, BrewData.getMaxCapacity());
+        return BrewData.hasScriptedCapacityLevels() ? Math.max(original, BrewData.getMaxCapacity()) : original;
     }
 
     @Inject(method = "insertItem", at = @At("HEAD"), cancellable = true)
@@ -115,7 +115,15 @@ public abstract class BrewCauldronCapacityMixin extends BlockEntity implements W
             return;
         }
 
-        if (this.mode == BrewCauldronBlockEntity.Mode.IDLE && modifier instanceof CapacityModifier
+        // Registration alone does not transfer ownership of a modifier's level rules.
+        // Leave unconfigured types to Goety and other mods before changing any state.
+        boolean capacityModifier = modifier instanceof CapacityModifier && BrewData.hasScriptedCapacityLevels();
+        boolean levelableAugmentation = BrewData.hasScriptedAugmentationLevels(modifier.getId());
+        if (!capacityModifier && !levelableAugmentation) {
+            return;
+        }
+
+        if (this.mode == BrewCauldronBlockEntity.Mode.IDLE && capacityModifier
                 && modifier.getLevel() == 0) {
             int initialCapacity = BrewData.getInitialCapacity();
             if (this.getCapacity() < initialCapacity) {
@@ -130,12 +138,6 @@ public abstract class BrewCauldronCapacityMixin extends BlockEntity implements W
         }
 
         if (this.mode != BrewCauldronBlockEntity.Mode.BREWING) {
-            return;
-        }
-
-        boolean capacityModifier = modifier instanceof CapacityModifier;
-        boolean levelableAugmentation = BrewData.isLevelableAugmentation(modifier.getId());
-        if (!capacityModifier && !levelableAugmentation) {
             return;
         }
 

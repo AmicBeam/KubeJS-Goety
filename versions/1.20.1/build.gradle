@@ -175,3 +175,19 @@ publishing {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
+
+tasks.register('testBrewLevelOwnership', JavaExec) {
+    dependsOn tasks.named('testClasses')
+    // This standalone regression executable needs the compile API, not a Forge launch runtime.
+    classpath = sourceSets.test.output + sourceSets.main.output + sourceSets.main.compileClasspath
+    mainClass = 'com.kubejs.goety.brew.BrewLevelOwnershipTest'
+}
+
+tasks.named('test', Test) {
+    // Executed by testBrewLevelOwnership; it is not a JUnit test class.
+    exclude '**/BrewLevelOwnershipTest.class'
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('testBrewLevelOwnership')
+}

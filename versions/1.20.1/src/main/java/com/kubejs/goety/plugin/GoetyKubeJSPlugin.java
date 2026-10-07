@@ -8,6 +8,7 @@ import com.kubejs.goety.recipe.schema.PulverizeSchema;
 import com.kubejs.goety.recipe.schema.RitualSchema;
 import com.kubejs.goety.recipe.schema.SoulAbsorberSchema;
 import com.kubejs.goety.util.EventHandlers;
+import com.kubejs.goety.brew.BrewData;
 import com.kubejs.goety.research.GoetyResearchScriptAPI;
 import com.kubejs.goety.research.CustomResearchScrollItem;
 import com.kubejs.goety.research.ResearchData;
@@ -88,6 +89,8 @@ public class GoetyKubeJSPlugin extends KubeJSPlugin {
                 }
                 
                 // 触发注册药酿事件
+                // A newly loaded world only owns the level tables its scripts configure now.
+                BrewData.resetScriptedLevelTables();
                 if (EventHandlers.registerBrew.hasListeners()) {
                     EventHandlers.registerBrew.post(new com.kubejs.goety.event.RegisterBrewEventJS());
                 }

@@ -326,9 +326,9 @@ GoetyEvents.registerBrew(event => {
 });
 ```
 
-**上限**：坩埚的最大总容量被限制为 32（超过的部分会被截断）。
+**脚本上限**：配置 `setCapacityLevels` 后，脚本控制的总容量上限为 32（超出会被截断）。未配置时沿用 Goety／附属模组自己的容量规则与上限。
 
-未调用 `setCapacityLevels` 时，默认使用 Goety 2.5.55 的六级增量表 `[2, 2, 2, 2, 4, 6]`。
+未调用 `setCapacityLevels` 时，容量激活和升级直接沿用 Goety／附属模组的原有逻辑；仅调用 `addCapacity` 注册物品不会接管等级规则。显式传入空数组会禁用容量升级。
 
 #### 注册容量剂
 
@@ -345,7 +345,7 @@ GoetyEvents.registerBrew(event => {
 
 **说明**：
 - level 0 用于激活初始容量
-- level 1~N 必须在 `setCapacityLevels` 中定义对应增量
+- 配置了脚本等级表时，level 1~N 必须在 `setCapacityLevels` 中定义对应增量；否则沿用 Goety／附属规则
 - 同一等级可以注册多个物品，容量增量由等级表统一决定
 
 #### 设置增强剂等级表
@@ -378,7 +378,7 @@ GoetyEvents.registerBrew(event => {
 - `addAugmentation(item, modifier, level)` 会使用对应增强类型等级表中的该 level 项
 - `duration`、`amplifier`、`aoe`、`quaff` 的 value 必须是整数
 - `linger`、`velocity` 的 value 可以是小数
-- 未通过 `setAugmentationLevels` 覆盖时，会继续使用 Goety 原有等级表
+- 只接管通过 `setAugmentationLevels` 显式配置的增强类型；其他类型沿用 Goety／附属模组原有逻辑，包括附属添加的 level 3 及以上等级。仅注册增强剂物品不会接管等级规则
 
 #### 注册增强剂
 
@@ -405,7 +405,7 @@ GoetyEvents.registerBrew(event => {
 ```
 
 **说明**：
-- 等级型增强剂的 level 必须在该类型的 `setAugmentationLevels` 等级表中存在
+- 配置了该类型的脚本等级表时，level 必须在其 `setAugmentationLevels` 表中存在；否则沿用 Goety／附属规则
 - 同一个增强类型的同一等级可以注册多个物品，增加值和消耗倍率由等级表统一决定
 
 #### 移除容量剂与增强剂
