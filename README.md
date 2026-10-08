@@ -7,7 +7,7 @@ Current version: **1.1.1**
 Development uses version directories, not a root Gradle project. There is no implicit default `./gradlew` at the repository root.
 
 - Supported Forge implementation: [`versions/1.20.1`](versions/1.20.1/README.md)
-- NeoForge 1.21.1 development scaffold, feature port pending: [`versions/1.21.1`](versions/1.21.1/README.md)
+- NeoForge 1.21.1 beta port, dedicated-server validation passed: [`versions/1.21.1`](versions/1.21.1/README.md)
 - Shared logo and lang files only: [`common`](common/README.md)
 - Two-version contributor rules: [`AGENTS.md`](AGENTS.md)
 
@@ -33,7 +33,7 @@ Supported implementation (Minecraft 1.20.1):
 - KubeJS 2001.6+
 - Goety 2.5.55.0+
 
-Minecraft 1.21.1 is a separate NeoForge development scaffold only. Its feature port is pending and is not a supported implementation yet. See [versions/1.21.1/README.md](versions/1.21.1/README.md).
+Minecraft 1.21.1 has a separate NeoForge beta port with the scripting APIs implemented and dedicated-server validation passed. Client UI and multiplayer synchronization still need in-game validation. See [versions/1.21.1/README.md](versions/1.21.1/README.md).
 
 ## Installation
 
@@ -637,7 +637,7 @@ ServerEvents.recipes(event => {
 This repository has **no root Gradle project** and no implicit default Minecraft version. Each supported loader lives in its own version directory and must be built from that directory.
 
 - [versions/1.20.1](versions/1.20.1/README.md) — current Forge implementation (feature-complete)
-- [versions/1.21.1](versions/1.21.1/README.md) — independent NeoForge development scaffold; **feature port pending**
+- [versions/1.21.1](versions/1.21.1/README.md) — independent NeoForge beta port; **server validation passed**
 - [common](common/README.md) — only truly shared resources (logo and lang files)
 - Root `NOTICE.md` / `LICENSE.txt` are packaged into each version jar
 
@@ -652,7 +652,7 @@ cd versions/1.20.1
 ./gradlew build
 ```
 
-Minecraft 1.21.1 (NeoForge scaffold only):
+Minecraft 1.21.1 (NeoForge, Java 21):
 
 ```bash
 cd versions/1.21.1
@@ -682,9 +682,10 @@ kubejs-goety/
 │           ├── META-INF/mods.toml
 │           ├── kubejs.plugins.txt
 │           └── kubejs/                 # example scripts
-└── versions/1.21.1/                    # NeoForge 1.21.1 scaffold (port pending)
+└── versions/1.21.1/                    # NeoForge 1.21.1 beta port
     ├── build.gradle
-    └── src/main/java/com/kubejs/goety/KubeJSGoety.java
+    ├── src/main/                      # plugin, events, recipes, research, brew, mixins
+    └── src/test/                      # regression checks and server smoke fixtures
 ```
 
 ## Acknowledgements and Third-Party Attribution

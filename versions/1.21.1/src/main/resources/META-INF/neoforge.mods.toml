@@ -8,7 +8,7 @@ version="${mod_version}"
 displayName="${mod_name}"
 displayURL="https://github.com/AmicBeam/KubeJS-Goety"
 logoFile="logo.png"
-credits="Integration mod for KubeJS and Goety. 1.21.1 feature port pending. Limited early 1.20.1 bridge/index-table details referenced RevelationFix by MegaDarkness (ARR); see the packaged NOTICE.md for exact scope."
+credits="Integration mod for KubeJS and Goety. NeoForge 1.21.1 beta port. Limited early 1.20.1 bridge/index-table details referenced RevelationFix by MegaDarkness (ARR); see the packaged NOTICE.md for exact scope."
 authors="${mod_authors}"
 description='''${mod_description}'''
 
@@ -29,7 +29,7 @@ side="BOTH"
 [[dependencies.${mod_id}]]
 modId="kubejs"
 type="required"
-versionRange="[2101.7.2,)"
+versionRange="[2101.7.2-build.377,)"
 ordering="AFTER"
 side="BOTH"
 
@@ -39,3 +39,6 @@ type="required"
 versionRange="[3.1.4,)"
 ordering="AFTER"
 side="BOTH"
+
+[[mixins]]
+config="kubejs_goety.mixins.json"

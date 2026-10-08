@@ -105,3 +105,15 @@ For a new Goety release:
 6. Exercise the configured cauldron starter, one cauldron recipe, one catalyst,
    one sacrifice, and at
    least one scripted capacity and augmentation level in game.
+
+
+## NeoForge 1.21.1 Port
+
+The section above describes Forge 1.20.1. The independent NeoForge tree compiles against Goety 3.1.4 and keeps Mojang production method names; it does not package an SRG refmap.
+
+- Cauldron loading injects into `loadAdditional(CompoundTag, HolderLookup.Provider)` before restoring items, preserving expanded inventories with the 1.21 registry-aware item format.
+- Goety 3.1.4 adds a `ResourceLocation` recipe ID argument to `DarkAltarBlockEntity.startRitual`; the start callback includes that argument.
+- The 1.21.1 build validates six cauldron selectors, nine brew bytecode anchors and ritual/cauldron callback descriptors against the production jar.
+- Dedicated-server tests cover actual Mixin application, custom callbacks, 68-slot capacity/save-load, recipe decoding and script reload. Client Patchouli anchors are checked statically; client UI and addon coexistence have not been playtested.
+
+See [the 1.21.1 README](versions/1.21.1/README.md) for the exact dependency matrix and reproducible smoke fixtures.

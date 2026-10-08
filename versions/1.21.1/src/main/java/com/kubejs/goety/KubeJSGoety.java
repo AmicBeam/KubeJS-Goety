@@ -1,18 +1,18 @@
 package com.kubejs.goety;
 
+import com.kubejs.goety.research.ResearchNetwork;
+import com.kubejs.goety.plugin.GoetyKubeJSPlugin;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 
-/**
- * 1.21.1 NeoForge development scaffold only.
- * Feature port from versions/1.20.1 is pending.
- * Do not register KubeJS plugins, mixins, or unported 1.20.1 Java here.
- */
 @Mod(KubeJSGoety.MOD_ID)
 public class KubeJSGoety {
-
     public static final String MOD_ID = "kubejs_goety";
 
     public KubeJSGoety(IEventBus modEventBus) {
+        ResearchNetwork.init(modEventBus);
+        NeoForge.EVENT_BUS.addListener((ServerStoppedEvent event) -> GoetyKubeJSPlugin.clearServerContext());
     }
 }

@@ -1,0 +1,20 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.kubejs.goety.mixin",
+  "plugin": "com.kubejs.goety.mixin.KubejsGoetyMixinPlugin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "DarkAltarBlockEntityMixin",
+    "BrewCauldronCapacityMixin",
+    "BrewCauldronCraftingStarterMixin",
+    "BrewCauldronBlockEntityMixin",
+    "BrewEffectsMixin",
+    "BrewEffectInstanceMixin",
+    "BrewingCatalystProcessorMixin",
+    "BrewingSacrificeProcessorMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -19,6 +19,10 @@ sourceSets {
             srcDir new File(repoRoot, 'common/src/main/resources')
         }
     }
+    test {
+        compileClasspath += sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.runtimeClasspath
+    }
 }
 
 neoForge {
@@ -65,10 +69,18 @@ repositories {
     }
 }
 
+configurations {
+    goetyProduction {
+        canBeConsumed = false
+        transitive = false
+    }
+}
+
 dependencies {
     compileOnly "dev.latvian.mods:kubejs-neoforge:${kubejs_version}"
     compileOnly "dev.latvian.mods:rhino:${rhino_version}"
     compileOnly "maven.modrinth:goety:${goety_modrinth_file}"
+    goetyProduction "maven.modrinth:goety:${goety_modrinth_file}"
 }
 
 tasks.named('jar', Jar).configure {
@@ -117,4 +129,35 @@ tasks.named('processResources', ProcessResources).configure {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.release = 21
+}
+
+tasks.named('test', Test) {
+    exclude '**/BrewLevelOwnershipTest.class', '**/BrewMixinMappingTest.class'
+    exclude '**/ResearchPayloadTest.class'
+}
+
+tasks.register('testBrewLevelOwnership', JavaExec) {
+    dependsOn tasks.named('testClasses')
+    classpath = sourceSets.test.output + sourceSets.main.output + sourceSets.main.compileClasspath
+    mainClass = 'com.kubejs.goety.brew.BrewLevelOwnershipTest'
+}
+
+tasks.register('testBrewMixinMapping', JavaExec) {
+    dependsOn tasks.named('testClasses'), tasks.named('jar')
+    classpath = sourceSets.test.output + sourceSets.main.output + sourceSets.main.compileClasspath
+    mainClass = 'com.kubejs.goety.brew.BrewMixinMappingTest'
+    doFirst {
+        args tasks.named('jar', Jar).get().archiveFile.get().asFile.absolutePath,
+                providers.gradleProperty('goetyProductionJar').getOrElse(configurations.goetyProduction.singleFile.absolutePath)
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('testBrewLevelOwnership'), tasks.named('testBrewMixinMapping'), tasks.named('testResearchPayload')
+}
+
+tasks.register('testResearchPayload', JavaExec) {
+    dependsOn tasks.named('testClasses')
+    classpath = sourceSets.test.output + sourceSets.main.output + sourceSets.main.compileClasspath
+    mainClass = 'com.kubejs.goety.research.ResearchPayloadTest'
 }

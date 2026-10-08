@@ -5,7 +5,7 @@ This repository is a multi-version workspace. There is **no root Gradle project*
 ## Layout
 
 - `versions/1.20.1/` — supported Forge 1.20.1 implementation. Independent Gradle project (wrapper, `build.gradle`, `settings.gradle`).
-- `versions/1.21.1/` — independent NeoForge 1.21.1 development scaffold. Feature port pending.
+- `versions/1.21.1/` — independent NeoForge 1.21.1 beta port. Scripting APIs implemented; dedicated-server checks passed; client playtesting pending.
 - `common/` — only truly shared resources (currently logo + lang). Not a Gradle project.
 - Root `NOTICE.md` and `LICENSE.txt` stay at the repository root and must be packaged into each version jar.
 
